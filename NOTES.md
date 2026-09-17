@@ -210,3 +210,13 @@ Now: our own UV layout written in Python (each face flat at true size, shelf-pac
 on a new layer that is both active and the render layer; glow materials are baked as they are (cloudy glass, white-hot core).
 Checked by looking at the atlas: weathering, rust specks and the glass pattern are there. Not worn yet.
 ⚠️ The Blender file itself was never changed (export only reads it). Grey in Blender = the viewport is in Solid mode: press Z.
+
+## Everything is unlit from now on (2026-09-17, Tefa's rule)
+*"can we from now, not have the light source or anything shining on whatever is being made, so i know exactly what it will look like?"*
+- `kit/pixel_kit.py`: every material is now a plain Emission shader at strength 1 (node `GameColor`); `metal`, `rough` and `emit`
+  are ignored. `studio()` and `fp_view()` no longer add lights. `gz_bake.py` bakes the materials as they are.
+- All weapon files rebuilt; new pictures `progress/2026-09-17-*-unlit-v1.png`. The muzzle-flash point lights still exist as objects
+  (the animations key them) but light nothing.
+- Lantern (hand-built file): converted by `kit/unlit_lantern.py`: non-glow materials show their base colour flat, lights and the
+  studio floor removed. The lit version is kept as `lantern/Ashes_2063_EP1_lantern_v07_lit_backup.blend`.
+- Consequence: highlights, shadows and chrome shine no longer exist anywhere; if we want them, they get painted into the texture.

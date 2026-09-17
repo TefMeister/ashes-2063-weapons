@@ -31,15 +31,7 @@ def bake_atlas(meshes, png_path):
     img = bpy.data.images.new("GZ_Atlas", ATLAS_SIZE, ATLAS_SIZE, alpha=False)
     for m in {s.material for o in meshes for s in o.material_slots if s.material}:
         N, L = m.node_tree.nodes, m.node_tree.links
-        bsdf = next(n for n in N if n.type == 'BSDF_PRINCIPLED')
-        out = next(n for n in N if n.type == 'OUTPUT_MATERIAL')
-        em = N.new('ShaderNodeEmission')
-        base = bsdf.inputs['Base Color']
-        if base.links:
-            L.new(base.links[0].from_socket, em.inputs['Color'])
-        else:
-            em.inputs['Color'].default_value = base.default_value
-        L.new(em.outputs[0], out.inputs['Surface'])
+        # pixel_mat materials are already a plain Emission shader ("GameColor"): bake them as they are
         tex = N.new('ShaderNodeTexImage'); tex.image = img; tex.interpolation = 'Closest'
         N.active = tex
     for o in meshes:
