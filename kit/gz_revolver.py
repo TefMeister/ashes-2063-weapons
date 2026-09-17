@@ -28,6 +28,14 @@ if VARIANT == "vr":
     VR_GRIP_DROP = 0.09
     # second wear: move it 3 cm down, 2 cm right, 3 cm back toward the player [reported 2026-09-17, n=1]
     VR_NUDGE_RIGHT, VR_NUDGE_BACK, VR_NUDGE_DOWN = 0.02, 0.03, 0.03
+    # third wear: "still 2cm lower"; "back my way" was not noticeable and the handle still sits away
+    # from the controller when turned sideways, so a bigger step back (+5 cm, 8 cm in all) to make the
+    # direction obvious [reported 2026-09-17, n=1]
+    VR_NUDGE_BACK += 0.05
+    VR_NUDGE_DOWN += 0.02
+    # The player tilts the controller by instinct while reloading, so the whole-gun movement in the
+    # reload keeps only 40% of the Blender animation (rotation and position) [reported 2026-09-17, n=1]
+    GUN_MOTION_SCALE = {"reload": 0.4}
     ORIGIN = (0.0 - VR_NUDGE_RIGHT, -0.3522 + VR_NUDGE_BACK, 0.0074 + VR_GRIP_DROP + VR_NUDGE_DOWN)
     PK3 = "Ashes2063_revolver3d_VR_test.pk3"
 else:
