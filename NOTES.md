@@ -184,3 +184,10 @@ config. Lesson: `+openvr_weaponRotate` on the command line does not apply; set i
 See `engine/README.md` (patch, build recipe). Test mod: `lantern/gzdoom/Ashes2063_lefthand_lantern_test.pk3`, built by
 `kit/gz_lantern.py`: our Blender lantern as a world model, moved to the off hand every tic by a small ZScript event handler,
 with a flickering dynamic light. Desktop shortcut on the home PC: "Ashes 2063 VR - Tefa engine test". Headset test pending.
+
+## ✅ The left hand works: lantern in the off hand, lighting the world (2026-09-17) `[reported 2026-09-17, n=1 wear]`
+First headset wear of our GZDoomVR build. The lantern follows the left controller and its dynamic light moves with it.
+Fixes after that wear (not worn yet): light radius halved (55/62), light colour blue-white, and the lamp no longer bakes grey:
+its glow materials are plain Emission nodes, which the first bake ignored. The glow now flickers in the game's own three
+brightness steps and measured 66-tic order (`lantern/NOTES.md`), as three skins on sprite frames LHLN A/B/C.
+Stop-motion hand at 12 updates a second felt bad; now a frames-to-skip setting starting at 1. See `engine/README.md`.
