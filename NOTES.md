@@ -167,3 +167,8 @@ Also from the source `[inferred-static]`: VR hangs the model off the controller 
 `openvr_weaponScale` does not touch models; HUD models are not back-face culled; `Skin` overrides `SurfaceSkin`;
 unmapped weapon frames fall back to the flat sprite. A VR build exists and is untested. Details: `revolver/gzdoom/TEST.md`.
 Test harness: `tools/gzdrive.py` (window capture, scancode input, focus fix) and `tools/revolver_test.py`.
+
+## First headset wear of the revolver (2026-09-17) `[reported 2026-09-17, n=1 wear]`
+Shows up in the hand and *"feels awesome already and works really well"*, but sat 8-10 cm too high. So the engine's hand
+point (MD3 30, 0, -5) is not mid-palm on Quest 3 controllers through Virtual Desktop; the VR build now puts the grip centre
+9 cm lower (MD3 Z -14), close to where the bundled VR pistol has its grip (about -12). The lowered build is not worn yet.

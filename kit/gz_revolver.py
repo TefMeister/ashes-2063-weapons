@@ -22,8 +22,11 @@ ANIMS = [
 if VARIANT == "vr":
     SPACE = "hand"
     UNITS_PER_M = 100
-    # grip centre G = (0, -0.0522, -0.0426) in root space; (G - ORIGIN) * 100 = (30, 0, -5)
-    ORIGIN = (0.0, -0.3522, 0.0074)
+    # grip centre G = (0, -0.0522, -0.0426) in root space. The engine's hand point is MD3 (30, 0, -5),
+    # but in the headset that sat the gun 8-10 cm too high (Tefa, Quest 3 + Virtual Desktop)
+    # [reported 2026-09-17, n=1], so the grip centre goes 9 cm lower: (G - ORIGIN) * 100 = (30, 0, -14)
+    VR_GRIP_DROP = 0.09
+    ORIGIN = (0.0, -0.3522, 0.0074 + VR_GRIP_DROP)
     PK3 = "Ashes2063_revolver3d_VR_test.pk3"
 else:
     SPACE = "view"
