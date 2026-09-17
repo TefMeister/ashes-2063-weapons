@@ -191,3 +191,13 @@ Fixes after that wear (not worn yet): light radius halved (55/62), light colour 
 its glow materials are plain Emission nodes, which the first bake ignored. The glow now flickers in the game's own three
 brightness steps and measured 66-tic order (`lantern/NOTES.md`), as three skins on sprite frames LHLN A/B/C.
 Stop-motion hand at 12 updates a second felt bad; now a frames-to-skip setting starting at 1. See `engine/README.md`.
+
+## Lantern, second wear (2026-09-17) `[reported 2026-09-17, n=1]` and what changed (not worn yet)
+Tefa, with two headset screenshots: glows blue now, but the glass is a solid blue tube (no inner tube, no sparks), the keypad
+is mirrored, the lid screen should not flicker, and the lantern rubber-bands instead of being fixed to the hand. Stop-motion dropped.
+- **Three actors instead of one** (`kit/gz_lantern.py`): body (opaque), glass (`RenderStyle Add`, alpha 0.35, so the inner tube
+  shows), sparks (additive; one model frame per distinct lightning picture, 12 of them, played with the Blender timeline:
+  610 tics, rare 1-2 tic strikes).
+- **Mirror:** world models in this engine want MD3 +Y = LEFT; held-weapon (HUD) models want +Y = RIGHT `[verified-live 2026-09-17, n=1 each]`.
+- **Flicker mask** is now only materials named `...Glow`; the lid screen and LEDs stay steady.
+- **Rubber-banding:** fixed in the engine with `FollowOffhand` (see `engine/README.md`).

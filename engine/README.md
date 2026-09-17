@@ -7,7 +7,10 @@ the VR engine Ashes 2063 runs on here. Patch file: `gzdoomvr-gvr4.13.2.2-offhand
 1. **The off hand, for mods.** New read-only ZScript fields on the player actor: `OffhandValid`, `OffhandPos`,
    `OffhandDir`, `OffhandAngle`, `OffhandPitch`, `OffhandRoll` (same conventions as the existing `AttackPos` etc. for
    the weapon hand). Before this, mods could not see the off hand at all.
-2. **Stop-motion weapon hand.** `vr_weapon_stopmotion` (on/off) and `vr_weapon_stopmotion_skip` (rendered frames the
+2. **`FollowOffhand`**, a bool any mod can set on any actor: the engine then draws that actor at the off hand's pose of the
+   current rendered frame (position and yaw), exactly like the weapon, instead of at its once-per-tic position. Without it a
+   hand-held actor rubber-bands: it lags when you walk and drifts back when you stop `[reported 2026-09-17, n=1]`.
+3. **Stop-motion weapon hand (dropped by Tefa 2026-09-17, left in the code, off).** `vr_weapon_stopmotion` (on/off) and `vr_weapon_stopmotion_skip` (rendered frames the
    weapon stays frozen after each update, 1 to 12). The world and the view stay smooth.
    Shots use the same frozen pose, so bullets still leave the barrel you see. Menu: Options → VR Options.
 
@@ -22,8 +25,7 @@ The result goes in its own folder (`gzdoomvr-tefa/`) beside the original engine;
 - **Left hand: works in the headset** `[reported 2026-09-17, n=1 wear]`. Tefa: *"left hand is moving the lantern and it is also the
   light source, so it illuminates the world around it as i move it! this is awesome!"* Asked for: half the light radius, and the
   blue flicker (the lamp looked grey). Both changed, not worn yet.
-- **Stop-motion hand: did not feel good at 12 updates a second** `[reported 2026-09-17, n=1]`. Tefa: *"maybe if we start with
-  missing just one frame, and if that still is not good, then we'll drop it."* Now counts skipped frames, starting at 1. Not worn yet.
+- **Stop-motion hand: DROPPED.** 12 updates a second felt bad, and so did skipping a single frame: *"stop motion is not good in here, so we'll drop that going forward"* `[reported 2026-09-17, n=1]`. The setting is off; the code stays, harmlessly.
 - **Two-handed long guns look possible with this build** `[hypothesis]`: mods can now read both hands every tic, so a rifle can point
   from the rear hand toward the front hand. Aiming the shots the same way needs one more small engine change (shots currently follow
   the weapon controller only).
