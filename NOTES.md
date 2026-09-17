@@ -172,3 +172,10 @@ Test harness: `tools/gzdrive.py` (window capture, scancode input, focus fix) and
 Shows up in the hand and *"feels awesome already and works really well"*, but sat 8-10 cm too high. So the engine's hand
 point (MD3 30, 0, -5) is not mid-palm on Quest 3 controllers through Virtual Desktop; the VR build now puts the grip centre
 9 cm lower (MD3 Z -14), close to where the bundled VR pistol has its grip (about -12). The lowered build is not worn yet.
+
+## ✅ The revolver works in VR (2026-09-17) `[reported 2026-09-17, n=1 wearer]`
+After seven headset rounds Tefa: *"it's pointing straight now. mission accomplished isn't it!! it works"*. Final VR setup:
+grip about 7 cm below the engine's hand point, nudged 5 cm back toward the player overall (right/left cancelled out), reload
+whole-gun movement cut to 40% (the player tilts the controller anyway), and `openvr_weaponRotate=-50` (was -40) in the test
+config. Lesson: `+openvr_weaponRotate` on the command line does not apply; set it in the ini. The desktop shortcut
+"Ashes 2063 VR - 3D revolver test" runs the test build with its own config copy.
