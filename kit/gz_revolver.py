@@ -4,7 +4,7 @@ NAME = "revolver"
 ROOT = "RV_Root"
 DIR = r"C:\Users\TD3KX\ashes-2063-weapons\revolver"
 OUT_DIR = DIR + r"\gzdoom"
-PK3 = "Ashes2063_revolver3d_test.pk3"
+PK3 = "Ashes2063_revolver3d_test.pk3"    # the flat build; the VR build overrides this below
 MODEL_PATH = "models/ashes2063/revolver"     # folder inside the pk3
 
 # Animation files in model-frame order: name -> (file, frame count)
@@ -13,8 +13,22 @@ ANIMS = [
     ("reload", DIR + r"\Ashes_2063_EP1_revolver_reload.blend", 68),
 ]
 
-UNITS_PER_M = 250            # map units per metre; the VR pistol is ~50 units long, ours ~48
-ORIGIN = (0.0, -0.05, 0.065) # model origin at the gun's top rear, like the VR pistol model
+# Two builds, because the engine places the model differently (hh79/gzdoomvr gvr4.13.2.2,
+# models.cpp + hw_models.cpp) [inferred-static 2026-09-17; flat build verified-live 2026-09-17]:
+# - flat: the model origin is the player's EYE, units are free (only ratios show).
+#   We export the Blender first-person camera space, so the game shows what ViewCam shows.
+# - vr: the model hangs off the CONTROLLER in real centimetres (100 units per metre); the hand
+#   lands at MD3 (30, 0, -5), so ORIGIN is chosen to put the grip centre there.
+if VARIANT == "vr":
+    SPACE = "hand"
+    UNITS_PER_M = 100
+    # grip centre G = (0, -0.0522, -0.0426) in root space; (G - ORIGIN) * 100 = (30, 0, -5)
+    ORIGIN = (0.0, -0.3522, 0.0074)
+    PK3 = "Ashes2063_revolver3d_VR_test.pk3"
+else:
+    SPACE = "view"
+    UNITS_PER_M = 250
+    ORIGIN = (0.0, 0.0, 0.0)
 
 # Sprite frame -> (animation, Blender frame). One sprite letter can only show one pose,
 # so each letter uses the pose at its FIRST tic (see Revolver.txt timings in NOTES.md).

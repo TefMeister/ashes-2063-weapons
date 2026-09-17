@@ -6,8 +6,6 @@ Model revolver
    Skin 0 "revolver.png"
    SurfaceSkin 0 0 "revolver.png"
    SurfaceSkin 0 1 "revolver.png"
-   SurfaceSkin 0 2 "revolver.png"
-   SurfaceSkin 0 3 "revolver.png"
    Scale 1.0 1.0 1.0
    NOINTERPOLATION
 
