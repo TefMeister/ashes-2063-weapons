@@ -166,3 +166,15 @@ the lantern more, but still it's like there is a spotlight that follows me aroun
   Switch: `KILL_LIGHT_FADE` in `kit/gz_lantern.py`. ⚠️ Not worn yet; it changes how the WHOLE game reads, and the
   likely cost is that far-away dark areas no longer fade into black.
 - Loads clean on a flat screen into MAP01, no script or MAPINFO errors.
+
+## Fifth wear, result: good — but rubber-banding may be back (2026-09-17) `[reported 2026-09-17, n=1]`
+Tefa: *"for now, this is really good"*, and *"the lantern was rubberbanding when i moved, not sure if it's back or
+i never checked it properly"*. So the turn (30°), the size (scale 1.5), the moved room light and `nolightfade` all
+stay as they are; the whole fifth-pass set is accepted, with one thing to check next time.
+- **To check first next wear:** stand still and walk, and say whether it is the LANTERN that lags or the LIGHT.
+  They behave differently by design: the model is drawn from the controller pose of the current rendered frame
+  (`FollowOffhand`), while the light rides the actor, which only moves once a game tic (35 a second). So a lagging
+  *pool of light* with a solid lantern would be expected and fixable in the engine (move the light per frame too);
+  a lagging *lantern* would mean `FollowOffhand` is not doing its job while the player moves `[hypothesis]`.
+- Worth ruling out cheaply: the three lantern actors are spawned once and never re-spawned, so if `OffhandValid`
+  ever flickers the parts are only hidden, not re-placed.
