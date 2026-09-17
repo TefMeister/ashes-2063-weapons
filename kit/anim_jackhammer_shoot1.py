@@ -1,4 +1,6 @@
-# Jackhammer "shoot 1": a looping hammering cycle, stop-motion (each pose held 2 tics).
+# Jackhammer "shoot 1": the looping hammering cycle while fire is held, stop-motion.
+# One frame = one game tic (35 fps). Timing is the game's own (Actors/Weapons/Hammer.txt, FIREGAS):
+#   HAMM E 1, F 1 (the hit), G 1, H 1, E 1, then straight back to E: one hit every 5 tics.
 exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\anim_kit.py").read())
 
 MODEL = r"C:\Users\TD3KX\ashes-2063-weapons\jackhammer\Ashes_2063_EP1_jackhammer_model.blend"
@@ -13,16 +15,15 @@ if STATIC:
 REST_LOC = (0.025, 0.52, -0.23)      # machine below and in front of the player
 REST_ROT = (25, 0, -4)               # top tipped toward the camera
 VIEW_LENS_JH = 20                    # wider view, like the game's 90-degree field of view
-FRAME_END = 12                       # loops: frame 13 == frame 1
+FRAME_END = 5                        # loops: frame 6 == frame 1
 
-# frame, body offset (x, y, z), body extra rot (deg), bit travel down (m), puff: 0 off / 1 small / 2 big
+# frame (game sprite), body offset (x, y, z), body extra rot (deg), bit travel down (m), puff: 0 off / 1 small / 2 big
 POSES = [
-    (1,  (0, 0, 0),           (0, 0, 0),       0.000, 0),
-    (3,  (0.004, 0, -0.016),  (1.5, 0, 1.5),   0.035, 0),
-    (5,  (-0.003, 0, 0.008),  (-1.0, 0, -1.0), 0.000, 1),
-    (7,  (-0.004, 0, -0.013), (1.0, 0, -1.5),  0.030, 2),
-    (9,  (0.003, 0, 0.010),   (-1.5, 0, 1.0),  0.000, 1),
-    (11, (0, 0, -0.004),      (0.5, 0, 0),     0.012, 0),
+    (1, (0, 0, 0),           (0, 0, 0),       0.000, 0),   # E
+    (2, (0.004, 0, -0.016),  (1.5, 0, 1.5),   0.035, 2),   # F: the hit
+    (3, (-0.003, 0, 0.008),  (-1.0, 0, -1.0), 0.000, 1),   # G: bounce back
+    (4, (0.002, 0, -0.006),  (0.5, 0, -0.5),  0.015, 1),   # H
+    (5, (0, 0, 0.002),       (0, 0, 0),       0.000, 0),   # E
 ]
 
 reset_scene()
