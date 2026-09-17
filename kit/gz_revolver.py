@@ -36,6 +36,8 @@ if VARIANT == "vr":
     # fourth wear: "up please now 3cm and back 2cm" [reported 2026-09-17, n=1]
     VR_NUDGE_DOWN -= 0.03
     VR_NUDGE_BACK += 0.02
+    # fifth wear: "needs 2cm to the left again" [reported 2026-09-17, n=1]
+    VR_NUDGE_RIGHT -= 0.02
     # The player tilts the controller by instinct while reloading, so the whole-gun movement in the
     # reload keeps only 40% of the Blender animation (rotation and position) [reported 2026-09-17, n=1]
     GUN_MOTION_SCALE = {"reload": 0.4}
