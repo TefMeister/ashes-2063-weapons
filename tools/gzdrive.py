@@ -96,16 +96,17 @@ GAME = r"C:\NonSteam\Ashes 2063 VR"
 TEST_PK3 = r"C:\Users\TD3KX\ashes-2063-weapons\revolver\gzdoom\Ashes2063_revolver3d_test.pk3"
 FLAT_INI = r"gzdoomvr\ashes-flat-test.ini"   # a copy, so the VR config is never rewritten
 
-def launch(extra_files=(TEST_PK3,), map_name="MAP01"):
+def launch(extra_files=(TEST_PK3,), map_name="MAP01", engine="gzdoomvr", extra_args=()):
     import shutil
-    ini = os.path.join(GAME, FLAT_INI)
+    flat_ini = FLAT_INI.replace("gzdoomvr", engine, 1)
+    ini = os.path.join(GAME, flat_ini)
     if not os.path.exists(ini):
         shutil.copy(os.path.join(GAME, r"gzdoomvr\ashes-vr.ini"), ini)
-    args = [os.path.join(GAME, r"gzdoomvr\gzdoomvr.exe"), "-iwad", r"Resources\freedoom-0.12.1\freedoom2.wad",
+    args = [os.path.join(GAME, engine, "gzdoomvr.exe"), "-iwad", r"Resources\freedoom-0.12.1\freedoom2.wad",
             "-file", r"Resources\AshesSAMenu.pk3", r"Resources\lightmodepatch.pk3",
             r"Resources\Ashes2063Enriched2_23.pk3", r"Resources\Ashes2063EnrichedFDPatch.pk3", *extra_files,
-            "-config", FLAT_INI, "+vr_mode", "0", "+vid_fullscreen", "0", "+win_w", "1280", "+win_h", "720",
-            "+set", "language", "enu", "-skill", "3", "+map", map_name]
+            "-config", flat_ini, "+vr_mode", "0", "+vid_fullscreen", "0", "+win_w", "1280", "+win_h", "720",
+            "+set", "language", "enu", "-skill", "3", "+map", map_name, *extra_args]
     return subprocess.Popen(args, cwd=GAME)
 
 def console(cmd, settle=0.4):
