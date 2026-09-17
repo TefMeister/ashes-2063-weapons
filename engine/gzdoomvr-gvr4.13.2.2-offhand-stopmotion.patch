@@ -1,32 +1,16 @@
-From 2ae22faec2392d7e9c99ab9e27af0f8adce7ef63 Mon Sep 17 00:00:00 2001
-From: TefMeister <td3kxlvr@proton.me>
-Date: Thu, 17 Sep 2026 17:59:31 +0300
-Subject: [PATCH] VR: off-hand pose for mods; stop-motion weapon hand (toggle +
- rate slider)
-
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
----
- .../rendering/hwrenderer/data/hw_vrmodes.cpp  |  4 ++
- src/playsim/actor.h                           |  8 ++++
- src/rendering/gl/stereo3d/gl_openvr.cpp       | 44 +++++++++++++++++--
- src/rendering/gl/stereo3d/gl_openvr.h         |  1 +
- src/scripting/vmthunks_actors.cpp             |  6 +++
- wadsrc/static/menudef.txt                     |  2 +
- wadsrc/static/zscript/actors/actor.zs         |  6 +++
- 7 files changed, 68 insertions(+), 3 deletions(-)
-
 diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
-index e2f1f7e..eff0f24 100644
+index e2f1f7e..43ed812 100644
 --- a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
 +++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
-@@ -61,6 +61,10 @@ CVAR(Bool, openvr_moveFollowsOffHand, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+@@ -61,6 +61,11 @@ CVAR(Bool, openvr_moveFollowsOffHand, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Bool, openvr_drawControllers, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Float, openvr_weaponRotate, -40.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Float, openvr_weaponScale, 0.3f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 +// Stop-motion weapon hand: the weapon follows the controller only a few times a second,
-+// while the world and the view stay smooth. Rate = updates per second.
++// while the world and the view stay smooth. Skip = how many rendered frames the weapon stays
++// frozen for after each update (1 = it moves on every second frame).
 +CVAR(Bool, vr_weapon_stopmotion, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-+CVAR(Int, vr_weapon_stopmotion_rate, 12, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
++CVAR(Int, vr_weapon_stopmotion_skip, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  
  CVAR(Bool, vr_snap_turn, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Float, vr_snap_angle, 45.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
@@ -50,7 +34,7 @@ index 0f92c92..19d5932 100644
  };
  
 diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
-index 95377d9..7712acd 100644
+index 95377d9..e2463a7 100644
 --- a/src/rendering/gl/stereo3d/gl_openvr.cpp
 +++ b/src/rendering/gl/stereo3d/gl_openvr.cpp
 @@ -29,6 +29,7 @@
@@ -66,7 +50,7 @@ index 95377d9..7712acd 100644
  EXTERN_CVAR(Float, openvr_weaponRotate);
  EXTERN_CVAR(Float, openvr_weaponScale);
 +EXTERN_CVAR(Bool, vr_weapon_stopmotion);
-+EXTERN_CVAR(Int, vr_weapon_stopmotion_rate);
++EXTERN_CVAR(Int, vr_weapon_stopmotion_skip);
  
  EXTERN_CVAR(Bool, vr_enable_haptics);
  EXTERN_CVAR(Float, vr_kill_momentum)
@@ -75,7 +59,7 @@ index 95377d9..7712acd 100644
  		bool active = false;
  		TrackedDevicePose_t pose;
 +		TrackedDevicePose_t heldPose;	// stop-motion: the pose the weapon is frozen at
-+		double heldTime = 0;			// seconds, when heldPose was last refreshed
++		int heldFrames = 0;				// rendered frames since heldPose was last refreshed
  		VRControllerState_t lastState;
  		VRControllerModel* model = nullptr;
  	};
@@ -109,24 +93,23 @@ index 95377d9..7712acd 100644
  		{
  			out->rotate(openvr_weaponRotate, 1, 0, 0);
  			if (!openvr_rightHanded)
-@@ -1559,6 +1569,16 @@ namespace s3d
+@@ -1559,6 +1569,15 @@ namespace s3d
  					}
  					controllers[role].active = true;
  					controllers[role].pose = pose;
 +					{
-+						// stop-motion weapon hand: refresh the frozen pose only N times a second
-+						double now = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-+						int rate = clamp<int>(vr_weapon_stopmotion_rate, 1, 60);
-+						if (!vr_weapon_stopmotion || now - controllers[role].heldTime >= 1.0 / rate || now < controllers[role].heldTime)
++						// stop-motion weapon hand: after each update, keep the pose frozen for N rendered frames
++						int skip = clamp<int>(vr_weapon_stopmotion_skip, 1, 30);
++						if (!vr_weapon_stopmotion || ++controllers[role].heldFrames > skip)
 +						{
 +							controllers[role].heldPose = pose;
-+							controllers[role].heldTime = now;
++							controllers[role].heldFrames = 0;
 +						}
 +					}
  					if (controllerMeshes[model_name].isLoaded())
  					{
  						controllers[role].model = &controllerMeshes[model_name];
-@@ -1623,7 +1643,7 @@ namespace s3d
+@@ -1623,7 +1642,7 @@ namespace s3d
  
  					vec3_t weaponangles;
  					int hand = openvr_rightHanded ? 1 : 0;
@@ -135,7 +118,7 @@ index 95377d9..7712acd 100644
  					weaponangles[YAW] = RAD2DEG(eulerAngles.v[0]);
  					weaponangles[PITCH] = -RAD2DEG(eulerAngles.v[1]);
  					weaponangles[ROLL] = normalizeAngle(-RAD2DEG(eulerAngles.v[2]) + 180.);
-@@ -1636,6 +1656,24 @@ namespace s3d
+@@ -1636,6 +1655,24 @@ namespace s3d
  					player->mo->AttackRoll = DAngle::fromDeg(weaponangles[ROLL]);
  
  				}
@@ -190,7 +173,7 @@ index 3c340ec..c7d5749 100644
  DEFINE_FIELD_X(FCheckPosition, FCheckPosition, thing);
  DEFINE_FIELD_X(FCheckPosition, FCheckPosition, pos);
 diff --git a/wadsrc/static/menudef.txt b/wadsrc/static/menudef.txt
-index bba4cfe..c3ad6ec 100644
+index bba4cfe..26d6907 100644
 --- a/wadsrc/static/menudef.txt
 +++ b/wadsrc/static/menudef.txt
 @@ -2767,6 +2767,8 @@ OptionMenu "OpenVROptions" protected
@@ -198,7 +181,7 @@ index bba4cfe..c3ad6ec 100644
  	Slider "$VRPREFMNU_WEAPONSCALE",			openvr_weaponScale,						0, 1, 0.05, 2
  	Option "$VRPREFMNU_DRAWCONTROLLERS",		openvr_drawControllers,					"OnOff"
 +	Option "Stop-motion weapon hand",			vr_weapon_stopmotion,					"OnOff"
-+	Slider "Stop-motion updates per second",	vr_weapon_stopmotion_rate,				2, 35, 1, 0
++	Slider "Stop-motion frames to skip",		vr_weapon_stopmotion_skip,				1, 12, 1, 0
  	StaticText " "
  	StaticText "$VRPREFMNU_HAPTICS"
  	Option "$VRPREFMNU_ENABLEHAPTICS",	    	vr_enable_haptics, "OnOff"
@@ -219,6 +202,3 @@ index 3e56350..b4e56a2 100644
  
  	native vector3 AttackDir(Actor actor, double angle, double pitch);
  
--- 
-2.55.0.windows.3
-
