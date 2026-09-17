@@ -185,5 +185,6 @@ for o in (sl, body):
 
 studio(target=(0, 0.03, 0.01), dist=0.6, name="RV_ModelCam")
 look_through(bpy.context.scene.camera)
-bpy.ops.wm.save_as_mainfile(filepath=OUT)
-print("saved", OUT)
+# shared UV atlas + baked texture for GZDoom (saves the .blend before baking)
+exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\gz_bake.py").read())
+uv_save_bake(OUT, r"C:\Users\TD3KX\ashes-2063-weapons\revolver\gzdoom\revolver.png")
