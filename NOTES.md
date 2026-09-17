@@ -147,3 +147,13 @@ No recording is needed: each weapon's state list says how many tics (1/35 s) pas
 
 Caveat: counted by hand from the DECORATE states (a state's action runs when it is entered, `A_ReFire`
 jumps at once while fire is held). Worth one check in game with a stopwatch on the handgun if exact numbers matter.
+
+## Getting a model into the game (2026-09-17) `[compile-verified]`-level only: built and read back, not run
+GZDoomVR shows 3D weapons through MODELDEF (the bundled `WeaponsForVR.pk3` does this for Doom's guns: MD3 files,
++X forward, origin at the top rear, about 50 units long). Our pipeline, all in `kit/`:
+- `gz_bake.py`: one shared UV atlas for every part, base colours baked to a 512×512 PNG (runs at the end of `build_revolver.py`).
+- `gz_md3.py`: small MD3 writer. Hidden parts are collapsed to a point per frame; every triangle is written twice
+  (both windings) so the face-winding convention cannot hide the gun.
+- `gz_export.py -- gz_<weapon>.py`: reads every frame of the animation files, writes the MD3, the MODELDEF and a test `.pk3`.
+- The MD3 was read back and drawn from its own data (frames 0, 1, 20, 77): gun, flash and reload poses are correct.
+Test plan and what each outcome means: `revolver/gzdoom/TEST.md`.
