@@ -201,3 +201,12 @@ is mirrored, the lid screen should not flicker, and the lantern rubber-bands ins
 - **Mirror:** world models in this engine want MD3 +Y = LEFT; held-weapon (HUD) models want +Y = RIGHT `[verified-live 2026-09-17, n=1 each]`.
 - **Flicker mask** is now only materials named `...Glow`; the lid screen and LEDs stay steady.
 - **Rubber-banding:** fixed in the engine with `FollowOffhand` (see `engine/README.md`).
+
+## Lantern, third wear (2026-09-17): locked to the hand, but flat textures `[reported 2026-09-17, n=1]`
+Tefa's screenshots: see-through glass and keypad now right, but the body, lid and core were flat colours. Two causes, both in
+`kit/gz_lantern.py`: (1) Blender's `smart_project` / `pack_islands` silently did nothing in background mode, and the bake went to
+the lamp's original UV layer, where every face covers the whole 16x16 pixel texture; (2) glow materials were reduced to one flat colour.
+Now: our own UV layout written in Python (each face flat at true size, shelf-packed, about 890 texels per metre in a 1024 atlas)
+on a new layer that is both active and the render layer; glow materials are baked as they are (cloudy glass, white-hot core).
+Checked by looking at the atlas: weathering, rust specks and the glass pattern are there. Not worn yet.
+⚠️ The Blender file itself was never changed (export only reads it). Grey in Blender = the viewport is in Solid mode: press Z.
