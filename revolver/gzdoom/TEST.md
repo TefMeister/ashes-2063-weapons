@@ -20,6 +20,8 @@ captures idle / one shot / one reload, quits). Evidence: `evidence-2026-09-17/`.
 - Frames with no model mapped (lantern-lit REVL J-T, melee REVG B-D, knife KNIF) fall back to the flat sprite `[inferred-static]`.
 
 ## VR test: NOT RUN (needs the headset)
+On the home PC there is a desktop shortcut for it, **"Ashes 2063 VR - 3D revolver test"**, which runs
+`Play Ashes 2063 VR (3D revolver test).bat` in the game folder. The original "Ashes 2063 VR" shortcut does NOT load our file.
 From `C:\NonSteam\Ashes 2063 VR`, with Virtual Desktop / SteamVR running, the normal VR launcher line plus our file:
 ```
 gzdoomvr\gzdoomvr.exe -iwad Resources\freedoom-0.12.1\freedoom2.wad -file Resources\AshesSAMenu.pk3 Resources\lightmodepatch.pk3 Resources\Ashes2063Enriched2_23.pk3 Resources\Ashes2063EnrichedFDPatch.pk3 "C:\Users\TD3KX\ashes-2063-weapons\revolver\gzdoom\Ashes2063_revolver3d_VR_test.pk3" -config gzdoomvr\ashes-vr.ini +set language enu +vr_mode 10
