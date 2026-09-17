@@ -8,8 +8,11 @@ flat weapon sprites look out of place.
 > ⚠️ **Disclaimer.** This is an unofficial, non-commercial fan project. It is **not** made by or
 > affiliated with the creators of Ashes 2063, and it is **not** a playable mod yet: it is models and
 > animations only. **No original game files, sprites, sounds or other assets are included.** Every
-> model here was made from scratch, using the game only as a visual reference. You need your own
-> copy of Ashes 2063 to play it.
+> model here was made from scratch, using the game only as a visual reference.
+>
+> **Ashes 2063 is free.** It is a standalone mod (it does not need Doom or any other game), and you
+> can download it from its official page on ModDB:
+> **https://www.moddb.com/mods/ashes-2063/downloads**
 >
 > ⚠️ **Caution.** Once this is used in VR it will be unfinished work and **may cause severe motion
 > sickness and discomfort**. Take breaks and stop if you feel unwell.
