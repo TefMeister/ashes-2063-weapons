@@ -23,6 +23,7 @@ flat weapon sprites look out of place.
 | --- | --- | --- |
 | [`lantern/`](lantern/) | Lantern (makeshift fusion-battery lamp) | model + flicker/lightning animation, version history |
 | [`handgun/`](handgun/) | 9mm handgun | model, shoot 1, reload, plus `_static` versions |
+| [`revolver/`](revolver/) | .45 revolver | model, shoot 1, reload, plus `_static` versions (timed from the game) |
 | [`jackhammer/`](jackhammer/) | Jackhammer | model, shoot 1, plus `_static` version |
 | [`crowbar/`](crowbar/) | Crowbar | model, shoot 1 (swing) |
 | [`kit/`](kit/) | Python scripts that build every `.blend` above | |
@@ -46,6 +47,8 @@ Pictures of each big step are in each item's `progress/` folder, named by date.
 | Lantern | ![lantern](lantern/progress/2026-09-17-v07.png) |
 | Handgun | ![handgun](handgun/progress/2026-09-17-model-v1.png) |
 | Handgun reload | ![reload](handgun/progress/2026-09-17-reload-v1.png) |
+| Revolver | ![revolver](revolver/progress/2026-09-17-model-v1.png) |
+| Revolver reload | ![revolver reload](revolver/progress/2026-09-17-reload-v1.png) |
 | Jackhammer | ![jackhammer](jackhammer/progress/2026-09-17-shoot1-v1.png) |
 | Crowbar | ![crowbar](crowbar/progress/2026-09-17-model-v1.png) |
 

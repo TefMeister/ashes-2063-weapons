@@ -16,6 +16,11 @@ procedural pixel textures, EEVEE at 320×240, 35 fps. Repo: github.com/TefMeiste
 | `crowbar/` | `Ashes_2063_EP1_crowbar_shoot1.blend` | one swing, 24 frames |
 | `handgun/` | `Ashes_2063_EP1_handgun_shoot1_static.blend` | shot with the gun held still |
 | `handgun/` | `Ashes_2063_EP1_handgun_reload_static.blend` | magazine out and in, gun held still |
+| `revolver/` | `Ashes_2063_EP1_revolver_model.blend` | the .45 revolver on its own |
+| `revolver/` | `Ashes_2063_EP1_revolver_shoot1.blend` | one shot, 14 frames, game timing |
+| `revolver/` | `Ashes_2063_EP1_revolver_reload.blend` | cases out, speedloader in, 68 frames, game timing |
+| `revolver/` | `Ashes_2063_EP1_revolver_shoot1_static.blend` | shot with the gun held still |
+| `revolver/` | `Ashes_2063_EP1_revolver_reload_static.blend` | cylinder out, cases out, rounds in, gun held still |
 | `jackhammer/` | `Ashes_2063_EP1_jackhammer_shoot1_static.blend` | bit and smoke only, machine held still |
 
 **Rule (Tefa, 2026-09-17, all weapons, all games):** every animation comes in two files. The normal
@@ -85,3 +90,23 @@ Every key is CONSTANT: the pose jumps, nothing slides in between. Poses are held
   - Real crowbar swings: plausible, since the weapon hand position is readable each tic, so hand speed can be worked out.
   - Manual reload / racking by button press and release: plausible (weapon states + ZScript button checks).
   - Sprites to 3D via MODELDEF: supported by the engine, which is exactly what `WeaponsForVR.pk3` does. Big job.
+
+## Revolver (2026-09-17)
+**Timing is the game's own, one Blender frame per tic** (new rule, Tefa 2026-09-17: every weapon, every game).
+Source: `Actors/Weapons/Revolver.txt` in `Ashes2063Enriched2_23.pk3` `[inferred-static]`.
+- Shoot (`FireReal`): REVF A 2, B 1, D 1, E 2, F 2, G 2, H 1, then REVG A 1+1 → frames 2–13, rest at 1 and 13–14.
+- Reload (`Work1` + `ReloadDone`): REVR A B 3 each; C C C D E F 2; G G H I J L L L L 2; M N O P 2;
+  P P P Q R S 2; T U V W X 1; REVL C B A 2 → 67 tics, frames 1–67. The game spawns one casing per
+  round loaded (`pistolCasingspawner`) during the zero-tic `ReloadLoop`.
+- Poses are by eye from `revolver/shoot 1` (17 shots) and `revolver/reload` (55 shots) `[hypothesis]`;
+  which sprite letter each screenshot shows is matched by order, not checked.
+
+Model `[hypothesis]`: stainless six-shot .45 with full underlug and vented rib, red front sight insert, black
+rubber finger-groove grip. Parts: `RV_Crane` (swings out left) > `RV_Cylinder` (turns 60° per shot) >
+`RV_Ejector`, `RV_Casings` (spent), `RV_Rounds` (loaded); `RV_Hammer`, `RV_Trigger`, `RV_MuzzleFlash`,
+`RV_FlashLight`, `RV_Speedloader` (+ `RV_SpeedloaderBody`). Numbers in `kit/revolver_settings.py`.
+- Shoot: hammer already down on the shot tic (the game has no cocking frame), cylinder turns 60°, big flash,
+  kick up and right, settles over F–H.
+- Reload: cylinder swings out; gun tips muzzle-up; ejector pushes the cases out and they drop 0.8 m in the
+  world in 3 frames, then vanish; gun tips down so the cylinder's back faces you; speedloader comes from the
+  left hip (same spot as the handgun magazine), seats the rounds on tic R and disappears; flick closes it.
