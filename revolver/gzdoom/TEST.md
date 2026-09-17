@@ -26,7 +26,11 @@ worn the same day: *"3 cm down, 2 cm to the right and 3 cm back my way"* (move i
 left again"*, and with the controller held relaxed the barrel points about 10° up (measured by eye from the screenshot).
 → 2 cm left in the build; the angle is fixed with the engine's `openvr_weaponRotate` (-40 → -50) rather than in the model,
 because bullets follow that setting too, so the barrel and the shots stay lined up. The test launcher now uses its own
-settings copy, `gzdoomvrshes-vr-3dtest.ini`, so the normal game's settings are untouched. Sixth wear: *"it's still pointing up"*. Cause: `+openvr_weaponRotate -50` on the command line did NOT apply (the ini was saved back with -40 on exit) `[verified-live 2026-09-17]`. Now set to -50 inside `ashes-vr-3dtest.ini` itself. Not worn yet.
+settings copy, `gzdoomvrshes-vr-3dtest.ini`, so the normal game's settings are untouched. Sixth wear: *"it's still pointing up"*. Cause: `+openvr_weaponRotate -50` on the command line did NOT apply (the ini was saved back with -40 on exit) `[verified-live 2026-09-17]`. Now set to -50 inside `ashes-vr-3dtest.ini` itself. Seventh wear: *"it's pointing straight now ... it works"* ✅
+
+**Result: the VR revolver works, sits right in the hand and points straight** `[reported 2026-09-17, n=1 wearer, 7 wears]`.
+Locked-in numbers: `kit/gz_revolver.py` VR block (grip drop, nudges, 40% reload movement) + `openvr_weaponRotate=-50`.
+⚠️ The -50 angle lives only in the test settings copy. Anything released must carry it (tell players, or tip the model 10° instead and accept that the shots then leave 10° off the barrel).
 
 On the home PC there is a desktop shortcut for it, **"Ashes 2063 VR - 3D revolver test"**, which runs
 `Play Ashes 2063 VR (3D revolver test).bat` in the game folder. The original "Ashes 2063 VR" shortcut does NOT load our file.
