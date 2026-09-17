@@ -1,28 +1,56 @@
 diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
-index e2f1f7e..43ed812 100644
+index e2f1f7e..79b6e39 100644
 --- a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
 +++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
-@@ -61,6 +61,11 @@ CVAR(Bool, openvr_moveFollowsOffHand, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+@@ -61,6 +61,25 @@ CVAR(Bool, openvr_moveFollowsOffHand, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Bool, openvr_drawControllers, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Float, openvr_weaponRotate, -40.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Float, openvr_weaponScale, 0.3f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 +// Stop-motion weapon hand: the weapon follows the controller only a few times a second,
 +// while the world and the view stay smooth. Skip = how many rendered frames the weapon stays
 +// frozen for after each update (1 = it moves on every second frame).
++EXTERN_CVAR(Bool, openvr_rightHanded)
++EXTERN_CVAR(Float, openvr_weaponRotate)
++
++bool VRMode::GetOffhandRenderPos(double* x, double* y, double* z, double* yaw) const
++{
++	VSMatrix m;
++	if (!GetHandTransform(openvr_rightHanded ? 0 : 1, &m)) return false;
++	m.rotate(openvr_weaponRotate, 1, 0, 0);
++	auto f = m.get();
++	*x = f[12]; *y = f[14]; *z = f[13];
++	*yaw = atan2(-(double)f[10], -(double)f[8]) * (180.0 / 3.14159265358979323846);
++	return true;
++}
++
 +CVAR(Bool, vr_weapon_stopmotion, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 +CVAR(Int, vr_weapon_stopmotion_skip, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  
  CVAR(Bool, vr_snap_turn, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Float, vr_snap_angle, 45.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.h b/src/common/rendering/hwrenderer/data/hw_vrmodes.h
+index 0d3713f..9122984 100644
+--- a/src/common/rendering/hwrenderer/data/hw_vrmodes.h
++++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.h
+@@ -80,6 +80,8 @@ struct VRMode
+ 
+ 	virtual bool GetHandTransform(int hand, VSMatrix* out) const { return false; }
+ 	virtual bool GetWeaponTransform(VSMatrix* out) const { return false; }
++	// off hand at render time, in Doom map coordinates; yaw in degrees
++	bool GetOffhandRenderPos(double* x, double* y, double* z, double* yaw) const;
+ 	virtual bool RenderPlayerSpritesCrossed() const { return false; }
+ 	virtual bool RenderPlayerSpritesInScene() const { return false; }
+ 	virtual bool IsInitialized() const { return true; }
 diff --git a/src/playsim/actor.h b/src/playsim/actor.h
-index 0f92c92..19d5932 100644
+index 0f92c92..b2b7c40 100644
 --- a/src/playsim/actor.h
 +++ b/src/playsim/actor.h
-@@ -1656,6 +1656,14 @@ public:
+@@ -1656,6 +1656,15 @@ public:
  	DAngle   AttackAngle;
  	DAngle  AttackRoll;
  
 +	//For VR, the off hand (the one not holding the weapon), for mods
++	bool FollowOffhand;	// set by a mod on any actor: draw it rigidly at the off hand, every rendered frame
 +	bool OffhandValid;
 +	DVector3 OffhandPos;
 +	DVector3 OffhandDir;
@@ -33,6 +61,30 @@ index 0f92c92..19d5932 100644
  	DVector3 (*AttackDir)(AActor* actor, DAngle yaw, DAngle pitch);
  };
  
+diff --git a/src/r_data/models.cpp b/src/r_data/models.cpp
+index 9ac7a4b..d108811 100644
+--- a/src/r_data/models.cpp
++++ b/src/r_data/models.cpp
+@@ -26,6 +26,7 @@
+ **
+ **/
+ 
++#include "hw_vrmodes.h"
+ #include "filesystem.h"
+ #include "cmdlib.h"
+ #include "sc_man.h"
+@@ -86,6 +87,11 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
+ 	else
+ 		angles = actor->Angles;
+ 	float angle = angles.Yaw.Degrees();
++	if (actor->FollowOffhand)
++	{
++		double hx, hy, hz, hyaw;
++		if (VRMode::GetVRMode(true)->GetOffhandRenderPos(&hx, &hy, &hz, &hyaw)) angle = (float)hyaw;
++	}
+ 
+ 	// [BB] Workaround for the missing pitch information.
+ 	if ((smf_flags & MDL_PITCHFROMMOMENTUM))
 diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
 index 95377d9..e2463a7 100644
 --- a/src/rendering/gl/stereo3d/gl_openvr.cpp
@@ -155,14 +207,41 @@ index 2202463..6c27b1a 100644
  	virtual bool GetWeaponTransform(VSMatrix* out) const override;
  	virtual bool RenderPlayerSpritesCrossed() const { return true; }
  	virtual bool RenderPlayerSpritesInScene() const { return true; }
+diff --git a/src/rendering/hwrenderer/scene/hw_sprites.cpp b/src/rendering/hwrenderer/scene/hw_sprites.cpp
+index 83f3c1a..52949d5 100644
+--- a/src/rendering/hwrenderer/scene/hw_sprites.cpp
++++ b/src/rendering/hwrenderer/scene/hw_sprites.cpp
+@@ -59,6 +59,7 @@
+ #include "hw_lightbuffer.h"
+ #include "hw_renderstate.h"
+ #include "quaternion.h"
++#include "hw_vrmodes.h"
+ 
+ extern TArray<spritedef_t> sprites;
+ extern TArray<spriteframe_t> SpriteFrames;
+@@ -806,6 +807,13 @@ void HWSprite::Process(HWDrawInfo *di, AActor* thing, sector_t * sector, area_t
+ 
+ 	// [RH] Interpolate the sprite's position to make it look smooth
+ 	DVector3 thingpos = thing->InterpolatedPosition(vp.TicFrac);
++	if (thing->FollowOffhand)
++	{
++		// VR: held in the off hand. Use the controller's pose of THIS rendered frame, like the weapon,
++		// instead of the once-per-tic actor position (which lags and rubber-bands).
++		double hx, hy, hz, hyaw;
++		if (VRMode::GetVRMode(true)->GetOffhandRenderPos(&hx, &hy, &hz, &hyaw)) thingpos = DVector3(hx, hy, hz);
++	}
+ 	if (thruportal == 1) thingpos += di->Level->Displacements.getOffset(thing->Sector->PortalGroup, sector->PortalGroup);
+ 
+ 	AActor *viewmaster = thing;
 diff --git a/src/scripting/vmthunks_actors.cpp b/src/scripting/vmthunks_actors.cpp
-index 3c340ec..c7d5749 100644
+index 3c340ec..de4f359 100644
 --- a/src/scripting/vmthunks_actors.cpp
 +++ b/src/scripting/vmthunks_actors.cpp
-@@ -2139,6 +2139,12 @@ DEFINE_FIELD(AActor, AttackDir)
+@@ -2139,6 +2139,13 @@ DEFINE_FIELD(AActor, AttackDir)
  DEFINE_FIELD(AActor, AttackPitch)
  DEFINE_FIELD(AActor, AttackRoll)
  DEFINE_FIELD(AActor, AttackAngle)
++DEFINE_FIELD(AActor, FollowOffhand)
 +DEFINE_FIELD(AActor, OffhandValid)
 +DEFINE_FIELD(AActor, OffhandPos)
 +DEFINE_FIELD(AActor, OffhandDir)
@@ -186,13 +265,14 @@ index bba4cfe..26d6907 100644
  	StaticText "$VRPREFMNU_HAPTICS"
  	Option "$VRPREFMNU_ENABLEHAPTICS",	    	vr_enable_haptics, "OnOff"
 diff --git a/wadsrc/static/zscript/actors/actor.zs b/wadsrc/static/zscript/actors/actor.zs
-index 3e56350..b4e56a2 100644
+index 3e56350..75582f7 100644
 --- a/wadsrc/static/zscript/actors/actor.zs
 +++ b/wadsrc/static/zscript/actors/actor.zs
-@@ -872,6 +872,12 @@ class Actor : Thinker native
+@@ -872,6 +872,13 @@ class Actor : Thinker native
  	native readonly double AttackRoll;
  	native readonly double AttackAngle;
  	native readonly bool OverrideAttackPosDir;
++	native bool FollowOffhand;
 +	native readonly bool OffhandValid;
 +	native readonly vector3 OffhandPos;
 +	native readonly vector3 OffhandDir;

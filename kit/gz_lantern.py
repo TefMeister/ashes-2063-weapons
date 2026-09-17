@@ -11,7 +11,8 @@ exec(open(os.path.join(KIT, "gz_md3.py")).read())
 OUT_DIR = os.path.join(KIT, "..", "lantern", "gzdoom")
 PK3 = "Ashes2063_lefthand_lantern_test.pk3"
 MODEL_PATH = "models/ashes2063/lantern"
-SKIP = ("Floor", "Impact", "Bolt")          # studio floor and lightning effects stay in Blender
+SKIP = ("Floor",)                           # the studio floor stays in Blender
+GLASS_ALPHA = 0.35                          # see-through glass, drawn additively over the tube and sparks
 REAL_HEIGHT = 0.26                          # metres; the Blender lantern is drawn oversized
 UNITS_PER_M = 34                            # map units per metre (vr_vunits_per_meter in the VR config)
 GRIP_Z = 0.21                               # the grip bar: this point sits at the hand
@@ -78,9 +79,10 @@ for m in {s.material for o in meshes for s in o.material_slots if s.material}:
     L.new(em.outputs[0], out.inputs['Surface'])
     tex = N.new('ShaderNodeTexImage'); tex.image = img; tex.interpolation = 'Closest'
     N.active = tex
-    bake_nodes.append((em, glow, tex))
+    bake_nodes.append((em, glow and "Glow" in m.name, tex))
 bpy.ops.object.bake(type='EMIT', margin=2, use_clear=True)
-# second bake: white where the lamp glows, black elsewhere, to dim only the glow for the flicker
+# second bake: white where the LAMP glows (materials named ...Glow), black elsewhere, so the flicker
+# dims only that; the lid screen and LEDs glow steadily (Tefa, 2026-09-17)
 for em, glow, tex in bake_nodes:
     for l in list(em.inputs['Color'].links):
         em.id_data.links.remove(l)
@@ -101,26 +103,73 @@ for letter, level in FLICKER_LEVELS:
     im.filepath_raw = path; im.file_format = 'PNG'; im.save()
     pngs.append((letter, path))
 
-# ---- one-frame MD3: +X forward, +Y right (this engine), +Z up, grip at the origin ----
-zs = [(o.matrix_world @ Vector(c)).z for o in meshes for c in o.bound_box]
+# ---- three MD3s: body (opaque), glass (see-through), sparks (one frame per lightning pattern) ----
+# World models: +X forward, +Y LEFT, +Z up (the first export used +Y right, as for held weapons, and
+# the keypad came out mirrored in game), grip at the origin.
+zs = [(o.matrix_world @ Vector(c)).z for o in meshes if not o.name.startswith(("Bolt", "Impact")) for c in o.bound_box]
 S = REAL_HEIGHT / (max(zs) - min(zs)) * UNITS_PER_M
-dg = bpy.context.evaluated_depsgraph_get()
-verts, uvs = [], []
-for o in meshes:
-    eo = o.evaluated_get(dg); me = eo.to_mesh(); M = eo.matrix_world; R = M.to_3x3()
-    uvl = me.uv_layers.active.data
-    for poly in me.polygons:
-        n = (R @ poly.normal).normalized()
-        loops = list(poly.loop_indices)
-        for k in range(1, len(loops) - 1):
-            for li in (loops[0], loops[k + 1], loops[k]):
-                p = M @ me.vertices[me.loops[li].vertex_index].co
-                verts.append(((p.y * S, p.x * S, (p.z - GRIP_Z) * S), (n.y, n.x, n.z)))
-                uvs.append(tuple(uvl[li].uv))
-    eo.to_mesh_clear()
-tris = [(i, i + 1, i + 2) for i in range(0, len(uvs), 3)]
-md3 = os.path.join(OUT_DIR, "lantern.md3")
-print("md3", write_md3(md3, "lantern", [verts], (tris, uvs), f"{MODEL_PATH}/lantern_A.png"), "scale", round(S, 2))
+
+
+def part_of(o):
+    if o.name.startswith(("Bolt", "Impact")):
+        return "sparks"
+    return "glass" if o.name == "Glass" else "body"
+
+
+def snapshot(part):
+    dg = bpy.context.evaluated_depsgraph_get()
+    verts, uvs = [], []
+    for o in sorted((o for o in meshes if part_of(o) == part), key=lambda o: o.name):
+        eo = o.evaluated_get(dg); me = eo.to_mesh(); M = eo.matrix_world; R = M.to_3x3()
+        uvl = me.uv_layers.active.data
+        for poly in me.polygons:
+            n = R @ poly.normal
+            n = n.normalized() if n.length > 1e-9 else Vector((0, 0, 1))
+            loops = list(poly.loop_indices)
+            for k in range(1, len(loops) - 1):
+                for li in (loops[0], loops[k], loops[k + 1]):
+                    p = M @ me.vertices[me.loops[li].vertex_index].co
+                    verts.append(((p.y * S, -p.x * S, (p.z - GRIP_Z) * S), (n.y, -n.x, n.z)))
+                    uvs.append(tuple(uvl[li].uv))
+        eo.to_mesh_clear()
+    return verts, uvs
+
+
+def save_md3(name, frames, uvs):
+    tris = [(i, i + 1, i + 2) for i in range(0, len(uvs), 3)]
+    path = os.path.join(OUT_DIR, name + ".md3")
+    print("md3", name, write_md3(path, name, frames, (tris, uvs), f"{MODEL_PATH}/lantern_A.png"))
+    return path
+
+
+sc.frame_set(sc.frame_start)
+md3s = []
+for part in ("body", "glass"):
+    v, uv = snapshot(part)
+    md3s.append(save_md3("lantern_" + part, [v], uv))
+
+# Lightning: walk the whole Blender loop; every distinct picture becomes one model frame, and the
+# game plays them back with the same timing (one Blender frame = one tic).
+spark_objs = [o for o in meshes if part_of(o) == "sparks"]
+patterns, timeline, frames, spark_uvs = {}, [], [], None
+for f in range(sc.frame_start, sc.frame_end + 1):
+    sc.frame_set(f)
+    key = tuple(o.name for o in spark_objs if min(abs(c) for c in o.scale) > 1e-4)
+    if key not in patterns:
+        v, uv = snapshot("sparks")
+        spark_uvs = spark_uvs or uv
+        patterns[key] = len(frames); frames.append(v)
+    if timeline and timeline[-1][0] == patterns[key]:
+        timeline[-1][1] += 1
+    else:
+        timeline.append([patterns[key], 1])
+md3s.append(save_md3("lantern_sparks", frames, spark_uvs))
+print("lightning pictures", len(frames), "timeline steps", len(timeline))
+
+
+def spr(i):        # model frame -> (sprite name, frame letter); 26 letters per sprite name
+    return "LHS" + "ABCDEFGHIJ"[i // 26], "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i % 26]
+
 
 ZSCRIPT = '''version "4.10"
 // Left-hand lantern test. Needs the GZDoomVR build that gives mods OffhandValid / OffhandPos / OffhandAngle.
@@ -130,30 +179,49 @@ class TefaLeftHandLantern : Actor
 	States { Spawn:
 FLICKER_STATES		Loop; }
 }
+class TefaLeftHandLanternGlass : TefaLeftHandLantern
+{
+	Default { RenderStyle "Add"; Alpha GLASS_ALPHA_VALUE; }
+	States { Spawn: LHLG A -1 Bright; Stop; }
+}
+class TefaLeftHandLanternSparks : TefaLeftHandLantern
+{
+	Default { RenderStyle "Add"; }
+	States { Spawn:
+SPARK_STATES		Loop; }
+}
 class TefaLeftHandHandler : EventHandler
 {
-	Actor lamp;
+	Actor parts[3];
 	override void WorldTick()
 	{
+		static const Class<Actor> kinds[] = { "TefaLeftHandLantern", "TefaLeftHandLanternGlass", "TefaLeftHandLanternSparks" };
 		let pmo = players[consoleplayer].mo;
 		if (!pmo) return;
-		if (!pmo.OffhandValid) { if (lamp) lamp.bInvisible = true; return; }
-		if (!lamp) lamp = Actor.Spawn("TefaLeftHandLantern", pmo.OffhandPos);
-		lamp.bInvisible = false;
-		lamp.SetOrigin(pmo.OffhandPos, true);
-		lamp.angle = pmo.OffhandAngle;		// it hangs from its handle, so it stays upright and only turns
+		for (int i = 0; i < 3; i++)
+		{
+			if (!pmo.OffhandValid) { if (parts[i]) parts[i].bInvisible = true; continue; }
+			if (!parts[i])
+			{
+				parts[i] = Actor.Spawn(kinds[i], pmo.OffhandPos);
+				parts[i].FollowOffhand = true;		// the engine draws it locked to the hand on every rendered frame
+			}
+			parts[i].bInvisible = false;
+			parts[i].SetOrigin(pmo.OffhandPos, true);	// game-side position (light, sector); the drawing ignores it
+			parts[i].angle = pmo.OffhandAngle;
+		}
 	}
 }
 '''
-MODELDEF = "".join(f'''Model TefaLeftHandLantern
-{{
-   Path "{MODEL_PATH}"
-   Model 0 "lantern.md3"
-   Skin 0 "lantern_{letter}.png"
-   Scale 1.0 1.0 1.0
-   FrameIndex LHLN {letter} 0 0
-}}
-''' for letter, _ in FLICKER_LEVELS)
+def model_block(actor, md3name, skin, sprite, letter, frame):
+    lines = [f"Model {actor}", "{", f'   Path "{MODEL_PATH}"', f'   Model 0 "{md3name}.md3"', f'   Skin 0 "{skin}"',
+             "   Scale 1.0 1.0 1.0", f"   FrameIndex {sprite} {letter} 0 {frame}", "}", ""]
+    return chr(10).join(lines)
+
+
+MODELDEF = "".join(model_block("TefaLeftHandLantern", "lantern_body", f"lantern_{l}.png", "LHLN", l, 0) for l, _ in FLICKER_LEVELS)
+MODELDEF += model_block("TefaLeftHandLanternGlass", "lantern_glass", "lantern_A.png", "LHLG", "A", 0)
+MODELDEF += "".join(model_block("TefaLeftHandLanternSparks", "lantern_sparks", "lantern_A.png", *spr(i), i) for i in range(len(frames)))
 GLDEFS = f'''flickerlight2 TEFALEFTLANTERN
 {{
     color 0.72 0.85 1.0
@@ -178,10 +246,16 @@ PIXEL = (bytes([0x89]) + b"PNG\r\n" + bytes([0x1A]) + b"\n"
 
 frame_of = {"B": "A", "M": "B", "D": "C"}
 ZSCRIPT = ZSCRIPT.replace("FLICKER_STATES", "".join("\t\tLHLN " + frame_of[c] + " 1 Bright;\n" for c in FLICKER_ORDER))
+ZSCRIPT = ZSCRIPT.replace("GLASS_ALPHA_VALUE", str(GLASS_ALPHA))
+ZSCRIPT = ZSCRIPT.replace("SPARK_STATES", "".join("\t\t%s %s %d Bright;\n" % (*spr(i), n) for i, n in timeline))
 with zipfile.ZipFile(os.path.join(OUT_DIR, PK3), "w", zipfile.ZIP_DEFLATED) as z:
     z.writestr("zscript.txt", ZSCRIPT); z.writestr("modeldef.lantern", MODELDEF)
     z.writestr("gldefs.lantern", GLDEFS); z.writestr("mapinfo.lantern", MAPINFO)
-    z.write(md3, f"{MODEL_PATH}/lantern.md3")
+    for path in md3s:
+        z.write(path, f"{MODEL_PATH}/{os.path.basename(path)}")
+    z.writestr("sprites/LHLGA0.png", PIXEL)
+    for i in range(len(frames)):
+        z.writestr("sprites/%s%s0.png" % spr(i), PIXEL)
     for letter, path in pngs:
         z.writestr(f"sprites/LHLN{letter}0.png", PIXEL)
         z.write(path, f"{MODEL_PATH}/lantern_{letter}.png")
