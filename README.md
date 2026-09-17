@@ -40,17 +40,19 @@ Details, measurements and open questions: [`NOTES.md`](NOTES.md) and [`lantern/N
 
 ## Progress
 
+All pictures are **unlit on purpose**: no lights or reflections, just the flat colours the game will show.
+
 Pictures of each big step are in each item's `progress/` folder, named by date.
 
 | Item | Latest |
 | --- | --- |
-| Lantern | ![lantern](lantern/progress/2026-09-17-v07.png) |
-| Handgun | ![handgun](handgun/progress/2026-09-17-model-v1.png) |
-| Handgun reload | ![reload](handgun/progress/2026-09-17-reload-v1.png) |
-| Revolver | ![revolver](revolver/progress/2026-09-17-model-v1.png) |
-| Revolver reload | ![revolver reload](revolver/progress/2026-09-17-reload-v1.png) |
-| Jackhammer | ![jackhammer](jackhammer/progress/2026-09-17-shoot1-v1.png) |
-| Crowbar | ![crowbar](crowbar/progress/2026-09-17-model-v1.png) |
+| Lantern | ![lantern](lantern/progress/2026-09-17-unlit-v1.png) |
+| Handgun | ![handgun](handgun/progress/2026-09-17-model-unlit-v1.png) |
+| Handgun reload | ![reload](handgun/progress/2026-09-17-reload-unlit-v1.png) |
+| Revolver | ![revolver](revolver/progress/2026-09-17-model-unlit-v1.png) |
+| Revolver reload | ![revolver reload](revolver/progress/2026-09-17-reload-unlit-v1.png) |
+| Jackhammer | ![jackhammer](jackhammer/progress/2026-09-17-shoot1-unlit-v1.png) |
+| Crowbar | ![crowbar](crowbar/progress/2026-09-17-model-unlit-v1.png) |
 
 ## Rebuilding
 

@@ -22,7 +22,7 @@ def link_model(blend_path, coll_name):
 
 
 def fp_view(cam_loc=(0, 0, 0), lens=VIEW_LENS):
-    """First-person camera at cam_loc looking down +Y, plus game-like lighting."""
+    """First-person camera at cam_loc looking down +Y. No lights: materials are unlit."""
     c = bpy.context.scene.collection
     cam = bpy.data.cameras.new("ViewCam"); cam.lens = lens
     cam.clip_start = 0.01
@@ -30,12 +30,6 @@ def fp_view(cam_loc=(0, 0, 0), lens=VIEW_LENS):
     co.location = cam_loc
     co.rotation_euler = (math.radians(90), 0, 0)
     bpy.context.scene.camera = co
-    key = bpy.data.lights.new("KeyLight", 'SUN'); key.energy = 2.2
-    ko = bpy.data.objects.new("KeyLight", key); c.objects.link(ko)
-    ko.rotation_euler = (math.radians(40), math.radians(-25), math.radians(20))
-    fill = bpy.data.lights.new("FillLight", 'SUN'); fill.energy = 1.3
-    fo = bpy.data.objects.new("FillLight", fill); c.objects.link(fo)
-    fo.rotation_euler = (math.radians(70), 0, math.radians(15))    # from behind the player
     return co
 
 

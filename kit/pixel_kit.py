@@ -154,8 +154,11 @@ def pixel_mat(name, stops, metal=0.3, rough=0.6, wear=1.0, block=BLOCK,
     nt.nodes.clear()
     N, L = nt.nodes, nt.links
     out = N.new('ShaderNodeOutputMaterial')
-    bsdf = N.new('ShaderNodeBsdfPrincipled')
-    L.new(bsdf.outputs[0], out.inputs['Surface'])
+    # UNLIT (Tefa's rule, 2026-09-17): the surface is a plain Emission shader at strength 1, so Blender
+    # shows exactly the flat colours the game gets. No lights, reflections or shine take part.
+    # metal / rough / emit are kept in the signature for old callers and ignored.
+    flat = N.new('ShaderNodeEmission'); flat.name = "GameColor"
+    L.new(flat.outputs[0], out.inputs['Surface'])
     tc = N.new('ShaderNodeTexCoord')
     snap = N.new('ShaderNodeVectorMath'); snap.operation = 'SNAP'
     snap.inputs[1].default_value = (block,) * 3
@@ -201,19 +204,7 @@ def pixel_mat(name, stops, metal=0.3, rough=0.6, wear=1.0, block=BLOCK,
         g.inputs['Amount'].default_value = wear
         L.new(col, g.inputs['Color'])
         col = g.outputs['Color']
-        r = N.new('ShaderNodeMath'); r.operation = 'ADD'
-        r.inputs[1].default_value = rough
-        rm = N.new('ShaderNodeMath'); rm.operation = 'MULTIPLY'
-        rm.inputs[1].default_value = 0.3
-        L.new(g.outputs['Grime'], rm.inputs[0]); L.new(rm.outputs[0], r.inputs[0])
-        L.new(r.outputs[0], bsdf.inputs['Roughness'])
-    else:
-        bsdf.inputs['Roughness'].default_value = rough
-    L.new(col, bsdf.inputs['Base Color'])
-    bsdf.inputs['Metallic'].default_value = metal
-    if emit > 0:
-        L.new(col, bsdf.inputs['Emission Color'])
-        bsdf.inputs['Emission Strength'].default_value = emit
+    L.new(col, flat.inputs['Color'])
     m.diffuse_color = (*stops[len(stops) // 2][1], 1.0)
     return m
 
@@ -311,14 +302,9 @@ def empty(name, loc=(0, 0, 0), parent=None, coll=None, size=0.03):
 
 
 def studio(target=(0, 0, 0), dist=0.5, coll=None, name="Cam"):
-    """Model-viewing camera and lights."""
+    """Model-viewing camera."""
     c = coll or bpy.context.scene.collection
-    key = bpy.data.lights.new("KeyLight", 'SUN'); key.energy = 3.0
-    ko = bpy.data.objects.new("KeyLight", key); c.objects.link(ko)
-    ko.rotation_euler = (math.radians(50), math.radians(10), math.radians(35))
-    fill = bpy.data.lights.new("FillLight", 'SUN'); fill.energy = 0.8
-    fo = bpy.data.objects.new("FillLight", fill); c.objects.link(fo)
-    fo.rotation_euler = (math.radians(70), 0, math.radians(-140))
+    # no lights: materials are unlit (see pixel_mat)
     cam = bpy.data.cameras.new(name); cam.lens = 50
     co = bpy.data.objects.new(name, cam); c.objects.link(co)
     t = Vector(target)
