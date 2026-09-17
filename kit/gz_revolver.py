@@ -26,7 +26,9 @@ if VARIANT == "vr":
     # but in the headset that sat the gun 8-10 cm too high (Tefa, Quest 3 + Virtual Desktop)
     # [reported 2026-09-17, n=1], so the grip centre goes 9 cm lower: (G - ORIGIN) * 100 = (30, 0, -14)
     VR_GRIP_DROP = 0.09
-    ORIGIN = (0.0, -0.3522, 0.0074 + VR_GRIP_DROP)
+    # second wear: move it 3 cm down, 2 cm right, 3 cm back toward the player [reported 2026-09-17, n=1]
+    VR_NUDGE_RIGHT, VR_NUDGE_BACK, VR_NUDGE_DOWN = 0.02, 0.03, 0.03
+    ORIGIN = (0.0 - VR_NUDGE_RIGHT, -0.3522 + VR_NUDGE_BACK, 0.0074 + VR_GRIP_DROP + VR_NUDGE_DOWN)
     PK3 = "Ashes2063_revolver3d_VR_test.pk3"
 else:
     SPACE = "view"
