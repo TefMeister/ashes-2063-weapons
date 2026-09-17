@@ -179,3 +179,8 @@ grip about 7 cm below the engine's hand point, nudged 5 cm back toward the playe
 whole-gun movement cut to 40% (the player tilts the controller anyway), and `openvr_weaponRotate=-50` (was -40) in the test
 config. Lesson: `+openvr_weaponRotate` on the command line does not apply; set it in the ini. The desktop shortcut
 "Ashes 2063 VR - 3D revolver test" runs the test build with its own config copy.
+
+## Our own GZDoomVR build: left hand for mods + stop-motion weapon hand (2026-09-17)
+See `engine/README.md` (patch, build recipe). Test mod: `lantern/gzdoom/Ashes2063_lefthand_lantern_test.pk3`, built by
+`kit/gz_lantern.py`: our Blender lantern as a world model, moved to the off hand every tic by a small ZScript event handler,
+with a flickering dynamic light. Desktop shortcut on the home PC: "Ashes 2063 VR - Tefa engine test". Headset test pending.
