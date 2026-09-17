@@ -2,7 +2,7 @@
 # atlas, a MODELDEF mapping game sprite frames to model frames, and a test .pk3.
 #   blender.exe -b --factory-startup --python kit/gz_export.py -- gz_revolver.py [flat|vr]
 import bpy, sys, os, zipfile
-from mathutils import Vector, Matrix
+from mathutils import Vector, Matrix, Quaternion
 
 KIT = os.path.dirname(os.path.abspath(__file__))
 args = sys.argv[sys.argv.index("--") + 1:]
@@ -21,7 +21,7 @@ def to_md3(p):
     return ((p.y - O[1]) * UNITS_PER_M, (p.x - O[0]) * UNITS_PER_M, (p.z - O[2]) * UNITS_PER_M)
 
 
-def gather(blend, count, rest, want_uvs):
+def gather(blend, count, rest, want_uvs, motion_scale=1.0):
     """Every frame of one animation file, in the root's rest space."""
     bpy.ops.wm.open_mainfile(filepath=blend)
     sc = bpy.context.scene
@@ -35,6 +35,13 @@ def gather(blend, count, rest, want_uvs):
             # "hand": relative to the gun's rest pose, for attaching to a VR controller
             rest = Matrix.Identity(4) if VIEW else sc.objects[ROOT].matrix_world.copy()
         inv = rest.inverted()
+        k = motion_scale
+        if k != 1.0:
+            # shrink how far the whole gun moves away from its rest pose (parts still move fully)
+            D = rest.inverted() @ sc.objects[ROOT].matrix_world
+            q = Quaternion().slerp(D.to_quaternion(), k)
+            D_small = Matrix.Translation(D.to_translation() * k) @ q.to_matrix().to_4x4()
+            inv = D_small @ D.inverted() @ rest.inverted()
         verts = []
         for o in objs:
             eo = o.evaluated_get(dg)
@@ -63,7 +70,7 @@ def gather(blend, count, rest, want_uvs):
 all_frames, uvs, rest, first = [], None, None, {}
 for name, blend, count in ANIMS:
     first[name] = len(all_frames)
-    fr, uv, rest = gather(blend, count, rest, uvs is None)
+    fr, uv, rest = gather(blend, count, rest, uvs is None, globals().get("GUN_MOTION_SCALE", {}).get(name, 1.0))
     if uvs is None:
         uvs = uv
     assert len(fr[0]) == len(uvs), f"{name}: vertex count differs from the first animation"
