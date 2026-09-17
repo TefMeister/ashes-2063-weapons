@@ -157,3 +157,13 @@ GZDoomVR shows 3D weapons through MODELDEF (the bundled `WeaponsForVR.pk3` does 
 - `gz_export.py -- gz_<weapon>.py`: reads every frame of the animation files, writes the MD3, the MODELDEF and a test `.pk3`.
 - The MD3 was read back and drawn from its own data (frames 0, 1, 20, 77): gun, flash and reload poses are correct.
 Test plan and what each outcome means: `revolver/gzdoom/TEST.md`.
+
+## First in-game test: the revolver works in flat mode (2026-09-17, `/lm`) `[verified-live 2026-09-17, n=4 launches]`
+The 3D revolver shows up in place of the sprite, fires (flash, kick) and plays the whole reload in the game.
+Two fixes came out of it, both explained by the engine source (hh79/gzdoomvr tag gvr4.13.2.2, read by the session's reader):
+- Flat mode puts the MD3 origin at the player's eye, so the flat build is exported in Blender camera space.
+- MD3 +Y is the viewer's RIGHT; our first export mirrored the gun. Cross-checked against `Fist.md3` / `FistLeft.md3`.
+Also from the source `[inferred-static]`: VR hangs the model off the controller in centimetres (hand at MD3 30, 0, -5);
+`openvr_weaponScale` does not touch models; HUD models are not back-face culled; `Skin` overrides `SurfaceSkin`;
+unmapped weapon frames fall back to the flat sprite. A VR build exists and is untested. Details: `revolver/gzdoom/TEST.md`.
+Test harness: `tools/gzdrive.py` (window capture, scancode input, focus fix) and `tools/revolver_test.py`.

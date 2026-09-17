@@ -1,17 +1,24 @@
 # Export a weapon's animation files to GZDoom: one MD3 with every frame, the baked
 # atlas, a MODELDEF mapping game sprite frames to model frames, and a test .pk3.
-#   blender.exe -b --factory-startup --python kit/gz_export.py -- gz_revolver.py
+#   blender.exe -b --factory-startup --python kit/gz_export.py -- gz_revolver.py [flat|vr]
 import bpy, sys, os, zipfile
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 KIT = os.path.dirname(os.path.abspath(__file__))
 args = sys.argv[sys.argv.index("--") + 1:]
 exec(open(os.path.join(KIT, "gz_md3.py")).read())
+VARIANT = args[1] if len(args) > 1 else "flat"      # "flat" (screen) or "vr" (controller)
 exec(open(os.path.join(KIT, args[0])).read())
 
 
+VIEW = globals().get("SPACE", "hand") == "view"
+O = (0.0, 0.0, 0.0) if VIEW else ORIGIN
+
+
 def to_md3(p):
-    return ((p.y - ORIGIN[1]) * UNITS_PER_M, -(p.x - ORIGIN[0]) * UNITS_PER_M, (p.z - ORIGIN[2]) * UNITS_PER_M)
+    # GZDoom draws MD3 +Y on the viewer's RIGHT (hh79/gzdoomvr gvr4.13.2.2, models.cpp) [verified-live 2026-09-17]:
+    # writing -x mirrored the gun, so the cylinder swung out to the right in game.
+    return ((p.y - O[1]) * UNITS_PER_M, (p.x - O[0]) * UNITS_PER_M, (p.z - O[2]) * UNITS_PER_M)
 
 
 def gather(blend, count, rest, want_uvs):
@@ -24,7 +31,9 @@ def gather(blend, count, rest, want_uvs):
         sc.frame_set(f)
         dg = bpy.context.evaluated_depsgraph_get()
         if rest is None:
-            rest = sc.objects[ROOT].matrix_world.copy()
+            # "view": keep the Blender first-person camera space (camera at the origin, looking +Y);
+            # "hand": relative to the gun's rest pose, for attaching to a VR controller
+            rest = Matrix.Identity(4) if VIEW else sc.objects[ROOT].matrix_world.copy()
         inv = rest.inverted()
         verts = []
         for o in objs:
@@ -39,15 +48,13 @@ def gather(blend, count, rest, want_uvs):
                 n = (R @ poly.normal).normalized()
                 loops = list(poly.loop_indices)
                 for k in range(1, len(loops) - 1):
-                    tri = (loops[0], loops[k], loops[k + 1])
-                    # front copy, then a reversed copy facing the other way (two-sided,
-                    # so the winding convention cannot make the gun invisible)
-                    for corners, nn in ((tri, n), (tri[::-1], -n)):
-                        for li in corners:
-                            p = M @ me.vertices[me.loops[li].vertex_index].co if shown else centre
-                            verts.append((to_md3(p), (nn.y, -nn.x, nn.z)))
-                            if want_uvs and f == 1:
-                                uvs.append(tuple(uvl[li].uv))
+                    # HUD models are not back-face culled, so one copy per triangle is enough.
+                    # The x -> md3 Y mapping is a mirror, so the winding is reversed to match.
+                    for li in (loops[0], loops[k + 1], loops[k]):
+                        p = M @ me.vertices[me.loops[li].vertex_index].co if shown else centre
+                        verts.append((to_md3(p), (n.y, n.x, n.z)))
+                        if want_uvs and f == 1:
+                            uvs.append(tuple(uvl[li].uv))
             eo.to_mesh_clear()
         frames.append(verts)
     return frames, uvs, rest

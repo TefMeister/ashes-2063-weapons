@@ -1,0 +1,73 @@
+# One unattended in-game check of the revolver model: launch (flat, windowed), capture
+# the idle gun, one shot and one reload, write contact sheets, quit via the console.
+#   python tools/revolver_test.py <tag>
+import sys, time, glob, os, ctypes
+from ctypes import wintypes as w
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gzdrive as g
+from PIL import Image
+
+TAG = sys.argv[1] if len(sys.argv) > 1 else "run"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "_renders", "live", TAG)
+os.makedirs(OUT, exist_ok=True)
+
+
+class MI(ctypes.Structure):
+    _fields_ = [("dx", w.LONG), ("dy", w.LONG), ("mouseData", w.DWORD), ("dwFlags", w.DWORD),
+                ("time", w.DWORD), ("dwExtraInfo", ctypes.POINTER(w.ULONG))]
+class MU(ctypes.Union): _fields_ = [("mi", MI), ("pad", ctypes.c_ubyte * 32)]
+class MIN(ctypes.Structure): _fields_ = [("type", w.DWORD), ("u", MU)]
+
+
+def click():
+    for fl in (2, 4):
+        i = MIN(); i.type = 0; i.u.mi = MI(0, 0, 0, fl, 0, None)
+        g.u32.SendInput(1, ctypes.byref(i), ctypes.sizeof(MIN)); time.sleep(0.03)
+
+
+def game_window(pid, timeout=60):
+    for _ in range(timeout * 2):
+        for h, t in g.all_windows():
+            p = ctypes.c_ulong(); g.u32.GetWindowThreadProcessId(h, ctypes.byref(p))
+            if p.value == pid and " - " in t:      # title becomes "<map> - ASHES 2063..." once in a level
+                return h
+        time.sleep(0.5)
+    raise SystemExit("no game window")
+
+
+def burst(h, name, n, gap):
+    for k in range(n):
+        g.shot(h, os.path.join(OUT, f"{name}_{k:02d}.bmp")); time.sleep(gap)
+
+
+def sheet(name, cols):
+    fs = sorted(glob.glob(os.path.join(OUT, f"{name}_*.bmp")))
+    ims = [Image.open(f).resize((316, 170)) for f in fs]
+    o = Image.new("RGB", (cols * 316, ((len(ims) + cols - 1) // cols) * 170))
+    for i, im in enumerate(ims):
+        o.paste(im, ((i % cols) * 316, (i // cols) * 170))
+    o.save(os.path.join(OUT, f"sheet_{name}.png"))
+    for f in fs:
+        os.remove(f)
+
+
+if __name__ != "__main__":  # never launch the game on import
+    raise ImportError("revolver_test.py is a script, run it directly")
+
+proc = g.launch()
+h = game_window(proc.pid)
+time.sleep(4)
+if not g.fg(h):
+    raise SystemExit("could not bring the game to the front")
+g.console("bind r +reload")
+time.sleep(0.5)
+burst(h, "idle", 1, 0)
+Image.open(os.path.join(OUT, "idle_00.bmp")).save(os.path.join(OUT, "idle_full.png"))
+click(); burst(h, "fire", 14, 0.02)
+time.sleep(1.0)
+g.key('r'); burst(h, "reload", 30, 0.05)
+for n, c in (("idle", 1), ("fire", 5), ("reload", 6)):
+    sheet(n, c)
+g.console("quit")
+proc.wait(timeout=30)
+print("done", OUT, "exit", proc.returncode)
