@@ -8,12 +8,12 @@ procedural pixel textures, EEVEE at 320×240, 35 fps. Repo: github.com/TefMeiste
 | Folder | File | What |
 | --- | --- | --- |
 | `handgun/` | `Ashes_2063_EP1_handgun_model.blend` | the gun on its own |
-| `handgun/` | `Ashes_2063_EP1_handgun_shoot1.blend` | one shot, 16 frames |
-| `handgun/` | `Ashes_2063_EP1_handgun_reload.blend` | magazine swap, 44 frames |
+| `handgun/` | `Ashes_2063_EP1_handgun_shoot1.blend` | one shot, 7 frames, game timing |
+| `handgun/` | `Ashes_2063_EP1_handgun_reload.blend` | magazine swap, 47 frames, game timing |
 | `jackhammer/` | `Ashes_2063_EP1_jackhammer_model.blend` | the machine on its own |
-| `jackhammer/` | `Ashes_2063_EP1_jackhammer_shoot1.blend` | hammering loop, 12 frames |
+| `jackhammer/` | `Ashes_2063_EP1_jackhammer_shoot1.blend` | hammering loop, 5 frames, game timing |
 | `crowbar/` | `Ashes_2063_EP1_crowbar_model.blend` | the bar on its own |
-| `crowbar/` | `Ashes_2063_EP1_crowbar_shoot1.blend` | one swing, 24 frames |
+| `crowbar/` | `Ashes_2063_EP1_crowbar_shoot1.blend` | one swing, 30 frames, game timing |
 | `handgun/` | `Ashes_2063_EP1_handgun_shoot1_static.blend` | shot with the gun held still |
 | `handgun/` | `Ashes_2063_EP1_handgun_reload_static.blend` | magazine out and in, gun held still |
 | `revolver/` | `Ashes_2063_EP1_revolver_model.blend` | the .45 revolver on its own |
@@ -110,3 +110,40 @@ rubber finger-groove grip. Parts: `RV_Crane` (swings out left) > `RV_Cylinder` (
 - Reload: cylinder swings out; gun tips muzzle-up; ejector pushes the cases out and they drop 0.8 m in the
   world in 3 frames, then vanish; gun tips down so the cylinder's back faces you; speedloader comes from the
   left hip (same spot as the handgun magazine), seats the rounds on tic R and disappears; flick closes it.
+
+## Re-timed from the game (2026-09-17)
+The handgun, jackhammer and crowbar were first timed by eye. They now use the game's own tics too
+(sources in `Ashes2063Enriched2_23.pk3` → `Actors/Weapons/`) `[inferred-static]`; poses are unchanged apart from
+being moved onto the new frames.
+- **Handgun shoot 1** (`Glock.txt`, `FireReal`): GLKF A 1, GLKF B 1, GLOK B 2, GLOK C 1, GLOK A 1 → 7 frames incl. the ready frame.
+- **Handgun reload** (`Glock.txt`, `Work2` + `ReloadDone`, the reload with a round still chambered): 46 tics → 47 frames.
+  The game hides the gun for 1 tic and later 3 tics (`TNT1`); the 3D gun holds its pose there. The empty-gun
+  reload (`Work1`, slide locked back) is not made yet.
+- **Jackhammer shoot 1** (`Hammer.txt`, `FIREGAS`): E F G H E, 1 tic each, hit on F → 5-frame loop.
+  Not made yet: the wind-down when you let go (HIHEABCDCB, 2 tics each) and the overcharge alt-fire.
+- **Crowbar shoot 1** (`Crowbar.txt`, `Fire` + `Downswing`, one click): 29 tics → 30 frames; hit on tic 13.
+  Where the game hides the bar the 3D bar is swung out of view. Not made yet: the held-button return
+  swing (`Upswing`) and the heavy alt-fire strike.
+
+## Fire rates, worked out from the game files (2026-09-17) `[inferred-static]`
+No recording is needed: each weapon's state list says how many tics (1/35 s) pass between shots.
+"Held" = fire button held down; the game re-fires by itself at the end of the cycle.
+
+| Weapon | Tics per shot (held) | Shots per second | Per minute | Notes |
+| --- | --- | --- | --- | --- |
+| 9mm handgun | 6 | 5.8 | 350 | |
+| .45 revolver | 12 | 2.9 | 175 | quick re-clicking can fire after 8 tics (NOAUTOFIRE + fire allowed on sprite G) |
+| Pump shotgun | 30 (9 shot + 21 pump) | 1.2 | 70 | second shotgun actor `pumpaction2` pumps faster: 24 tics, 87/min |
+| Sawed-off | 10 between the two barrels | | | then reload; alt-fire shoots both barrels in the same tic |
+| Ingram (plain) | 3 shots every 8 tics | 13.1 | 790 | bursts of 3-2-3 tic gaps; aimed alt-fire: 2 tics, 1050/min |
+| Ingram (suppressed) | 3 every 8 | 13.1 | 790 | aimed alt-fire 2 tics |
+| Ingram (third version) | 3 every 6 | 17.5 | 1050 | aimed alt-fire 2 tics |
+| FAL | 7 | 5.0 | 300 | scoped: 8 tics, 262/min |
+| Musket | single shot | | | 15 tics of recoil animation, then reload |
+| Napalm gun | 22 | 1.6 | 95 | flamethrower alt-fire: 8 flame puffs per 14-tic ammo cycle |
+| Jackhammer | 5 | 7 | 420 | |
+| Crowbar | 15-16 per hit (held, alternating swings) | 2.3 | 135 | one click = 29-tic swing |
+| Pipe bomb | thrown | | | cook time up to about 21 × 5 tics |
+
+Caveat: counted by hand from the DECORATE states (a state's action runs when it is entered, `A_ReFire`
+jumps at once while fire is held). Worth one check in game with a stopwatch on the handgun if exact numbers matter.
