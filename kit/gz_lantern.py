@@ -16,7 +16,7 @@ GLASS_ALPHA = 0.35                          # see-through glass, drawn additivel
 REAL_HEIGHT = 0.26                          # metres; the Blender lantern is drawn oversized
 UNITS_PER_M = 34                            # map units per metre (vr_vunits_per_meter in the VR config)
 GRIP_Z = 0.21                               # the grip bar: this point sits at the hand
-ATLAS = 256
+ATLAS = 1024                                # 256 lost the pixel textures and the weathering (2026-09-17)
 LIGHT_DROP = 5                              # light sits this many units below the hand, inside the glass
 LIGHT_SIZE = (55, 62)                       # flicker between these radii (first wear: 110/124 was twice too big)
 # The game's lantern glow has three fixed brightness steps (lantern/NOTES.md): sprite frame -> glow level
@@ -45,14 +45,67 @@ for o in meshes:
     o.hide_viewport = o.hide_render = False; o.hide_set(False); o.select_set(True)
     if not o.data.materials:
         o.data.materials.append(bpy.data.materials.new("L_Fallback"))
+    # The lamp's own UVs map every face onto the tiny 16x16 pixel textures. The game atlas needs its own
+    # layout, and it must be BOTH the active layer (unwrap, export) and the render layer (bake target);
+    # baking onto the old layer is what made the first exports flat.
+    uv = o.data.uv_layers.new(name="GZ_Atlas")
+    o.data.uv_layers.active = uv
+    uv.active_render = True
 bpy.context.view_layer.objects.active = meshes[0]
-bpy.ops.object.mode_set(mode='EDIT')
-bpy.ops.mesh.select_all(action='SELECT')
-bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.01)
-bpy.ops.object.mode_set(mode='OBJECT')
+
+
+def pack_faces_into_atlas(objs, size, pad_px=2):
+    """Own UV layout, no Blender operators (smart_project / pack_islands silently did nothing in
+    background mode here): every face is laid flat at its true size and shelf-packed, so big
+    surfaces get proportionally more texture than small ones."""
+    rects = []                                  # [w, h, obj, poly index, [(loop, u, v)]]
+    for o in objs:
+        M = o.matrix_world
+        me = o.data
+        for poly in me.polygons:
+            pts = [M @ me.vertices[me.loops[li].vertex_index].co for li in poly.loop_indices]
+            n = (M.to_3x3() @ poly.normal)
+            if n.length < 1e-12:
+                n = Vector((0, 0, 1))
+            n.normalize()
+            e = next(((pts[i + 1] - pts[i]) for i in range(len(pts) - 1) if (pts[i + 1] - pts[i]).length > 1e-9), Vector((1, 0, 0)))
+            u = (e - n * e.dot(n)).normalized() if (e - n * e.dot(n)).length > 1e-9 else n.orthogonal().normalized()
+            v = n.cross(u)
+            flat = [(q.dot(u), q.dot(v)) for q in pts]
+            u0 = min(f[0] for f in flat); v0 = min(f[1] for f in flat)
+            w = max(f[0] for f in flat) - u0; h = max(f[1] for f in flat) - v0
+            rects.append([w, h, o, [(li, f[0] - u0, f[1] - v0) for li, f in zip(poly.loop_indices, flat)]])
+    rects.sort(key=lambda r: -r[1])
+    pad = pad_px / size
+
+    def layout(density):                       # density = uv units per metre; returns placements or None
+        x = y = pad; row = 0.0; out = []
+        for w, h, o, loops in rects:
+            rw, rh = w * density + 2 * pad, h * density + 2 * pad
+            if x + rw > 1.0:
+                x = pad; y += row; row = 0.0
+            if x + rw > 1.0 or y + rh > 1.0:
+                return None
+            out.append((x + pad, y + pad)); x += rw; row = max(row, rh)
+        return out
+
+    lo, hi = 0.0, 1000.0
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        if layout(mid) is None: hi = mid
+        else: lo = mid
+    places = layout(lo)
+    for (w, h, o, loops), (px_, py_) in zip(rects, places):
+        data = o.data.uv_layers.active.data
+        for li, fu, fv in loops:
+            data[li].uv = (px_ + fu * lo, py_ + fv * lo)
+    print("atlas texels per metre", round(lo * size))
+
+
+pack_faces_into_atlas(meshes, ATLAS)
 
 sc.render.engine = 'CYCLES'
-sc.cycles.samples = 1
+sc.cycles.samples = 8
 img = bpy.data.images.new("GZ_LanternAtlas", ATLAS, ATLAS, alpha=False)
 mask = bpy.data.images.new("GZ_LanternGlowMask", ATLAS, ATLAS, alpha=False)
 bake_nodes = []     # (emission node for the bake, glow?, image node)
@@ -61,22 +114,21 @@ for m in {s.material for o in meshes for s in o.material_slots if s.material}:
     N, L = m.node_tree.nodes, m.node_tree.links
     out = next((n for n in N if n.type == 'OUTPUT_MATERIAL'), None) or N.new('ShaderNodeOutputMaterial')
     bsdf = next((n for n in N if n.type == 'BSDF_PRINCIPLED'), None)
-    # what the eye sees: a glowing material shows its glow colour, anything else its base colour.
-    # Glow is either a plain Emission node (strongest one wins) or the Principled emission.
-    glows = sorted((n for n in N if n.type == 'EMISSION'), key=lambda n: -n.inputs[1].default_value)
-    em = N.new('ShaderNodeEmission')
-    src, glow = None, False
-    if glows and glows[0].inputs[1].default_value > 0.0:
-        src, glow = glows[0].inputs[0], True
-    elif bsdf:
-        glow = bsdf.inputs['Emission Strength'].default_value > 0.0
-        src = bsdf.inputs['Emission Color' if glow else 'Base Color']
-    if src is not None:
-        if src.links:
-            L.new(src.links[0].from_socket, em.inputs['Color'])
-        else:
-            em.inputs['Color'].default_value = src.default_value
-    L.new(em.outputs[0], out.inputs['Surface'])
+    # Glowing materials (any Emission node, or Principled emission) are baked AS THEY ARE, so the cloudy
+    # glass pattern and the white-hot core come out like the Blender render. Everything else bakes its
+    # base colour (pixel texture + weathering), without Blender's lighting.
+    own_glow = any(n.type == 'EMISSION' and n.inputs[1].default_value > 0.0 for n in N) or         (bsdf is not None and bsdf.inputs['Emission Strength'].default_value > 0.0)
+    glow = own_glow
+    em = None
+    if not own_glow:
+        em = N.new('ShaderNodeEmission')
+        if bsdf:
+            src = bsdf.inputs['Base Color']
+            if src.links:
+                L.new(src.links[0].from_socket, em.inputs['Color'])
+            else:
+                em.inputs['Color'].default_value = src.default_value
+        L.new(em.outputs[0], out.inputs['Surface'])
     tex = N.new('ShaderNodeTexImage'); tex.image = img; tex.interpolation = 'Closest'
     N.active = tex
     bake_nodes.append((em, glow and "Glow" in m.name, tex))
@@ -84,8 +136,12 @@ bpy.ops.object.bake(type='EMIT', margin=2, use_clear=True)
 # second bake: white where the LAMP glows (materials named ...Glow), black elsewhere, so the flicker
 # dims only that; the lid screen and LEDs glow steadily (Tefa, 2026-09-17)
 for em, glow, tex in bake_nodes:
+    nt = tex.id_data
+    if em is None:
+        em = nt.nodes.new('ShaderNodeEmission')
+        nt.links.new(em.outputs[0], next(n for n in nt.nodes if n.type == 'OUTPUT_MATERIAL').inputs['Surface'])
     for l in list(em.inputs['Color'].links):
-        em.id_data.links.remove(l)
+        nt.links.remove(l)
     em.inputs['Color'].default_value = (1, 1, 1, 1) if glow else (0, 0, 0, 1)
     tex.image = mask
 bpy.ops.object.bake(type='EMIT', margin=2, use_clear=True)
