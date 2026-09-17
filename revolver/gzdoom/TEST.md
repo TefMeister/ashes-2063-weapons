@@ -19,7 +19,11 @@ captures idle / one shot / one reload, quits). Evidence: `evidence-2026-09-17/`.
   the Blender camera (32 mm lens), so the gun looks smaller and more stretched at the edges than in the Blender renders.
 - Frames with no model mapped (lantern-lit REVL J-T, melee REVG B-D, knife KNIF) fall back to the flat sprite `[inferred-static]`.
 
-## VR test: NOT RUN (needs the headset)
+## VR test: WORKS, first wear 2026-09-17 `[reported 2026-09-17, n=1 wear]`
+Tefa: *"it shows up, but is about 10 cm too high in relation to my hand and motion controller. maybe 8 cm ... but it
+feels awesome already and works really well"*. Rebuilt with the grip 9 cm lower (`VR_GRIP_DROP` in `kit/gz_revolver.py`);
+the lower build is not worn yet.
+
 On the home PC there is a desktop shortcut for it, **"Ashes 2063 VR - 3D revolver test"**, which runs
 `Play Ashes 2063 VR (3D revolver test).bat` in the game folder. The original "Ashes 2063 VR" shortcut does NOT load our file.
 From `C:\NonSteam\Ashes 2063 VR`, with Virtual Desktop / SteamVR running, the normal VR launcher line plus our file:
