@@ -22,7 +22,11 @@ captures idle / one shot / one reload, quits). Evidence: `evidence-2026-09-17/`.
 ## VR test: WORKS, first wear 2026-09-17 `[reported 2026-09-17, n=1 wear]`
 Tefa: *"it shows up, but is about 10 cm too high in relation to my hand and motion controller. maybe 8 cm ... but it
 feels awesome already and works really well"*. Rebuilt with the grip 9 cm lower (`VR_GRIP_DROP` in `kit/gz_revolver.py`);
-worn the same day: *"3 cm down, 2 cm to the right and 3 cm back my way"* (move it that way) → applied as `VR_NUDGE_*`. Third wear: *"not sure if back my way worked at all ... when turning the weapon sideways ... the handle being away from the motion controller"*, *"the weapon tilt when reloading has to be about 60% less"*, *"still 2cm lower"* → 5 cm further back (a big step, to make the direction obvious), 2 cm lower, and the reload's whole-gun movement cut to 40% (`GUN_MOTION_SCALE`, VR build only). Fourth wear: *"up please now 3cm and back 2cm"* → applied. Not worn yet.
+worn the same day: *"3 cm down, 2 cm to the right and 3 cm back my way"* (move it that way) → applied as `VR_NUDGE_*`. Third wear: *"not sure if back my way worked at all ... when turning the weapon sideways ... the handle being away from the motion controller"*, *"the weapon tilt when reloading has to be about 60% less"*, *"still 2cm lower"* → 5 cm further back (a big step, to make the direction obvious), 2 cm lower, and the reload's whole-gun movement cut to 40% (`GUN_MOTION_SCALE`, VR build only). Fourth wear: *"up please now 3cm and back 2cm"* → applied. Fifth wear (with a headset screenshot): *"needs 2cm to the
+left again"*, and with the controller held relaxed the barrel points about 10° up (measured by eye from the screenshot).
+→ 2 cm left in the build; the angle is fixed with the engine's `openvr_weaponRotate` (-40 → -50) rather than in the model,
+because bullets follow that setting too, so the barrel and the shots stay lined up. The test launcher now uses its own
+settings copy, `gzdoomvrshes-vr-3dtest.ini`, so the normal game's settings are untouched. Not worn yet.
 
 On the home PC there is a desktop shortcut for it, **"Ashes 2063 VR - 3D revolver test"**, which runs
 `Play Ashes 2063 VR (3D revolver test).bat` in the game folder. The original "Ashes 2063 VR" shortcut does NOT load our file.
