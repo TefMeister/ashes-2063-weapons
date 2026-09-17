@@ -1,0 +1,4 @@
+*.blend1
+_renders/
+__pycache__/
+CHANGES and questions.txt
