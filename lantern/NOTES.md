@@ -150,3 +150,19 @@ lantern is waved while standing still, but *"moves accurately when the player is
   the mod still compiles without Ashes) and puts it on the lantern every tic, 36 units below the hand so its
   light lands inside the lamp. When the game's lantern is off, nothing spawns and nothing changes.
 - Flat compile check passed (no script errors, reaches `player 1 of 1`). Not worn yet.
+
+## Fifth wear: 30 back, a quarter smaller, and the "spotlight" is the game's lighting, not a light (2026-09-17)
+Tefa: *"it needs turning back 30 degrees"*, *"make the lantern 25% smaller"*, and *"the light seems to be following
+the lantern more, but still it's like there is a spotlight that follows me around"*.
+- `YAW_OFFSET` 60 → 30, `MODEL_SCALE` 2.0 → 1.5, `LIGHT_DROP` 10 → 8.
+- **The follow-me spotlight is not a light source at all, so no light of ours could ever beat it.** Ashes forces
+  light mode 3 ("dark") with its own `lightmodepatch.pk3`. In every Doom light mode except the plainest, the engine
+  derives a fog density from each sector's light level and fades surfaces to black **by distance from the eye**
+  (`hw_lighting.cpp` `GetFogDensity`, `distfogtable[lightmode != LinearStandard]`, and `R_DoomLightingEquation` in
+  `main.fp`, which takes `z = distance(pixel, camera)`). Whatever you stand next to is therefore the brightest thing
+  in the room, wherever you point the lantern `[inferred-static]`.
+- Fix: our MAPINFO now adds `gamedefaults { nolightfade }` (`LEVEL3_NOLIGHTFADE`), which switches that distance fade
+  off and leaves light mode 3's dark look alone — so a surface is only bright if something really lights it.
+  Switch: `KILL_LIGHT_FADE` in `kit/gz_lantern.py`. ⚠️ Not worn yet; it changes how the WHOLE game reads, and the
+  likely cost is that far-away dark areas no longer fade into black.
+- Loads clean on a flat screen into MAP01, no script or MAPINFO errors.

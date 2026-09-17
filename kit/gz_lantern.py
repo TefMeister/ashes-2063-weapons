@@ -17,9 +17,9 @@ REAL_HEIGHT = 0.26                          # metres; the Blender lantern is dra
 UNITS_PER_M = 34                            # map units per metre (vr_vunits_per_meter in the VR config)
 GRIP_Z = 0.21                               # the grip bar: this point sits at the hand
 ATLAS = 1024                                # 256 lost the pixel textures and the weathering (2026-09-17)
-MODEL_SCALE = 2.0                           # Tefa, fourth wear: the lantern wants to be about twice this big
-YAW_OFFSET = 60                             # a sixth of a turn (their "one slice of a 6-slice pizza"), counter-clockwise seen from above
-LIGHT_DROP = 10                             # light sits this many units below the hand, inside the glass (doubled with the model)
+MODEL_SCALE = 1.5                           # Tefa, fifth wear: twice was too big; 25% off that is the size we want
+YAW_OFFSET = 30                             # was 60, turned back 30 by Tefa (fifth wear); a sixth of a turn (their "one slice of a 6-slice pizza"), counter-clockwise seen from above
+LIGHT_DROP = 8                              # light sits this many units below the hand, inside the glass (scales with the model)
 LIGHT_SIZE = (55, 62)                       # flicker between these radii (first wear: 110/124 was twice too big)
 # The GAME lights the room with its own short-lived invisible actor spawned at the player's chest
 # (Ashes' Actors/Weapons/*.txt: A_SpawnItemEx("lanternglow",0,0,8,0); its light Lantern1 is size 130,
@@ -27,6 +27,12 @@ LIGHT_SIZE = (55, 62)                       # flicker between these radii (first
 # the lantern, so the room really is lit by what the hand is holding.
 GAME_GLOW = 'LanternGlow'
 GAME_GLOW_LIGHT_UP = 36                     # its light sits this far above the actor, so put the actor that far below the hand
+# Ashes is played in light mode 3 ("dark", forced by its own lightmodepatch.pk3). In every Doom light mode
+# except the plainest, the engine fades surfaces to black WITH DISTANCE FROM THE EYE, so whatever you stand
+# next to is the brightest thing in the room: Tefa, fifth wear, *"a spotlight that follows me around"*. It is
+# not a light at all, so no light source of ours can beat it. The MAPINFO map flag `nolightfade` switches that
+# distance fade off and leaves the dark look alone, so only real light sources - the lantern - pick things out.
+KILL_LIGHT_FADE = True                      # set False to hand the game its own eye-follow brightness back
 # The game's lantern glow has three fixed brightness steps (lantern/NOTES.md): sprite frame -> glow level
 FLICKER_LEVELS = [("A", 1.0), ("B", 0.75), ("C", 0.52)]
 # measured order across 66 game frames, one tic each: B bright, M mid, D dim
@@ -312,6 +318,8 @@ GLDEFS = f'''flickerlight2 TEFALEFTLANTERN
 object TefaLeftHandLantern {{ frame LHLN {{ light TEFALEFTLANTERN }} }}
 '''
 MAPINFO = 'GameInfo { AddEventHandlers = "TefaLeftHandHandler" }\n'
+if KILL_LIGHT_FADE:
+    MAPINFO += 'gamedefaults { nolightfade }\n'
 
 
 def _chunk(tag, data):
