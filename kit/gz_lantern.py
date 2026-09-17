@@ -17,8 +17,16 @@ REAL_HEIGHT = 0.26                          # metres; the Blender lantern is dra
 UNITS_PER_M = 34                            # map units per metre (vr_vunits_per_meter in the VR config)
 GRIP_Z = 0.21                               # the grip bar: this point sits at the hand
 ATLAS = 1024                                # 256 lost the pixel textures and the weathering (2026-09-17)
-LIGHT_DROP = 5                              # light sits this many units below the hand, inside the glass
+MODEL_SCALE = 2.0                           # Tefa, fourth wear: the lantern wants to be about twice this big
+YAW_OFFSET = 60                             # a sixth of a turn (their "one slice of a 6-slice pizza"), counter-clockwise seen from above
+LIGHT_DROP = 10                             # light sits this many units below the hand, inside the glass (doubled with the model)
 LIGHT_SIZE = (55, 62)                       # flicker between these radii (first wear: 110/124 was twice too big)
+# The GAME lights the room with its own short-lived invisible actor spawned at the player's chest
+# (Ashes' Actors/Weapons/*.txt: A_SpawnItemEx("lanternglow",0,0,8,0); its light Lantern1 is size 130,
+# offset 0 36 0). That is why the room barely changed when Tefa waved the hand. We move each one to
+# the lantern, so the room really is lit by what the hand is holding.
+GAME_GLOW = 'LanternGlow'
+GAME_GLOW_LIGHT_UP = 36                     # its light sits this far above the actor, so put the actor that far below the hand
 # The game's lantern glow has three fixed brightness steps (lantern/NOTES.md): sprite frame -> glow level
 FLICKER_LEVELS = [("A", 1.0), ("B", 0.75), ("C", 0.52)]
 # measured order across 66 game frames, one tic each: B bright, M mid, D dim
@@ -249,6 +257,11 @@ SPARK_STATES		Loop; }
 class TefaLeftHandHandler : EventHandler
 {
 	Actor parts[3];
+	Array<Actor> gameglows;		// the game's own room light, caught at spawn and moved to the hand
+	override void WorldThingSpawned(WorldEvent e)
+	{
+		if (e.Thing && e.Thing.GetClassName() == 'GAME_GLOW_NAME') gameglows.Push(e.Thing);
+	}
 	override void WorldTick()
 	{
 		static const Class<Actor> kinds[] = { "TefaLeftHandLantern", "TefaLeftHandLanternGlass", "TefaLeftHandLanternSparks" };
@@ -266,12 +279,22 @@ class TefaLeftHandHandler : EventHandler
 			parts[i].SetOrigin(pmo.OffhandPos, true);	// game-side position (light, sector); the drawing ignores it
 			parts[i].angle = pmo.OffhandAngle;
 		}
+		// Keep the game's own lantern light on the lantern instead of on the player's chest, every tic,
+		// so the room lights from wherever the hand is pointing it.
+		for (int i = gameglows.Size() - 1; i >= 0; i--)
+		{
+			let g = gameglows[i];
+			if (!g || g.bDestroyed) { gameglows.Delete(i); continue; }
+			if (pmo.OffhandValid)
+				g.SetOrigin((pmo.OffhandPos.X, pmo.OffhandPos.Y, pmo.OffhandPos.Z - GLOW_LIFT), true);
+		}
 	}
 }
 '''
 def model_block(actor, md3name, skin, sprite, letter, frame):
     lines = [f"Model {actor}", "{", f'   Path "{MODEL_PATH}"', f'   Model 0 "{md3name}.md3"', f'   Skin 0 "{skin}"',
-             "   Scale 1.0 1.0 1.0", f"   FrameIndex {sprite} {letter} 0 {frame}", "}", ""]
+             f"   Scale {MODEL_SCALE} {MODEL_SCALE} {MODEL_SCALE}", f"   AngleOffset {YAW_OFFSET}",
+             f"   FrameIndex {sprite} {letter} 0 {frame}", "}", ""]
     return chr(10).join(lines)
 
 
@@ -303,6 +326,7 @@ PIXEL = (bytes([0x89]) + b"PNG\r\n" + bytes([0x1A]) + b"\n"
 frame_of = {"B": "A", "M": "B", "D": "C"}
 ZSCRIPT = ZSCRIPT.replace("FLICKER_STATES", "".join("\t\tLHLN " + frame_of[c] + " 1 Bright;\n" for c in FLICKER_ORDER))
 ZSCRIPT = ZSCRIPT.replace("GLASS_ALPHA_VALUE", str(GLASS_ALPHA))
+ZSCRIPT = ZSCRIPT.replace("GAME_GLOW_NAME", GAME_GLOW).replace("GLOW_LIFT", str(GAME_GLOW_LIGHT_UP))
 ZSCRIPT = ZSCRIPT.replace("SPARK_STATES", "".join("\t\t%s %s %d Bright;\n" % (*spr(i), n) for i, n in timeline))
 with zipfile.ZipFile(os.path.join(OUT_DIR, PK3), "w", zipfile.ZIP_DEFLATED) as z:
     z.writestr("zscript.txt", ZSCRIPT); z.writestr("modeldef.lantern", MODELDEF)

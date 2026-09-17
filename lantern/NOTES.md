@@ -131,3 +131,22 @@ the whole lantern.
   parts). On 2.5 mm blocks it adds dark grime patches, rust-brown spots and pale scratch lines, and it
   roughens grimy areas. The glass gets dark dirt smudges laid over the glow with the same pattern.
 - Backup of v06: `Ashes_2063_EP1_lantern_v06_backup.blend`.
+
+## Fourth wear: turn, size, and WHY the light did not follow the hand (2026-09-17)
+Tefa, with a drawing: turn the lantern a sixth of a turn counter-clockwise (*"if the lid was a 6 slice pizza,
+then move it one slice's worth"*), make it about twice the size, and — *"the light barely moves"* when the
+lantern is waved while standing still, but *"moves accurately when the player is moving"*.
+- Turn and size are MODELDEF, not the model: `AngleOffset 60` and `Scale 2.0` on every block
+  (`MODEL_SCALE` / `YAW_OFFSET` in `kit/gz_lantern.py`). Our own flicker light drops 10 units instead of 5,
+  to stay inside the glass of the bigger lamp. ⚠️ The turn direction is read from the drawing and from the
+  engine source (`models.cpp`: `AngleOffset` rotates exactly like actor yaw, so + is counter-clockwise seen
+  from above) `[inferred-static]`. If it comes out turned the wrong way, use `-60`.
+- **The light was never ours.** Ashes lights the room with its own invisible actor, `LanternGlow`, which every
+  weapon's lantern-on state spawns **at the player** roughly once a tic (`A_SpawnItemEx("lanternglow",0,0,8,0)`
+  in `Actors/Weapons/*.txt`); its GLDEFS light `Lantern1` is **size 130, offset 0 36 0** — a 3.8 m blue glow at
+  the player's chest. Ours is 55/62 at the hand. So the room light really was body-mounted, and waving the hand
+  only moved the small one `[inferred-static]` — read out of the game's own pk3, not yet worn.
+- Fix: the event handler now catches every `LanternGlow` as it spawns (`WorldThingSpawned`, by class name, so
+  the mod still compiles without Ashes) and puts it on the lantern every tic, 36 units below the hand so its
+  light lands inside the lamp. When the game's lantern is off, nothing spawns and nothing changes.
+- Flat compile check passed (no script errors, reaches `player 1 of 1`). Not worn yet.
