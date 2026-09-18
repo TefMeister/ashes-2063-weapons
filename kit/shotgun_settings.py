@@ -2,8 +2,9 @@
 # +Y is the muzzle, +Z up, +X the gun's right side. Origin: rear face of the receiver,
 # on the receiver's bottom line, so the stock runs into -Y and the barrel into +Y.
 MODEL = r"C:\Users\TD3KX\ashes-2063-weapons\shotgun\Ashes_2063_EP1_shotgun_model.blend"
-REST_LOC = (0.010, 0.10, -0.085)      # where the gun sits in the first-person view
-REST_ROT = (3, -4, 6)                 # pitch, cant, yaw (degrees)
+REST_LOC = (0.070, 0.290, -0.085)     # where the gun sits in the first-person view
+REST_ROT = (2, 16, 6)                 # pitch, cant, yaw (degrees); +yaw swings the muzzle
+                                      # toward the middle of the screen
 
 BORE_Z = 0.058                        # height of the barrel's centre line
 BLOCK_SG = 0.0045                     # texture pixel size: big gun, big pixels

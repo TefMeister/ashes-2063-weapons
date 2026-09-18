@@ -23,6 +23,9 @@ procedural pixel textures, EEVEE at 320×240, 35 fps. Repo: github.com/TefMeiste
 | `revolver/` | `Ashes_2063_EP1_revolver_reload_static.blend` | cylinder out, cases out, rounds in, gun held still |
 | `jackhammer/` | `Ashes_2063_EP1_jackhammer_shoot1_static.blend` | bit and smoke only, machine held still |
 | `shotgun/` | `Ashes_2063_EP1_shotgun_model.blend` | the pump-action shotgun on its own |
+| `shotgun/` | `Ashes_2063_EP1_shotgun_shoot1.blend` | one shot and the pump stroke, 30 frames, game timing |
+| `shotgun/` | `Ashes_2063_EP1_shotgun_reload.blend` | fired dry: action cycled, six shells in, 164 frames, game timing |
+| `shotgun/` | `Ashes_2063_EP1_shotgun_reload_partial.blend` | shells still in it: three more go in, 76 frames, game timing |
 
 **Rule (Tefa, 2026-09-17, all weapons, all games):** every animation comes in two files. The normal
 one is the game's own movement. The `_static` one keeps the weapon itself fixed in its rest pose and
@@ -87,9 +90,32 @@ only the parts that appear on screen are drawn from evidence.
 **Invented, with no evidence at all:** the right-hand side, the underside, the butt pad, the sling
 stud, the receiver's internals, and the whole length of the gun.
 
-**Parts split out for the animations still to come:** `SG_Pump` (racks back along -Y, `PUMP_BACK`),
-`SG_Trigger`, `SG_PortShell`, and hidden `SG_MuzzleFlash`, `SG_Casing`, `SG_LoadShell`.
-Numbers live in `kit/shotgun_settings.py`.
+**Moving parts:** `SG_Pump` (racks back along -Y, `PUMP_BACK`), `SG_Trigger`, `SG_PortShell`, and
+hidden `SG_MuzzleFlash`, `SG_Casing`, `SG_LoadShell`. Numbers live in `kit/shotgun_settings.py`.
+
+### Animations (2026-09-18) — timing is the game's own `[inferred-static 2026-09-18]`
+
+Read straight out of `Actors/Weapons/Shotgun.txt` in `Ashes2063Enriched2_23.pk3`, actor `pumpaction`
+(the wooden-pump one in Tefa's screenshots; `pumpaction2`, the "Classic shotgun", is a separate upgrade
+and is NOT modelled). One frame = one tic.
+
+| File | Game states | Tics |
+| --- | --- | --- |
+| `shoot1` | `FireReal` (GRIF A 1, B 1, C 1, GRIP C 4, B 2) then `Pump` (GRIP A-G 1 each, H 3, I-M 2 each, GRIZ A 1) | **30** |
+| `reload` | `Reloadpump` in full: cycle the action (26), first shell and the action closing on it (47), then `Reloadloop` 15 × 5, `ReloadDone` 15 | **164** |
+| `reload_partial` | `ReloadStart` (16), `Reloadloop` 15 × 3, `ReloadDone` 15 | **76** |
+
+The 164 matches Tefa's `reload when fully out of ammo` folder (162 screenshots) almost exactly, which is
+the best confirmation we have that one frame really is one tic.
+
+The spent shell leaves on tic 17 of the shot, right where the game throws its `grizzlySpawner`, and it
+travels in **world** space — turning the gun cannot bend its path (the rule set for the handgun on
+2026-09-17).
+
+⚠️ **The first-person pose (`REST_LOC` / `REST_ROT`) is by eye and is the weakest part** `[hypothesis]`.
+It was pushed around until the framing resembled Tefa's screenshots, but nothing is measured against the
+game, and in VR the controller decides where the gun is anyway. The revolver's took seven wears to settle.
+The `_static` files open through `SideCam`, which is where the motion is actually readable.
 
 ## Next
 - Tefa's feedback on shapes, colours and the animation poses.
