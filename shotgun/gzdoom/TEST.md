@@ -51,7 +51,18 @@ that work even, i just instinctively pressed LG to grip it"*.
    the lantern whenever the off hand was tracked, full stop. It now follows the game's own
    `lightlit` flag, so **the lantern key puts it away and takes it out again**, and the off hand is
    free. Rebuilt `Ashes2063_lefthand_lantern_test.pk3`.
-3. **There is no grip button, and there never was.** Nothing to press: you just bring your left hand up
+3. **There is no grip button — and Tefa asked for one, which is the right answer.** Their words, same
+   wear: *"can there be a grip button LG to hold on to a forend of the weapon? just holding my hand at
+   the wooden bit did nothing"*. ⚠️ **"Did nothing" is the finding to carry forward**, and that wear
+   could not explain it: the gun was 8.61° nose-down, so lining the hand up with the *visible* fore-end
+   lined it up with the wrong direction, and the lantern was stuck in that hand too. Both are fixed, so
+   a plain re-wear is worth one minute first. The button itself is **mod-side only, no engine rebuild** —
+   ZScript reads `players[n].cmd.buttons`, so `TwoHandedAim` becomes "a long gun is out, the off hand is
+   tracked, **and** the grip action is held", with the grip bound to `+user2` in the VR controls menu.
+   A held button is a far better signal than geometry, because it says *I am gripping it* outright; the
+   two unmeasured guard numbers then stop deciding anything.
+
+   As things stand today there is nothing to press: Nothing to press: you just bring your left hand up
    to where the fore-end is and hold the controllers as if holding a real rifle. The engine watches the
    two hands. It needs them a minimum distance apart *and* roughly in line with the way the gun points,
    or it refuses and leaves aiming exactly as it is. **The visible sign that it worked is the red laser
