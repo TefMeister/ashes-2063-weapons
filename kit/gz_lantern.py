@@ -273,9 +273,14 @@ class TefaLeftHandHandler : EventHandler
 		static const Class<Actor> kinds[] = { "TefaLeftHandLantern", "TefaLeftHandLanternGlass", "TefaLeftHandLanternSparks" };
 		let pmo = players[consoleplayer].mo;
 		if (!pmo) return;
+		// The game's own "the lantern is lit" flag, toggled by the lantern/zoom key. Without this
+		// the lantern was welded to the left hand for ever, so it could not be put away and the
+		// off hand was never free -- which is exactly what stopped a rifle being held with both
+		// hands [reported 2026-09-19, n=1 wear].
+		bool lit = pmo.CountInv("lightlit") > 0;
 		for (int i = 0; i < 3; i++)
 		{
-			if (!pmo.OffhandValid) { if (parts[i]) parts[i].bInvisible = true; continue; }
+			if (!pmo.OffhandValid || !lit) { if (parts[i]) parts[i].bInvisible = true; continue; }
 			if (!parts[i])
 			{
 				parts[i] = Actor.Spawn(kinds[i], pmo.OffhandPos);
@@ -291,7 +296,7 @@ class TefaLeftHandHandler : EventHandler
 		{
 			let g = gameglows[i];
 			if (!g || g.bDestroyed) { gameglows.Delete(i); continue; }
-			if (pmo.OffhandValid)
+			if (pmo.OffhandValid && lit)
 				g.SetOrigin((pmo.OffhandPos.X, pmo.OffhandPos.Y, pmo.OffhandPos.Z - GLOW_LIFT), true);
 		}
 	}
