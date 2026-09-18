@@ -26,7 +26,12 @@ The result goes in its own folder (`gzdoomvr-tefa/`) beside the original engine;
   light source, so it illuminates the world around it as i move it! this is awesome!"* Asked for: half the light radius, and the
   blue flicker (the lamp looked grey). Both changed, not worn yet.
 - **Stop-motion hand: DROPPED.** 12 updates a second felt bad, and so did skipping a single frame: *"stop motion is not good in here, so we'll drop that going forward"* `[reported 2026-09-17, n=1]`. The setting is off; the code stays, harmlessly.
-- **Two-handed long guns look possible with this build** `[hypothesis]`: mods can now read both hands every tic, so a rifle can point
-  from the rear hand toward the front hand. Aiming the shots the same way needs one more small engine change (shots currently follow
-  the weapon controller only).
+- **Two-handed long guns: the missing engine change is now WRITTEN and its maths is checked** (2026-09-18, `/pd`).
+  Mods could already read both hands every tic and draw a rifle along the line between them; only the SHOT still followed the rear
+  controller's own tilt. `two_handed_aim.h` computes the aim from the hand-to-hand line, with two guards so it refuses — and changes
+  nothing — when the off hand is not actually on the gun. `two_handed_aim_test.cpp` compiles that same header: **36/36 checks**, proved
+  able to fail on **ten** mutants of it, all ten caught `[verified-numerically 2026-09-18]`. Run it with `run_aim_test.bat`.
+  ⚠️ **NOT built and NOT worn** — the dev PC has no engine source and no headset. The four edits to make on the home PC, the mod-side
+  ZScript, and what each headset outcome would mean are in [`TWO-HANDED-AIM.md`](TWO-HANDED-AIM.md). Both threshold numbers are
+  guesses until someone measures a comfortable rifle hold `[hypothesis]`.
 If this is ever released, GPL-3.0 means the patched source must be published with it (a public fork).
