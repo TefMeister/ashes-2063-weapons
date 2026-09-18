@@ -22,6 +22,7 @@ procedural pixel textures, EEVEE at 320×240, 35 fps. Repo: github.com/TefMeiste
 | `revolver/` | `Ashes_2063_EP1_revolver_shoot1_static.blend` | shot with the gun held still |
 | `revolver/` | `Ashes_2063_EP1_revolver_reload_static.blend` | cylinder out, cases out, rounds in, gun held still |
 | `jackhammer/` | `Ashes_2063_EP1_jackhammer_shoot1_static.blend` | bit and smoke only, machine held still |
+| `shotgun/` | `Ashes_2063_EP1_shotgun_model.blend` | the pump-action shotgun on its own |
 
 **Rule (Tefa, 2026-09-17, all weapons, all games):** every animation comes in two files. The normal
 one is the game's own movement. The `_static` one keeps the weapon itself fixed in its rest pose and
@@ -58,6 +59,37 @@ Every key is CONSTANT: the pose jumps, nothing slides in between. Poses are held
   crowbar attack screenshots, so "shoot 1" is a guessed swing: wind up right, strike across,
   follow through low left.
 - First-person placement and lens are set by eye, not measured against the game.
+
+## Shotgun (2026-09-18, home PC) `[hypothesis]`
+
+Built by eye from Tefa's screenshots in `Ashes 2063/shotgun/` (three sets: `shoot 1`,
+`reload when not fully out of ammo`, `reload when fully out of ammo`, plus `shotgun model.png`).
+Every shot is a heavy zoom on the first-person view, so **the length and proportions are guessed**;
+only the parts that appear on screen are drawn from evidence.
+
+**What the screenshots actually show** (n=1 per view, by eye):
+- A long dark barrel with a magazine tube under it, a chunky pale barrel band part-way along, and a
+  blocky pale front sight on a ramp at the muzzle.
+- A **deeply ribbed warm brown wooden pump**, the only warm colour on the gun.
+- A dark green-grey receiver with a large rectangular **port showing a red shell with a brass head**,
+  a big round pin head, a stamped row of marks, and a swept trigger guard below.
+- A **near-black stock** with a strong sheen and a dark pad.
+
+**Deliberate choices, both Tefa-directed (2026-09-18):**
+- **Darker than the revolver and the lantern.** Those read "light grey and even white". Every ramp
+  here is narrow and low, and the shared weathering colours (scratch, rust, grime) are overridden
+  darker at the top of `build_shotgun.py` — the toolkit's bright scratch colour reads as white cracks
+  on a dark gun.
+- **The port is on the gun's LEFT.** That is the side the game's own sprite shows it on, because the
+  player sees the left flank. Real 12-gauges eject to the right. `PORT_X` in `build_shotgun.py` flips
+  it if we ever want the real side.
+
+**Invented, with no evidence at all:** the right-hand side, the underside, the butt pad, the sling
+stud, the receiver's internals, and the whole length of the gun.
+
+**Parts split out for the animations still to come:** `SG_Pump` (racks back along -Y, `PUMP_BACK`),
+`SG_Trigger`, `SG_PortShell`, and hidden `SG_MuzzleFlash`, `SG_Casing`, `SG_LoadShell`.
+Numbers live in `kit/shotgun_settings.py`.
 
 ## Next
 - Tefa's feedback on shapes, colours and the animation poses.
