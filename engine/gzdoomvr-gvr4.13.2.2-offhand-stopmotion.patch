@@ -1,56 +1,44 @@
+From 2ae22faec2392d7e9c99ab9e27af0f8adce7ef63 Mon Sep 17 00:00:00 2001
+From: TefMeister <td3kxlvr@proton.me>
+Date: Thu, 17 Sep 2026 17:59:31 +0300
+Subject: [PATCH 1/4] VR: off-hand pose for mods; stop-motion weapon hand
+ (toggle + rate slider)
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ .../rendering/hwrenderer/data/hw_vrmodes.cpp  |  4 ++
+ src/playsim/actor.h                           |  8 ++++
+ src/rendering/gl/stereo3d/gl_openvr.cpp       | 44 +++++++++++++++++--
+ src/rendering/gl/stereo3d/gl_openvr.h         |  1 +
+ src/scripting/vmthunks_actors.cpp             |  6 +++
+ wadsrc/static/menudef.txt                     |  2 +
+ wadsrc/static/zscript/actors/actor.zs         |  6 +++
+ 7 files changed, 68 insertions(+), 3 deletions(-)
+
 diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
-index e2f1f7e..79b6e39 100644
+index e2f1f7e..eff0f24 100644
 --- a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
 +++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
-@@ -61,6 +61,25 @@ CVAR(Bool, openvr_moveFollowsOffHand, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+@@ -61,6 +61,10 @@ CVAR(Bool, openvr_moveFollowsOffHand, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Bool, openvr_drawControllers, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Float, openvr_weaponRotate, -40.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Float, openvr_weaponScale, 0.3f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 +// Stop-motion weapon hand: the weapon follows the controller only a few times a second,
-+// while the world and the view stay smooth. Skip = how many rendered frames the weapon stays
-+// frozen for after each update (1 = it moves on every second frame).
-+EXTERN_CVAR(Bool, openvr_rightHanded)
-+EXTERN_CVAR(Float, openvr_weaponRotate)
-+
-+bool VRMode::GetOffhandRenderPos(double* x, double* y, double* z, double* yaw) const
-+{
-+	VSMatrix m;
-+	if (!GetHandTransform(openvr_rightHanded ? 0 : 1, &m)) return false;
-+	m.rotate(openvr_weaponRotate, 1, 0, 0);
-+	auto f = m.get();
-+	*x = f[12]; *y = f[14]; *z = f[13];
-+	*yaw = atan2(-(double)f[10], -(double)f[8]) * (180.0 / 3.14159265358979323846);
-+	return true;
-+}
-+
++// while the world and the view stay smooth. Rate = updates per second.
 +CVAR(Bool, vr_weapon_stopmotion, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-+CVAR(Int, vr_weapon_stopmotion_skip, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
++CVAR(Int, vr_weapon_stopmotion_rate, 12, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  
  CVAR(Bool, vr_snap_turn, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  CVAR(Float, vr_snap_angle, 45.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.h b/src/common/rendering/hwrenderer/data/hw_vrmodes.h
-index 0d3713f..9122984 100644
---- a/src/common/rendering/hwrenderer/data/hw_vrmodes.h
-+++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.h
-@@ -80,6 +80,8 @@ struct VRMode
- 
- 	virtual bool GetHandTransform(int hand, VSMatrix* out) const { return false; }
- 	virtual bool GetWeaponTransform(VSMatrix* out) const { return false; }
-+	// off hand at render time, in Doom map coordinates; yaw in degrees
-+	bool GetOffhandRenderPos(double* x, double* y, double* z, double* yaw) const;
- 	virtual bool RenderPlayerSpritesCrossed() const { return false; }
- 	virtual bool RenderPlayerSpritesInScene() const { return false; }
- 	virtual bool IsInitialized() const { return true; }
 diff --git a/src/playsim/actor.h b/src/playsim/actor.h
-index 0f92c92..b2b7c40 100644
+index 0f92c92..19d5932 100644
 --- a/src/playsim/actor.h
 +++ b/src/playsim/actor.h
-@@ -1656,6 +1656,15 @@ public:
+@@ -1656,6 +1656,14 @@ public:
  	DAngle   AttackAngle;
  	DAngle  AttackRoll;
  
 +	//For VR, the off hand (the one not holding the weapon), for mods
-+	bool FollowOffhand;	// set by a mod on any actor: draw it rigidly at the off hand, every rendered frame
 +	bool OffhandValid;
 +	DVector3 OffhandPos;
 +	DVector3 OffhandDir;
@@ -61,32 +49,8 @@ index 0f92c92..b2b7c40 100644
  	DVector3 (*AttackDir)(AActor* actor, DAngle yaw, DAngle pitch);
  };
  
-diff --git a/src/r_data/models.cpp b/src/r_data/models.cpp
-index 9ac7a4b..d108811 100644
---- a/src/r_data/models.cpp
-+++ b/src/r_data/models.cpp
-@@ -26,6 +26,7 @@
- **
- **/
- 
-+#include "hw_vrmodes.h"
- #include "filesystem.h"
- #include "cmdlib.h"
- #include "sc_man.h"
-@@ -86,6 +87,11 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
- 	else
- 		angles = actor->Angles;
- 	float angle = angles.Yaw.Degrees();
-+	if (actor->FollowOffhand)
-+	{
-+		double hx, hy, hz, hyaw;
-+		if (VRMode::GetVRMode(true)->GetOffhandRenderPos(&hx, &hy, &hz, &hyaw)) angle = (float)hyaw;
-+	}
- 
- 	// [BB] Workaround for the missing pitch information.
- 	if ((smf_flags & MDL_PITCHFROMMOMENTUM))
 diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
-index 95377d9..e2463a7 100644
+index 95377d9..7712acd 100644
 --- a/src/rendering/gl/stereo3d/gl_openvr.cpp
 +++ b/src/rendering/gl/stereo3d/gl_openvr.cpp
 @@ -29,6 +29,7 @@
@@ -102,7 +66,7 @@ index 95377d9..e2463a7 100644
  EXTERN_CVAR(Float, openvr_weaponRotate);
  EXTERN_CVAR(Float, openvr_weaponScale);
 +EXTERN_CVAR(Bool, vr_weapon_stopmotion);
-+EXTERN_CVAR(Int, vr_weapon_stopmotion_skip);
++EXTERN_CVAR(Int, vr_weapon_stopmotion_rate);
  
  EXTERN_CVAR(Bool, vr_enable_haptics);
  EXTERN_CVAR(Float, vr_kill_momentum)
@@ -111,7 +75,7 @@ index 95377d9..e2463a7 100644
  		bool active = false;
  		TrackedDevicePose_t pose;
 +		TrackedDevicePose_t heldPose;	// stop-motion: the pose the weapon is frozen at
-+		int heldFrames = 0;				// rendered frames since heldPose was last refreshed
++		double heldTime = 0;			// seconds, when heldPose was last refreshed
  		VRControllerState_t lastState;
  		VRControllerModel* model = nullptr;
  	};
@@ -145,23 +109,24 @@ index 95377d9..e2463a7 100644
  		{
  			out->rotate(openvr_weaponRotate, 1, 0, 0);
  			if (!openvr_rightHanded)
-@@ -1559,6 +1569,15 @@ namespace s3d
+@@ -1559,6 +1569,16 @@ namespace s3d
  					}
  					controllers[role].active = true;
  					controllers[role].pose = pose;
 +					{
-+						// stop-motion weapon hand: after each update, keep the pose frozen for N rendered frames
-+						int skip = clamp<int>(vr_weapon_stopmotion_skip, 1, 30);
-+						if (!vr_weapon_stopmotion || ++controllers[role].heldFrames > skip)
++						// stop-motion weapon hand: refresh the frozen pose only N times a second
++						double now = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
++						int rate = clamp<int>(vr_weapon_stopmotion_rate, 1, 60);
++						if (!vr_weapon_stopmotion || now - controllers[role].heldTime >= 1.0 / rate || now < controllers[role].heldTime)
 +						{
 +							controllers[role].heldPose = pose;
-+							controllers[role].heldFrames = 0;
++							controllers[role].heldTime = now;
 +						}
 +					}
  					if (controllerMeshes[model_name].isLoaded())
  					{
  						controllers[role].model = &controllerMeshes[model_name];
-@@ -1623,7 +1642,7 @@ namespace s3d
+@@ -1623,7 +1643,7 @@ namespace s3d
  
  					vec3_t weaponangles;
  					int hand = openvr_rightHanded ? 1 : 0;
@@ -170,7 +135,7 @@ index 95377d9..e2463a7 100644
  					weaponangles[YAW] = RAD2DEG(eulerAngles.v[0]);
  					weaponangles[PITCH] = -RAD2DEG(eulerAngles.v[1]);
  					weaponangles[ROLL] = normalizeAngle(-RAD2DEG(eulerAngles.v[2]) + 180.);
-@@ -1636,6 +1655,24 @@ namespace s3d
+@@ -1636,6 +1656,24 @@ namespace s3d
  					player->mo->AttackRoll = DAngle::fromDeg(weaponangles[ROLL]);
  
  				}
@@ -207,6 +172,235 @@ index 2202463..6c27b1a 100644
  	virtual bool GetWeaponTransform(VSMatrix* out) const override;
  	virtual bool RenderPlayerSpritesCrossed() const { return true; }
  	virtual bool RenderPlayerSpritesInScene() const { return true; }
+diff --git a/src/scripting/vmthunks_actors.cpp b/src/scripting/vmthunks_actors.cpp
+index 3c340ec..c7d5749 100644
+--- a/src/scripting/vmthunks_actors.cpp
++++ b/src/scripting/vmthunks_actors.cpp
+@@ -2139,6 +2139,12 @@ DEFINE_FIELD(AActor, AttackDir)
+ DEFINE_FIELD(AActor, AttackPitch)
+ DEFINE_FIELD(AActor, AttackRoll)
+ DEFINE_FIELD(AActor, AttackAngle)
++DEFINE_FIELD(AActor, OffhandValid)
++DEFINE_FIELD(AActor, OffhandPos)
++DEFINE_FIELD(AActor, OffhandDir)
++DEFINE_FIELD(AActor, OffhandAngle)
++DEFINE_FIELD(AActor, OffhandPitch)
++DEFINE_FIELD(AActor, OffhandRoll)
+ 
+ DEFINE_FIELD_X(FCheckPosition, FCheckPosition, thing);
+ DEFINE_FIELD_X(FCheckPosition, FCheckPosition, pos);
+diff --git a/wadsrc/static/menudef.txt b/wadsrc/static/menudef.txt
+index bba4cfe..c3ad6ec 100644
+--- a/wadsrc/static/menudef.txt
++++ b/wadsrc/static/menudef.txt
+@@ -2767,6 +2767,8 @@ OptionMenu "OpenVROptions" protected
+ 	Slider "$VRPREFMNU_FATITEMWIDTH",			gl_fatItemWidth,						0, 1, 0.05, 2
+ 	Slider "$VRPREFMNU_WEAPONSCALE",			openvr_weaponScale,						0, 1, 0.05, 2
+ 	Option "$VRPREFMNU_DRAWCONTROLLERS",		openvr_drawControllers,					"OnOff"
++	Option "Stop-motion weapon hand",			vr_weapon_stopmotion,					"OnOff"
++	Slider "Stop-motion updates per second",	vr_weapon_stopmotion_rate,				2, 35, 1, 0
+ 	StaticText " "
+ 	StaticText "$VRPREFMNU_HAPTICS"
+ 	Option "$VRPREFMNU_ENABLEHAPTICS",	    	vr_enable_haptics, "OnOff"
+diff --git a/wadsrc/static/zscript/actors/actor.zs b/wadsrc/static/zscript/actors/actor.zs
+index 3e56350..b4e56a2 100644
+--- a/wadsrc/static/zscript/actors/actor.zs
++++ b/wadsrc/static/zscript/actors/actor.zs
+@@ -872,6 +872,12 @@ class Actor : Thinker native
+ 	native readonly double AttackRoll;
+ 	native readonly double AttackAngle;
+ 	native readonly bool OverrideAttackPosDir;
++	native readonly bool OffhandValid;
++	native readonly vector3 OffhandPos;
++	native readonly vector3 OffhandDir;
++	native readonly double OffhandAngle;
++	native readonly double OffhandPitch;
++	native readonly double OffhandRoll;
+ 
+ 	native vector3 AttackDir(Actor actor, double angle, double pitch);
+ 
+-- 
+2.55.0.windows.3
+
+
+From 15d82a48f9b7ffb33593c3f97250611ccaa34528 Mon Sep 17 00:00:00 2001
+From: TefMeister <td3kxlvr@proton.me>
+Date: Thu, 17 Sep 2026 20:19:47 +0300
+Subject: [PATCH 2/4] Stop-motion weapon hand: skip N rendered frames instead
+ of a per-second rate
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ src/common/rendering/hwrenderer/data/hw_vrmodes.cpp |  5 +++--
+ src/rendering/gl/stereo3d/gl_openvr.cpp             | 13 ++++++-------
+ wadsrc/static/menudef.txt                           |  2 +-
+ 3 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
+index eff0f24..43ed812 100644
+--- a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
++++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
+@@ -62,9 +62,10 @@ CVAR(Bool, openvr_drawControllers, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Float, openvr_weaponRotate, -40.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Float, openvr_weaponScale, 0.3f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ // Stop-motion weapon hand: the weapon follows the controller only a few times a second,
+-// while the world and the view stay smooth. Rate = updates per second.
++// while the world and the view stay smooth. Skip = how many rendered frames the weapon stays
++// frozen for after each update (1 = it moves on every second frame).
+ CVAR(Bool, vr_weapon_stopmotion, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+-CVAR(Int, vr_weapon_stopmotion_rate, 12, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
++CVAR(Int, vr_weapon_stopmotion_skip, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ 
+ CVAR(Bool, vr_snap_turn, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Float, vr_snap_angle, 45.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
+index 7712acd..e2463a7 100644
+--- a/src/rendering/gl/stereo3d/gl_openvr.cpp
++++ b/src/rendering/gl/stereo3d/gl_openvr.cpp
+@@ -150,7 +150,7 @@ EXTERN_CVAR(Bool, openvr_drawControllers)
+ EXTERN_CVAR(Float, openvr_weaponRotate);
+ EXTERN_CVAR(Float, openvr_weaponScale);
+ EXTERN_CVAR(Bool, vr_weapon_stopmotion);
+-EXTERN_CVAR(Int, vr_weapon_stopmotion_rate);
++EXTERN_CVAR(Int, vr_weapon_stopmotion_skip);
+ 
+ EXTERN_CVAR(Bool, vr_enable_haptics);
+ EXTERN_CVAR(Float, vr_kill_momentum)
+@@ -464,7 +464,7 @@ namespace s3d
+ 		bool active = false;
+ 		TrackedDevicePose_t pose;
+ 		TrackedDevicePose_t heldPose;	// stop-motion: the pose the weapon is frozen at
+-		double heldTime = 0;			// seconds, when heldPose was last refreshed
++		int heldFrames = 0;				// rendered frames since heldPose was last refreshed
+ 		VRControllerState_t lastState;
+ 		VRControllerModel* model = nullptr;
+ 	};
+@@ -1570,13 +1570,12 @@ namespace s3d
+ 					controllers[role].active = true;
+ 					controllers[role].pose = pose;
+ 					{
+-						// stop-motion weapon hand: refresh the frozen pose only N times a second
+-						double now = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+-						int rate = clamp<int>(vr_weapon_stopmotion_rate, 1, 60);
+-						if (!vr_weapon_stopmotion || now - controllers[role].heldTime >= 1.0 / rate || now < controllers[role].heldTime)
++						// stop-motion weapon hand: after each update, keep the pose frozen for N rendered frames
++						int skip = clamp<int>(vr_weapon_stopmotion_skip, 1, 30);
++						if (!vr_weapon_stopmotion || ++controllers[role].heldFrames > skip)
+ 						{
+ 							controllers[role].heldPose = pose;
+-							controllers[role].heldTime = now;
++							controllers[role].heldFrames = 0;
+ 						}
+ 					}
+ 					if (controllerMeshes[model_name].isLoaded())
+diff --git a/wadsrc/static/menudef.txt b/wadsrc/static/menudef.txt
+index c3ad6ec..26d6907 100644
+--- a/wadsrc/static/menudef.txt
++++ b/wadsrc/static/menudef.txt
+@@ -2768,7 +2768,7 @@ OptionMenu "OpenVROptions" protected
+ 	Slider "$VRPREFMNU_WEAPONSCALE",			openvr_weaponScale,						0, 1, 0.05, 2
+ 	Option "$VRPREFMNU_DRAWCONTROLLERS",		openvr_drawControllers,					"OnOff"
+ 	Option "Stop-motion weapon hand",			vr_weapon_stopmotion,					"OnOff"
+-	Slider "Stop-motion updates per second",	vr_weapon_stopmotion_rate,				2, 35, 1, 0
++	Slider "Stop-motion frames to skip",		vr_weapon_stopmotion_skip,				1, 12, 1, 0
+ 	StaticText " "
+ 	StaticText "$VRPREFMNU_HAPTICS"
+ 	Option "$VRPREFMNU_ENABLEHAPTICS",	    	vr_enable_haptics, "OnOff"
+-- 
+2.55.0.windows.3
+
+
+From fa0765cb0e0b2adced81ec5694fc86289afd1fec Mon Sep 17 00:00:00 2001
+From: TefMeister <td3kxlvr@proton.me>
+Date: Thu, 17 Sep 2026 20:44:04 +0300
+Subject: [PATCH 3/4] FollowOffhand: draw an actor rigidly at the off hand on
+ every rendered frame
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ .../rendering/hwrenderer/data/hw_vrmodes.cpp       | 14 ++++++++++++++
+ src/common/rendering/hwrenderer/data/hw_vrmodes.h  |  2 ++
+ src/playsim/actor.h                                |  1 +
+ src/r_data/models.cpp                              |  6 ++++++
+ src/rendering/hwrenderer/scene/hw_sprites.cpp      |  8 ++++++++
+ src/scripting/vmthunks_actors.cpp                  |  1 +
+ wadsrc/static/zscript/actors/actor.zs              |  1 +
+ 7 files changed, 33 insertions(+)
+
+diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
+index 43ed812..79b6e39 100644
+--- a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
++++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
+@@ -64,6 +64,20 @@ CVAR(Float, openvr_weaponScale, 0.3f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ // Stop-motion weapon hand: the weapon follows the controller only a few times a second,
+ // while the world and the view stay smooth. Skip = how many rendered frames the weapon stays
+ // frozen for after each update (1 = it moves on every second frame).
++EXTERN_CVAR(Bool, openvr_rightHanded)
++EXTERN_CVAR(Float, openvr_weaponRotate)
++
++bool VRMode::GetOffhandRenderPos(double* x, double* y, double* z, double* yaw) const
++{
++	VSMatrix m;
++	if (!GetHandTransform(openvr_rightHanded ? 0 : 1, &m)) return false;
++	m.rotate(openvr_weaponRotate, 1, 0, 0);
++	auto f = m.get();
++	*x = f[12]; *y = f[14]; *z = f[13];
++	*yaw = atan2(-(double)f[10], -(double)f[8]) * (180.0 / 3.14159265358979323846);
++	return true;
++}
++
+ CVAR(Bool, vr_weapon_stopmotion, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Int, vr_weapon_stopmotion_skip, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ 
+diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.h b/src/common/rendering/hwrenderer/data/hw_vrmodes.h
+index 0d3713f..9122984 100644
+--- a/src/common/rendering/hwrenderer/data/hw_vrmodes.h
++++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.h
+@@ -80,6 +80,8 @@ struct VRMode
+ 
+ 	virtual bool GetHandTransform(int hand, VSMatrix* out) const { return false; }
+ 	virtual bool GetWeaponTransform(VSMatrix* out) const { return false; }
++	// off hand at render time, in Doom map coordinates; yaw in degrees
++	bool GetOffhandRenderPos(double* x, double* y, double* z, double* yaw) const;
+ 	virtual bool RenderPlayerSpritesCrossed() const { return false; }
+ 	virtual bool RenderPlayerSpritesInScene() const { return false; }
+ 	virtual bool IsInitialized() const { return true; }
+diff --git a/src/playsim/actor.h b/src/playsim/actor.h
+index 19d5932..b2b7c40 100644
+--- a/src/playsim/actor.h
++++ b/src/playsim/actor.h
+@@ -1657,6 +1657,7 @@ public:
+ 	DAngle  AttackRoll;
+ 
+ 	//For VR, the off hand (the one not holding the weapon), for mods
++	bool FollowOffhand;	// set by a mod on any actor: draw it rigidly at the off hand, every rendered frame
+ 	bool OffhandValid;
+ 	DVector3 OffhandPos;
+ 	DVector3 OffhandDir;
+diff --git a/src/r_data/models.cpp b/src/r_data/models.cpp
+index 9ac7a4b..d108811 100644
+--- a/src/r_data/models.cpp
++++ b/src/r_data/models.cpp
+@@ -26,6 +26,7 @@
+ **
+ **/
+ 
++#include "hw_vrmodes.h"
+ #include "filesystem.h"
+ #include "cmdlib.h"
+ #include "sc_man.h"
+@@ -86,6 +87,11 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
+ 	else
+ 		angles = actor->Angles;
+ 	float angle = angles.Yaw.Degrees();
++	if (actor->FollowOffhand)
++	{
++		double hx, hy, hz, hyaw;
++		if (VRMode::GetVRMode(true)->GetOffhandRenderPos(&hx, &hy, &hz, &hyaw)) angle = (float)hyaw;
++	}
+ 
+ 	// [BB] Workaround for the missing pitch information.
+ 	if ((smf_flags & MDL_PITCHFROMMOMENTUM))
 diff --git a/src/rendering/hwrenderer/scene/hw_sprites.cpp b/src/rendering/hwrenderer/scene/hw_sprites.cpp
 index 83f3c1a..52949d5 100644
 --- a/src/rendering/hwrenderer/scene/hw_sprites.cpp
@@ -234,51 +428,314 @@ index 83f3c1a..52949d5 100644
  
  	AActor *viewmaster = thing;
 diff --git a/src/scripting/vmthunks_actors.cpp b/src/scripting/vmthunks_actors.cpp
-index 3c340ec..de4f359 100644
+index c7d5749..de4f359 100644
 --- a/src/scripting/vmthunks_actors.cpp
 +++ b/src/scripting/vmthunks_actors.cpp
-@@ -2139,6 +2139,13 @@ DEFINE_FIELD(AActor, AttackDir)
+@@ -2139,6 +2139,7 @@ DEFINE_FIELD(AActor, AttackDir)
  DEFINE_FIELD(AActor, AttackPitch)
  DEFINE_FIELD(AActor, AttackRoll)
  DEFINE_FIELD(AActor, AttackAngle)
 +DEFINE_FIELD(AActor, FollowOffhand)
-+DEFINE_FIELD(AActor, OffhandValid)
-+DEFINE_FIELD(AActor, OffhandPos)
-+DEFINE_FIELD(AActor, OffhandDir)
-+DEFINE_FIELD(AActor, OffhandAngle)
-+DEFINE_FIELD(AActor, OffhandPitch)
-+DEFINE_FIELD(AActor, OffhandRoll)
- 
- DEFINE_FIELD_X(FCheckPosition, FCheckPosition, thing);
- DEFINE_FIELD_X(FCheckPosition, FCheckPosition, pos);
-diff --git a/wadsrc/static/menudef.txt b/wadsrc/static/menudef.txt
-index bba4cfe..26d6907 100644
---- a/wadsrc/static/menudef.txt
-+++ b/wadsrc/static/menudef.txt
-@@ -2767,6 +2767,8 @@ OptionMenu "OpenVROptions" protected
- 	Slider "$VRPREFMNU_FATITEMWIDTH",			gl_fatItemWidth,						0, 1, 0.05, 2
- 	Slider "$VRPREFMNU_WEAPONSCALE",			openvr_weaponScale,						0, 1, 0.05, 2
- 	Option "$VRPREFMNU_DRAWCONTROLLERS",		openvr_drawControllers,					"OnOff"
-+	Option "Stop-motion weapon hand",			vr_weapon_stopmotion,					"OnOff"
-+	Slider "Stop-motion frames to skip",		vr_weapon_stopmotion_skip,				1, 12, 1, 0
- 	StaticText " "
- 	StaticText "$VRPREFMNU_HAPTICS"
- 	Option "$VRPREFMNU_ENABLEHAPTICS",	    	vr_enable_haptics, "OnOff"
+ DEFINE_FIELD(AActor, OffhandValid)
+ DEFINE_FIELD(AActor, OffhandPos)
+ DEFINE_FIELD(AActor, OffhandDir)
 diff --git a/wadsrc/static/zscript/actors/actor.zs b/wadsrc/static/zscript/actors/actor.zs
-index 3e56350..75582f7 100644
+index b4e56a2..75582f7 100644
 --- a/wadsrc/static/zscript/actors/actor.zs
 +++ b/wadsrc/static/zscript/actors/actor.zs
-@@ -872,6 +872,13 @@ class Actor : Thinker native
+@@ -872,6 +872,7 @@ class Actor : Thinker native
  	native readonly double AttackRoll;
  	native readonly double AttackAngle;
  	native readonly bool OverrideAttackPosDir;
 +	native bool FollowOffhand;
-+	native readonly bool OffhandValid;
-+	native readonly vector3 OffhandPos;
-+	native readonly vector3 OffhandDir;
-+	native readonly double OffhandAngle;
-+	native readonly double OffhandPitch;
-+	native readonly double OffhandRoll;
+ 	native readonly bool OffhandValid;
+ 	native readonly vector3 OffhandPos;
+ 	native readonly vector3 OffhandDir;
+-- 
+2.55.0.windows.3
+
+
+From 6293d1b5dcb1365c3ab60210b6e0e76ff04cf748 Mon Sep 17 00:00:00 2001
+From: TefMeister <td3kxlvr@proton.me>
+Date: Sat, 19 Sep 2026 00:23:23 +0300
+Subject: [PATCH 4/4] Two-handed long guns: aim the shot down the line between
+ the hands
+
+TwoHandedAim, a bool a mod sets on the player. When it is on and the off hand
+is tracked, the shot follows the hand-to-hand line instead of the rear
+controller's own tilt. Two guards (least separation, agreement with where the
+gun points); refusing leaves aiming exactly as it was.
+
+Both guard numbers are settings rather than constants (vr_two_handed_min_sep,
+vr_two_handed_max_disagree) with sliders in VR Options, plus
+vr_two_handed_debug which prints which guard refused -- so the first headset
+session can tune them without a rebuild.
+
+The maths is two_handed_aim.h, unchanged from the tested copy (36/36 checks).
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ .../rendering/hwrenderer/data/hw_vrmodes.cpp  |   6 +
+ src/playsim/actor.h                           |   1 +
+ src/rendering/gl/stereo3d/gl_openvr.cpp       |  44 +++++++
+ src/rendering/gl/stereo3d/two_handed_aim.h    | 107 ++++++++++++++++++
+ src/scripting/vmthunks_actors.cpp             |   1 +
+ wadsrc/static/menudef.txt                     |   5 +
+ wadsrc/static/zscript/actors/actor.zs         |   1 +
+ 7 files changed, 165 insertions(+)
+ create mode 100644 src/rendering/gl/stereo3d/two_handed_aim.h
+
+diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
+index 79b6e39..3bffbf9 100644
+--- a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
++++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
+@@ -80,6 +80,12 @@ bool VRMode::GetOffhandRenderPos(double* x, double* y, double* z, double* yaw) c
  
- 	native vector3 AttackDir(Actor actor, double angle, double pitch);
+ CVAR(Bool, vr_weapon_stopmotion, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Int, vr_weapon_stopmotion_skip, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
++// Two-handed long guns. Both limits are guesses until someone measures a comfortable rifle
++// hold in the headset, so they are settings rather than constants: no rebuild to tune them.
++// The defaults are the ones in engine/two_handed_aim.h.
++CVAR(Float, vr_two_handed_min_sep, 8.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
++CVAR(Float, vr_two_handed_max_disagree, 55.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
++CVAR(Bool, vr_two_handed_debug, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
  
+ CVAR(Bool, vr_snap_turn, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Float, vr_snap_angle, 45.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+diff --git a/src/playsim/actor.h b/src/playsim/actor.h
+index b2b7c40..b124322 100644
+--- a/src/playsim/actor.h
++++ b/src/playsim/actor.h
+@@ -1658,6 +1658,7 @@ public:
+ 
+ 	//For VR, the off hand (the one not holding the weapon), for mods
+ 	bool FollowOffhand;	// set by a mod on any actor: draw it rigidly at the off hand, every rendered frame
++	bool TwoHandedAim;	// set by a mod on the PLAYER: aim shots from the weapon hand THROUGH the off hand
+ 	bool OffhandValid;
+ 	DVector3 OffhandPos;
+ 	DVector3 OffhandDir;
+diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
+index e2463a7..de56343 100644
+--- a/src/rendering/gl/stereo3d/gl_openvr.cpp
++++ b/src/rendering/gl/stereo3d/gl_openvr.cpp
+@@ -48,6 +48,7 @@
+ #include "c_cvars.h"
+ #include "cmdlib.h"
+ #include "LSMatrix.h"
++#include "two_handed_aim.h"	// two-handed long guns: where does the gun actually point
+ //#include "common/filesystem/filesystem.h"
+ #include "m_joy.h"
+ #include "d_gui.h"
+@@ -151,6 +152,9 @@ EXTERN_CVAR(Float, openvr_weaponRotate);
+ EXTERN_CVAR(Float, openvr_weaponScale);
+ EXTERN_CVAR(Bool, vr_weapon_stopmotion);
+ EXTERN_CVAR(Int, vr_weapon_stopmotion_skip);
++EXTERN_CVAR(Float, vr_two_handed_min_sep);
++EXTERN_CVAR(Float, vr_two_handed_max_disagree);
++EXTERN_CVAR(Bool, vr_two_handed_debug);
+ 
+ EXTERN_CVAR(Bool, vr_enable_haptics);
+ EXTERN_CVAR(Float, vr_kill_momentum)
+@@ -1673,6 +1677,46 @@ namespace s3d
+ 						player->mo->OffhandRoll = DAngle::fromDeg(normalizeAngle(-RAD2DEG(e.v[2]) + 180.));
+ 					}
+ 				}
++
++				// Two-handed long guns (2026-09-19). When a mod asks for it, the shot follows the
++				// line between the two hands instead of the rear controller's own tilt. It sits
++				// here on purpose: OffhandPos above is this frame's, and AttackAngle/AttackPitch
++				// just above are the values everything downstream will use.
++				// Guarded twice, and refusing means "leave the aim exactly as it is today", so the
++				// worst case is the behaviour we already have. See two_handed_aim.h beside this file.
++				if (player->mo->TwoHandedAim && player->mo->OffhandValid && player->mo->OverrideAttackPosDir)
++				{
++					tha::Hands hh;
++					hh.rear_x  = player->mo->AttackPos.X;  hh.rear_y  = player->mo->AttackPos.Y;  hh.rear_z  = player->mo->AttackPos.Z;
++					hh.front_x = player->mo->OffhandPos.X; hh.front_y = player->mo->OffhandPos.Y; hh.front_z = player->mo->OffhandPos.Z;
++					// The weapon hand's own forward, written in the SAME convention the engine
++					// actually shoots along (p_map.cpp: { pc*angle.Cos(), pc*angle.Sin(), -pitch.Sin() }).
++					// Do NOT use the TRotator -> TVector3 helper here: its Z is +sin(pitch), the
++					// opposite sign, and the gun would quietly shoot as far high as it should be low.
++					const double pc = player->mo->AttackPitch.Cos();
++					hh.fwd_x = pc * player->mo->AttackAngle.Cos();
++					hh.fwd_y = pc * player->mo->AttackAngle.Sin();
++					hh.fwd_z = -player->mo->AttackPitch.Sin();
++
++					const tha::Aim aim = tha::decide(hh, tha::Limits{ vr_two_handed_min_sep, vr_two_handed_max_disagree });
++					if (vr_two_handed_debug)
++					{
++						// Throttled: this runs every rendered frame. Says which guard refused.
++						static int thaLog = 0;
++						if (++thaLog >= 30)
++						{
++							thaLog = 0;
++							Printf("two-handed: hands %.1f apart (limit %.1f), line is %.1f deg off the gun (limit %.1f) -> %s\n",
++								aim.sep, (float)vr_two_handed_min_sep, aim.disagree_deg, (float)vr_two_handed_max_disagree,
++								aim.use ? "USED" : "refused");
++						}
++					}
++					if (aim.use)
++					{
++						player->mo->AttackAngle = DAngle::fromDeg(aim.yaw_deg);
++						player->mo->AttackPitch = DAngle::fromDeg(aim.pitch_deg);
++					}
++				}
+ 				if (GetHandTransform(openvr_rightHanded ? 0 : 1, &mat) && openvr_moveFollowsOffHand)
+ 				{
+ 					player->mo->ThrustAngleOffset = DAngle::fromDeg(RAD2DEG(atan2f(-mat[2][2], -mat[2][0]))) - player->mo->Angles.Yaw;
+diff --git a/src/rendering/gl/stereo3d/two_handed_aim.h b/src/rendering/gl/stereo3d/two_handed_aim.h
+new file mode 100644
+index 0000000..43213e1
+--- /dev/null
++++ b/src/rendering/gl/stereo3d/two_handed_aim.h
+@@ -0,0 +1,107 @@
++// two_handed_aim.h -- where does a two-handed long gun actually point? (2026-09-18, /pd)
++//
++// Pure maths, plain doubles, no GZDoom and no OpenVR types, so engine/two_handed_aim_test.cpp can
++// compile and run THIS FILE on a machine with no engine source and no headset. The engine change
++// calls it and does nothing else, so what the test checks is what ships.
++//
++// THE PROBLEM. Our GZDoomVR patch already tells mods where both hands are every tic
++// (OffhandValid / OffhandPos / OffhandDir, and the weapon hand's AttackPos / AttackAngle /
++// AttackPitch). A mod can therefore already DRAW a rifle along the line between the hands. What it
++// cannot do is make the SHOT follow that line: aiming still comes from the weapon controller's own
++// rotation, so the bullet leaves along wherever the rear hand happens to be tilted rather than
++// along the barrel the player is looking down. The gun looks two-handed and shoots one-handed.
++//
++// THE FIX, in one sentence: when a mod asks for it, aim from the rear hand THROUGH the front hand.
++//
++// ⚠️ TWO GUARDS, AND THEY ARE THE WHOLE DESIGN. A line between two tracked points is a terrible
++// aim vector exactly when the player is not actually holding a rifle with both hands, and that is
++// most of the time -- hands down by the sides, off hand on a ladder, off hand holding the lantern.
++// Without guards the gun would swing wildly and fire backwards, which in a headset reads as "the
++// mod is broken" rather than "the off hand was not on the gun".
++//
++//   1. MINIMUM SEPARATION. Two nearly coincident points give a direction that is pure tracking
++//      noise. Below `min_sep` we refuse.
++//   2. AGREEMENT WITH THE GUN. The rear hand still says where the gun is pointed. If the hand-to-
++//      hand line disagrees with that by more than `max_disagree_deg`, the front hand is not on the
++//      fore-end and we refuse. This one is unit-free, which is why it carries most of the weight:
++//      it works whatever the map scale turns out to be.
++//
++// Refusing means "leave the aim exactly as it is today", so the worst case is the behaviour we
++// already have, never a wrong shot.
++//
++// ⚠️ WHAT IS NOT ESTABLISHED. Nothing here has been run in the game or worn. The coordinate
++// convention below is read from the off-hand block of our own patch
++// (`OffhandPos = DVector3(m[3][0], m[3][2], m[3][1])`, `pitch = -asin(dir.Z)`) and is therefore
++// `[inferred-static 2026-09-18]`: both hand positions arrive in the same GZDoom space through the
++// same conversion, so subtracting them is meaningful. If that turns out to be wrong the symptom is
++// unmistakable -- the gun points somewhere consistent but wrong, rather than jittering -- and it
++// is a conversion bug, not a maths bug. The sensible default for `min_sep` in map units is a guess
++// until someone measures a comfortable rifle hold in the headset. [hypothesis]
++#pragma once
++#include <cmath>
++
++namespace tha {
++
++struct Hands {
++    // Both in GZDoom world space (X east, Y north, Z up), as the off-hand block already produces.
++    double rear_x, rear_y, rear_z;    // AttackPos: the trigger hand
++    double front_x, front_y, front_z; // OffhandPos: the hand on the fore-end
++    // The weapon hand's own forward direction, unit length, same space. This is what aiming uses
++    // today, and it is the reference the agreement guard is measured against.
++    double fwd_x, fwd_y, fwd_z;
++};
++
++struct Limits {
++    double min_sep;            // map units; below this the two points are noise
++    double max_disagree_deg;   // how far the hand line may differ from where the gun points
++};
++
++struct Aim {
++    bool   use;         // false = leave the aim exactly as it is today
++    double yaw_deg;     // GZDoom angle
++    double pitch_deg;   // GZDoom pitch: POSITIVE IS DOWN, matching -asin(dir.Z) in our patch
++    double sep;         // how far apart the hands were, for the log
++    double disagree_deg;// how far the hand line was from the gun's own direction, for the log
++};
++
++inline double clampd(double v, double lo, double hi) { return v < lo ? lo : (v > hi ? hi : v); }
++
++inline Aim decide(const Hands& h, const Limits& lim) {
++    Aim a{};
++    a.use = false;
++
++    const double dx = h.front_x - h.rear_x;
++    const double dy = h.front_y - h.rear_y;
++    const double dz = h.front_z - h.rear_z;
++    const double sep = std::sqrt(dx * dx + dy * dy + dz * dz);
++    a.sep = sep;
++
++    // Guard 1. Also catches the exactly-coincident case, where the normalisation below would be a
++    // division by zero -- so the order of these two tests is not cosmetic.
++    if (!(sep > 0.0) || sep < lim.min_sep) return a;
++
++    const double ux = dx / sep, uy = dy / sep, uz = dz / sep;
++
++    // Guard 2. The weapon forward is taken as unit; if the caller hands us something else the dot
++    // product is still monotonic in the angle, but the reported number would be wrong, so
++    // normalise defensively rather than trusting it.
++    const double fl = std::sqrt(h.fwd_x * h.fwd_x + h.fwd_y * h.fwd_y + h.fwd_z * h.fwd_z);
++    if (!(fl > 0.0)) return a;
++    const double dot = clampd((ux * h.fwd_x + uy * h.fwd_y + uz * h.fwd_z) / fl, -1.0, 1.0);
++    a.disagree_deg = std::acos(dot) * 180.0 / 3.14159265358979323846;
++    if (a.disagree_deg > lim.max_disagree_deg) return a;
++
++    // The same two formulas the off-hand block already uses, so the two-hand line is expressed in
++    // exactly the convention the rest of the patch speaks.
++    a.yaw_deg   = std::atan2(uy, ux) * 180.0 / 3.14159265358979323846;
++    a.pitch_deg = -std::asin(clampd(uz, -1.0, 1.0)) * 180.0 / 3.14159265358979323846;
++    a.use = true;
++    return a;
++}
++
++// The defaults the engine change ships with. Both are guesses that the first headset session
++// should replace with measurements; they are named here so that replacing them is one edit.
++inline constexpr double kMinSeparation    = 8.0;   // map units. ~20 cm at the usual VR scale. UNMEASURED.
++inline constexpr double kMaxDisagreeDeg   = 55.0;  // beyond this the off hand is not on the gun. UNMEASURED.
++
++} // namespace tha
+diff --git a/src/scripting/vmthunks_actors.cpp b/src/scripting/vmthunks_actors.cpp
+index de4f359..adedd20 100644
+--- a/src/scripting/vmthunks_actors.cpp
++++ b/src/scripting/vmthunks_actors.cpp
+@@ -2140,6 +2140,7 @@ DEFINE_FIELD(AActor, AttackPitch)
+ DEFINE_FIELD(AActor, AttackRoll)
+ DEFINE_FIELD(AActor, AttackAngle)
+ DEFINE_FIELD(AActor, FollowOffhand)
++DEFINE_FIELD(AActor, TwoHandedAim)
+ DEFINE_FIELD(AActor, OffhandValid)
+ DEFINE_FIELD(AActor, OffhandPos)
+ DEFINE_FIELD(AActor, OffhandDir)
+diff --git a/wadsrc/static/menudef.txt b/wadsrc/static/menudef.txt
+index 26d6907..221367d 100644
+--- a/wadsrc/static/menudef.txt
++++ b/wadsrc/static/menudef.txt
+@@ -2770,6 +2770,11 @@ OptionMenu "OpenVROptions" protected
+ 	Option "Stop-motion weapon hand",			vr_weapon_stopmotion,					"OnOff"
+ 	Slider "Stop-motion frames to skip",		vr_weapon_stopmotion_skip,				1, 12, 1, 0
+ 	StaticText " "
++	StaticText "Two-handed long guns", 1
++	Slider "Least hand separation",				vr_two_handed_min_sep,					0, 40, 1, 0
++	Slider "Most disagreement (deg)",			vr_two_handed_max_disagree,				10, 120, 5, 0
++	Option "Two-handed aim: print why",			vr_two_handed_debug,					"OnOff"
++	StaticText " "
+ 	StaticText "$VRPREFMNU_HAPTICS"
+ 	Option "$VRPREFMNU_ENABLEHAPTICS",	    	vr_enable_haptics, "OnOff"
+ 	Slider "$VRPREFMNU_PICKUPHAPTIC",			vr_pickup_haptic_level,					0, 1, 0.1, 2
+diff --git a/wadsrc/static/zscript/actors/actor.zs b/wadsrc/static/zscript/actors/actor.zs
+index 75582f7..7576e0e 100644
+--- a/wadsrc/static/zscript/actors/actor.zs
++++ b/wadsrc/static/zscript/actors/actor.zs
+@@ -873,6 +873,7 @@ class Actor : Thinker native
+ 	native readonly double AttackAngle;
+ 	native readonly bool OverrideAttackPosDir;
+ 	native bool FollowOffhand;
++	native bool TwoHandedAim;
+ 	native readonly bool OffhandValid;
+ 	native readonly vector3 OffhandPos;
+ 	native readonly vector3 OffhandDir;
+-- 
+2.55.0.windows.3
+

@@ -10,7 +10,15 @@ the VR engine Ashes 2063 runs on here. Patch file: `gzdoomvr-gvr4.13.2.2-offhand
 2. **`FollowOffhand`**, a bool any mod can set on any actor: the engine then draws that actor at the off hand's pose of the
    current rendered frame (position and yaw), exactly like the weapon, instead of at its once-per-tic position. Without it a
    hand-held actor rubber-bands: it lags when you walk and drifts back when you stop `[reported 2026-09-17, n=1]`.
-3. **Stop-motion weapon hand (dropped by Tefa 2026-09-17, left in the code, off).** `vr_weapon_stopmotion` (on/off) and `vr_weapon_stopmotion_skip` (rendered frames the
+3. **Two-handed long guns.** `TwoHandedAim`, a bool a mod sets on the **player**: while it is on and the off
+   hand is tracked, the shot follows the line between the two hands instead of the rear controller's own tilt.
+   Guarded twice — a least hand separation, and agreement with where the gun itself points — and refusing leaves
+   aiming exactly as it was, so the worst case is today's behaviour. Both guard numbers are **settings, not
+   constants**: `vr_two_handed_min_sep` and `vr_two_handed_max_disagree`, with sliders in Options → VR Options,
+   plus `vr_two_handed_debug` which prints which guard refused. That is on purpose — both numbers are guesses
+   until someone measures a comfortable rifle hold, and this way tuning them needs no rebuild.
+   The maths is `two_handed_aim.h`, shipped unchanged from the copy the test compiles.
+4. **Stop-motion weapon hand (dropped by Tefa 2026-09-17, left in the code, off).** `vr_weapon_stopmotion` (on/off) and `vr_weapon_stopmotion_skip` (rendered frames the
    weapon stays frozen after each update, 1 to 12). The world and the view stay smooth.
    Shots use the same frozen pose, so bullets still leave the barrel you see. Menu: Options → VR Options.
 
@@ -26,12 +34,19 @@ The result goes in its own folder (`gzdoomvr-tefa/`) beside the original engine;
   light source, so it illuminates the world around it as i move it! this is awesome!"* Asked for: half the light radius, and the
   blue flicker (the lamp looked grey). Both changed, not worn yet.
 - **Stop-motion hand: DROPPED.** 12 updates a second felt bad, and so did skipping a single frame: *"stop motion is not good in here, so we'll drop that going forward"* `[reported 2026-09-17, n=1]`. The setting is off; the code stays, harmlessly.
-- **Two-handed long guns: the missing engine change is now WRITTEN and its maths is checked** (2026-09-18, `/pd`).
-  Mods could already read both hands every tic and draw a rifle along the line between them; only the SHOT still followed the rear
-  controller's own tilt. `two_handed_aim.h` computes the aim from the hand-to-hand line, with two guards so it refuses — and changes
-  nothing — when the off hand is not actually on the gun. `two_handed_aim_test.cpp` compiles that same header: **36/36 checks**, proved
-  able to fail on **ten** mutants of it, all ten caught `[verified-numerically 2026-09-18]`. Run it with `run_aim_test.bat`.
-  ⚠️ **NOT built and NOT worn** — the dev PC has no engine source and no headset. The four edits to make on the home PC, the mod-side
-  ZScript, and what each headset outcome would mean are in [`TWO-HANDED-AIM.md`](TWO-HANDED-AIM.md). Both threshold numbers are
-  guesses until someone measures a comfortable rifle hold `[hypothesis]`.
+- **Two-handed long guns: BUILT AND IN THE GAME FOLDER, not yet worn** (2026-09-19, home PC `RTX`).
+  The four edits described in `TWO-HANDED-AIM.md` were applied, plus three settings and menu sliders that the
+  document did not ask for; the engine compiles clean and starts, ZScript loads with the new `TwoHandedAim`
+  field, and all three settings read back their defaults in the running build `[verified-live 2026-09-19, n=1
+  flat launch]`. Deployed to `gzdoomvr-tefa/`; the engine it replaced is kept beside it as
+  `gzdoomvr.exe.pre-twohanded` / `gzdoom.pk3.pre-twohanded`.
+  ⚠️ **One correction to that document:** it suggested `AttackAngle.ToVector(AttackPitch)` for the weapon
+  hand's forward direction. That is not a real call here (`ToVector` takes a length), and the obvious
+  substitute — the `TRotator` → `TVector3` conversion — has `Z = +sin(pitch)`, the **opposite sign** to the
+  convention the engine actually shoots along. Using it would have made the gun shoot exactly as far high as
+  it should have been low, which is the failure the test suite was built to catch. The shipped code writes the
+  vector out longhand in `p_map.cpp`'s convention (`{ pc*cos(yaw), pc*sin(yaw), -sin(pitch) }`)
+  `[inferred-static 2026-09-19, read from p_map.cpp and vectors.h]`.
+  ⚠️ **Still unworn, and the guard numbers are still guesses.** What to look for in the headset, and what each
+  outcome means, is in [`TWO-HANDED-AIM.md`](TWO-HANDED-AIM.md).
 If this is ever released, GPL-3.0 means the patched source must be published with it (a public fork).
