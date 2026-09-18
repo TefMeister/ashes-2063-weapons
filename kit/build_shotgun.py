@@ -3,8 +3,8 @@
 # tube, dark green-grey receiver with a big open port, deeply ribbed warm-brown wooden pump,
 # near-black worn stock with a rubber pad. Everything is deliberately darker and dirtier than the
 # revolver and the lantern (Tefa, 2026-09-18).
-# ⚠️ The port is on the gun's LEFT, because that is the side the game's own sprite shows it on
-# (the player sees the left flank, and the loaded shell shows there). Real 12-gauges eject right.
+# The port is on the gun's RIGHT, as it is in the game and on any real 12-gauge (Tefa, 2026-09-18 —
+# the heavily zoomed screenshots read as left, which was our mistake, not the game's).
 # Moving parts are separate objects so the shoot/reload files can animate them:
 # SG_Pump (racks back and forward), SG_Trigger, SG_PortShell, SG_MuzzleFlash, SG_Casing, SG_LoadShell.
 import math
@@ -61,7 +61,7 @@ root = empty("SG_Root", coll=C, size=0.10)
 MATS = [m_blued, m_recv, m_wood, m_groove, m_stock, m_pad, m_sight, m_dark, m_hull, m_brass]
 BLUE_, RECV_, WOOD_, GROOVE_, STOCK_, PAD_, SIGHT_, DARK_, HULL_, BRASS_ = range(10)
 Y90 = (math.pi / 2, 0, 0)          # lay a cylinder along +Y
-PORT_X = -1                        # the port is on the gun's left (see the note at the top)
+PORT_X = 1                         # +1 = the gun's right side (see the note at the top)
 
 
 def shell(p, centre, rot=Y90, length=SHELL_L):
