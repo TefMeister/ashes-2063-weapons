@@ -2,9 +2,15 @@
 # +Y is the muzzle, +Z up, +X the gun's right side. Origin: rear face of the receiver,
 # on the receiver's bottom line, so the stock runs into -Y and the barrel into +Y.
 MODEL = r"C:\Users\TD3KX\ashes-2063-weapons\shotgun\Ashes_2063_EP1_shotgun_model.blend"
-REST_LOC = (0.070, 0.290, -0.085)     # where the gun sits in the first-person view
-REST_ROT = (2, 16, 6)                 # pitch, cant, yaw (degrees); +yaw swings the muzzle
+REST_LOC = (0.130, 0.700, -0.170)     # where the gun sits in the first-person view
+REST_ROT = (2, 18, 12)                 # pitch, cant, yaw (degrees); +yaw swings the muzzle
                                       # toward the middle of the screen
+
+# ⚠️ The first-person camera is 18 mm, not the kit's 32 mm default. GZDoom plays at about a
+# 90-degree horizontal view; at 32 mm (about 61) the butt of a gun this long falls outside the
+# Blender frame while the GAME still draws it, filling half the screen. 18 mm is the game's own
+# angle, so what these files show is what the game shows [verified-live 2026-09-19, n=1 launch].
+VIEW_LENS_SG = 18
 
 BORE_Z = 0.058                        # height of the barrel's centre line
 BLOCK_SG = 0.0045                     # texture pixel size: big gun, big pixels

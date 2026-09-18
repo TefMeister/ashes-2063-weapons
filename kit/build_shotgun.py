@@ -213,3 +213,10 @@ for ob in (casing, loader, flash):
 studio(target=(0, 0.17, 0.03), dist=0.95, name="SG_ModelCam")
 bpy.ops.wm.save_as_mainfile(filepath=OUT)
 print("saved", OUT)
+
+# GZDoom cannot read Blender node materials, so every part shares one UV atlas and the flat
+# colours are baked into a PNG. ⚠️ This re-saves the .blend (with the UVs) and rewires the
+# materials afterwards, so it must stay the LAST thing this script does.
+exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\gz_bake.py").read())
+ATLAS_SIZE = 1024      # a much bigger object than the revolver, so a bigger sheet
+uv_save_bake(OUT, r"C:\Users\TD3KX\ashes-2063-weapons\shotgun\gzdoom\shotgun.png")

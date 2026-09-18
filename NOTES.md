@@ -117,6 +117,25 @@ It was pushed around until the framing resembled Tefa's screenshots, but nothing
 game, and in VR the controller decides where the gun is anyway. The revolver's took seven wears to settle.
 The `_static` files open through `SideCam`, which is where the motion is actually readable.
 
+## Shotgun in the game (2026-09-19, home PC) `[verified-live 2026-09-19, n=3 launches]`
+
+Exported the same way as the revolver (`kit/gz_shotgun.py` + `kit/gz_export.py`), flat and VR builds,
+and checked unattended with `tools/shotgun_test.py`. It replaces the sprite, fires, throws the shell
+right, works the pump and plays the dry reload. Details, evidence and the VR checklist:
+[`shotgun/gzdoom/TEST.md`](shotgun/gzdoom/TEST.md).
+
+**Three things learned that apply to every weapon after this one:**
+- **`Model <name>` in MODELDEF names the ACTOR CLASS, not the file.** It matched the file for the
+  revolver only because Ashes calls that actor `revolver`. The shotgun's is `pumpaction`, and getting
+  it wrong shows the flat sprite with **no error at all**. `ACTOR_CLASS` now exists for this.
+- **The Blender first-person camera must match the game's field of view.** The kit's 32 mm is about
+  61°; GZDoom plays at about 90°. On a gun as long as this one the butt sits outside the Blender
+  frame while the game still draws it, filling half the screen. `VIEW_LENS_SG = 18` fixes it, and
+  every long gun from here should do the same.
+- **Export only the frames a sprite letter names.** `ANIMS` now takes an explicit frame list, and the
+  exporter fails loudly if a sprite points at a frame that was left out. The shotgun ships 42 frames
+  instead of 194, which is a 1.2 MB model instead of tens of megabytes.
+
 ## Next
 - Tefa's feedback on shapes, colours and the animation poses.
 - Check real game animation timing (the 35 fps = one tic assumption comes from the lantern and is
