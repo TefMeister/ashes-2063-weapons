@@ -36,7 +36,13 @@ Tefa's screenshots `[hypothesis]`.
 
 ## VR test: NOT WORN YET
 Desktop-folder launcher: **`Play Ashes 2063 VR (shotgun + two-handed test).bat`** in `C:\NonSteam\Ashes 2063 VR`.
-It loads our engine build plus the shotgun, the revolver and the lantern.
+It loads our engine build plus the shotgun, the revolver and the lantern, and **drops you straight into
+the first level already holding the shotgun with 40 spare shells** (`+map MAP01 +give pumpaction
++give shotgunammo 40`), so there is nothing to find first. It is weapon slot 3 if you switch away.
+`[verified-live 2026-09-19, n=1 flat launch: the gun is in hand at spawn and slot 3 selects it]`
+
+In the normal game the pump shotgun is a pickup in the levels; the console route is `give pumpaction`
+then `give shotgunammo 40`, which is awkward in a headset — hence the launcher doing it.
 
 Two separate things are being tested at once, and they fail in different ways:
 
