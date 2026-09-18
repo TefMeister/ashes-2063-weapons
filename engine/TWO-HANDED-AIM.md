@@ -37,7 +37,9 @@ north, thirty degrees up) rather than re-deriving it with the formula under test
   oversized dot product clamps to 1 and reads as perfect agreement. A *short* forward at a real
   angle is what bites. The original check is kept beside the new one.
 
-Run it: `engine\run_aim_test.bat` (needs VS Build Tools; C++17, because the two named limits are
+Run it: `.\run_aim_test.bat` from inside the `engine\` folder — **type the `.\`**. This dev PC has
+Windows' `NoDefaultCurrentDirectoryInExePath` set, so a bare batch name is not found; the home PC
+may not, but the `.\` works either way. (Needs VS Build Tools; C++17, because the two named limits are
 `inline constexpr` so the engine and the test share one definition of them).
 
 ## The two guards, which are the whole design
