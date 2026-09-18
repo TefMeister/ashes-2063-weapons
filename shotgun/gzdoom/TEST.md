@@ -34,7 +34,29 @@ ammo, selects slot 3, captures idle / one shot / a reload from dry, quits). Evid
 is measured against the game — `REST_LOC` / `REST_ROT` were pushed around until the framing resembled
 Tefa's screenshots `[hypothesis]`.
 
-## VR test: NOT WORN YET
+## VR test: first wear 2026-09-19 — three things wrong, all three fixed, NOT re-worn
+
+Tefa, first wear `[reported 2026-09-19, n=1 wear]`: *"shotgun is aiming below where the red dot is
+showing, i cannot put away the lantern in my left hand and i could not two hand the shotgun, how does
+that work even, i just instinctively pressed LG to grip it"*.
+
+1. **Aiming low — a real bug, found and measured.** A VR build expresses every frame relative to the
+   root's **rest** pose, and the exporter took that from frame 1 of the first animation. The revolver's
+   frame 1 is the gun at rest, so it was right by luck. The shotgun's frame 1 is the **shot**, already
+   kicked nose-up — so the whole gun came out **8.61° nose-down** in the hand and 2 cm out of place
+   `[verified-numerically 2026-09-19: rest space measured from frame 1 vs frame 30, -8.61° against 0.00°]`.
+   Fixed with `REST_FRAME` in `kit/gz_shotgun.py`, which names the neutral pose. Every future weapon
+   whose first animation frame is not the rest pose needs this line.
+2. **The lantern could not be put away — our bug, not the game's.** The left-hand lantern handler drew
+   the lantern whenever the off hand was tracked, full stop. It now follows the game's own
+   `lightlit` flag, so **the lantern key puts it away and takes it out again**, and the off hand is
+   free. Rebuilt `Ashes2063_lefthand_lantern_test.pk3`.
+3. **There is no grip button, and there never was.** Nothing to press: you just bring your left hand up
+   to where the fore-end is and hold the controllers as if holding a real rifle. The engine watches the
+   two hands. It needs them a minimum distance apart *and* roughly in line with the way the gun points,
+   or it refuses and leaves aiming exactly as it is. **The visible sign that it worked is the red laser
+   dot moving** to line up with the barrel when the off hand comes up.
+
 Desktop-folder launcher: **`Play Ashes 2063 VR (shotgun + two-handed test).bat`** in `C:\NonSteam\Ashes 2063 VR`.
 It loads our engine build plus the shotgun, the revolver and the lantern, and **drops you straight into
 the first level already holding the shotgun with 40 spare shells** (`+map MAP01 +give pumpaction
@@ -44,7 +66,9 @@ the first level already holding the shotgun with 40 spare shells** (`+map MAP01 
 In the normal game the pump shotgun is a pickup in the levels; the console route is `give pumpaction`
 then `give shotgunammo 40`, which is awkward in a headset — hence the launcher doing it.
 
-Two separate things are being tested at once, and they fail in different ways:
+Two separate things are being tested at once, and they fail in different ways. **Watch the red dot**:
+it is the only thing that shows whether the two-handed aim took, because the gun is drawn on the
+weapon hand either way.
 
 | You see | Means / fix |
 | --- | --- |

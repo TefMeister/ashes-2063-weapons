@@ -19,6 +19,11 @@ SHOOT_FRAMES = [1, 2, 3, 4, 8, 10, 13, 14, 15, 16, 17, 20, 22, 24, 26, 28, 30]
 RELOAD_FRAMES = [28, 30, 32, 34, 36, 38, 40, 41, 44, 50, 56, 58, 61, 64, 68,
                  75, 77, 79, 81, 83, 84, 85, 86, 87, 88]
 
+# ⚠️ Frame 1 of shoot1 is the SHOT, not the gun at rest -- it is already kicked 8 degrees
+# nose-up. The VR build measures everything from the rest pose, so without this line the
+# gun sits 8 degrees nose-DOWN in the hand and shoots above where it points.
+REST_FRAME = ("shoot1", 30)          # GRIZ A: ready
+
 ANIMS = [
     ("shoot1", DIR + r"\Ashes_2063_EP1_shotgun_shoot1.blend", SHOOT_FRAMES),
     ("reload", DIR + r"\Ashes_2063_EP1_shotgun_reload.blend", RELOAD_FRAMES),

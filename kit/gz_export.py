@@ -71,7 +71,22 @@ def gather(blend, want, rest, want_uvs, motion_scale=1.0):
 # the ones MODELDEF actually shows. The shotgun uses the second form: 194 frames of a gun that size
 # would be a ~30 MB model in the repo, and the game can only ever display the ~45 that sprite
 # letters point at.
+# ⚠️ For a VR build every frame is expressed relative to the root's REST pose, and by default
+# that is taken from the first frame of the first animation. That is only correct if frame 1 is
+# the gun at rest. The revolver's is; the shotgun's frame 1 is the SHOT, kicked 8 degrees nose-up
+# -- so the whole gun came out 8 degrees nose-DOWN in the hand and shot above where it pointed
+# [verified-live 2026-09-19, n=1 wear: "aiming below where the red dot is"].
+# REST_FRAME = (animation name, frame) names the neutral pose instead.
 all_frames, uvs, rest, index_of = [], None, None, {}
+REST_FRAME = globals().get("REST_FRAME")
+if REST_FRAME and not VIEW:
+    _name, _fr = REST_FRAME
+    _blend = {n: b for n, b, _ in ANIMS}[_name]
+    bpy.ops.wm.open_mainfile(filepath=_blend)
+    bpy.context.scene.frame_set(_fr)
+    bpy.context.view_layer.update()
+    rest = bpy.context.scene.objects[ROOT].matrix_world.copy()
+    print(f"rest pose taken from {_name} frame {_fr}")
 for name, blend, spec in ANIMS:
     want = list(range(1, spec + 1)) if isinstance(spec, int) else list(spec)
     for i, f in enumerate(want):
