@@ -49,7 +49,7 @@ ov, O = link_model(MODEL, "SHOTGUN")
 root, pump, trig = O["SG_Root"], O["SG_Pump"], O["SG_Trigger"]
 flash, casing, port_shell = O["SG_MuzzleFlash"], O["SG_Casing"], O["SG_PortShell"]
 loader = O["SG_LoadShell"]
-fp_view()
+fp_view(lens=VIEW_LENS_SG)
 
 PORT_LOCAL = (REC_W / 2 + 0.012, PORT_Y, BORE_Z - 0.006)
 

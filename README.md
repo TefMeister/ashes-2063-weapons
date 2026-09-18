@@ -25,7 +25,7 @@ flat weapon sprites look out of place.
 | [`handgun/`](handgun/) | 9mm handgun | model, shoot 1, reload, plus `_static` versions |
 | [`revolver/`](revolver/) | .45 revolver | model, shoot 1, reload, plus `_static` versions (timed from the game) |
 | [`jackhammer/`](jackhammer/) | Jackhammer | model, shoot 1, plus `_static` version |
-| [`shotgun/`](shotgun/) | Pump-action shotgun | model, shoot 1, reload (dry) and reload (partial), plus `_static` versions |
+| [`shotgun/`](shotgun/) | Pump-action shotgun | model, shoot 1, reload (dry) and reload (partial), plus `_static` versions — **and it runs in the game** ([`shotgun/gzdoom/`](shotgun/gzdoom/)) |
 | [`crowbar/`](crowbar/) | Crowbar | model, shoot 1 (swing) |
 | [`kit/`](kit/) | Python scripts that build every `.blend` above | |
 
@@ -54,8 +54,9 @@ Pictures of each big step are in each item's `progress/` folder, named by date.
 | Revolver reload | ![revolver reload](revolver/progress/2026-09-17-reload-unlit-v1.png) |
 | Shotgun | ![shotgun](shotgun/progress/2026-09-18-model-unlit-v1.png) |
 | Shotgun (port) | ![shotgun port](shotgun/progress/2026-09-18-port-and-shell-v1.png) |
-| Shotgun shot | ![shotgun shot](shotgun/progress/2026-09-18-shoot1-unlit-v1.png) |
-| Shotgun reload | ![shotgun reload](shotgun/progress/2026-09-18-reload-shell-in-v1.png) |
+| Shotgun shot | ![shotgun shot](shotgun/progress/2026-09-19-shoot1-ingame-fov-v2-f001.png) |
+| Shotgun reload | ![shotgun reload](shotgun/progress/2026-09-19-reload-ingame-fov-v2-f064.png) |
+| Shotgun in the game | ![shotgun in game](shotgun/gzdoom/evidence-2026-09-19/flat-idle.png) |
 | Jackhammer | ![jackhammer](jackhammer/progress/2026-09-17-shoot1-unlit-v1.png) |
 | Crowbar | ![crowbar](crowbar/progress/2026-09-17-model-unlit-v1.png) |
 
