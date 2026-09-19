@@ -120,3 +120,35 @@ version ever feels wrong.
 ⚠️ The VR pk3 **only works on our engine build** (`gzdoomvr-tefa`): its ZScript names `TwoHandedAim`,
 which the stock engine does not have, and a missing field stops the game from starting rather than
 degrading quietly. The flat pk3 has no ZScript and runs on either.
+
+## Wear 2, 2026-09-20 — the GUN does not turn. That is the next job.
+
+Tefa, wearing the always-two-handed build `[reported 2026-09-20, n=1 wear]`:
+
+> "the gun still only follows the right hand, left hand is not steering the front of the shotgun while
+> the right hand is the anchor."
+
+⚠️ **This is not a bug in what was built — it is the half that was never built.** Everything so far
+changes only **where the shot goes**. The gun MODEL is still drawn hanging off the weapon controller,
+exactly as it always was, so it looks one-handed however the shot behaves. `TWO-HANDED-AIM.md` says as
+much ("the red dot is the only visible sign"), and that was the wrong thing to ship first: what a person
+sees in a headset is the gun, not the bullet.
+
+**What is still unknown:** whether the shots themselves followed the hand line. Nobody was watching the
+red dot, and there is no reason to ask for another wear just to find out — the visible fix below makes
+it obvious either way.
+
+**What the next change is, in one line:** the weapon model must be *drawn* along the line from the off
+hand to the weapon hand, with the weapon hand as the anchor — i.e. the same maths that already decides
+the shot, applied to the render pose as well.
+
+Where it goes, for whoever picks this up: `gl_openvr.cpp` → `OpenVRMode::GetWeaponTransform()` (line
+~1089), which today is just the weapon controller's own matrix (`GetHandTransformEx`). It needs the same
+`tha::decide()` result the aim block at ~1687 already computes: keep the translation (the grip stays in
+the trigger hand), replace the forward axis with the hand-to-hand direction, and keep roll about that
+axis so the gun does not spin. ⚠️ Both are rebuilds of the engine, so this is home-PC work, but it needs
+no headset until it is built.
+
+⚠️ A second thing to decide when it is built: the model's own rest pose points along its local forward,
+and the current VR fit (`GRIP`, `VR_NUDGE_*` in `kit/gz_shotgun.py`) was tuned against the controller's
+tilt. Turning the gun to the hand line may want those re-tuned `[hypothesis]`.
