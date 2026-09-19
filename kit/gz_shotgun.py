@@ -102,34 +102,128 @@ SPRITES = [
 # (the knife), and the pickup/spawn frames. Those are separate animations we have not modelled.
 
 # ---------------------------------------------------------------------------
-# VR only: ask the engine to aim a long gun down the line between the two hands.
+# VR only: long guns are ALWAYS held with two hands.
+#
+# Tefa, 2026-09-20: *"i would actually like … for there to be no proximity at all, that when
+# choosing a long weapon, it automatically switches to two handing. that in this game there is no
+# way to fire a long rifle or shotgun with one hand"*. So nothing is conditional any more: pick up
+# a long gun and the shot follows the line between your two hands, full stop. No button to press,
+# no minimum hand separation, no check that the hands agree with the gun.
+# ⚠️ The price, and it is the deal that was asked for: if the off hand drops to your side, the
+# shot follows THAT line. The gun cannot be fired one-handed.
+# The grip button below still exists and can be switched back on (`tefa_grip_required 1`), because
+# it cost nothing to keep; it is off, so it decides nothing.
+#
 # ⚠️ Needs OUR GZDoomVR build. `TwoHandedAim` does not exist in the stock engine, and a
 # ZScript file that names a missing field stops the game from starting at all — so this goes
 # in the VR pk3 only, which is already our-engine-only because of the off-hand fields.
 # The engine refuses by itself whenever the off hand is not really on the fore-end, so leaving
 # this on costs nothing: the worst case is the aiming we already had.
 # ---------------------------------------------------------------------------
+
+# Every Ashes 2063 weapon that is held with two hands. Matched by class name, NOT by `is`, so a
+# name that does not exist in the loaded game is simply never true instead of refusing to compile
+# [inferred-static 2026-09-19, class names read from Actors/Weapons/*.txt of Ashes2063Enriched2_23].
+# `pumpaction2` is the Classic shotgun; Ingram2/3 are the upgraded SMGs and inherit from Ingram,
+# which name-matching does not follow, so they are listed.
+LONG_GUNS = ["pumpaction", "pumpaction2", "SawedOff", "Ingram", "Ingram2", "Ingram3",
+             "JunkerMusket", "FAL", "NapalmGun", "JACKHAMMER"]
+
+# OFF by default: two-handed aiming is automatic for every long gun (Tefa, 2026-09-20). The
+# button remains as a way to make it deliberate again, for anyone who wants that.
+GRIP_REQUIRED_BY_DEFAULT = False
+
+# The action the grip is bound to. `+user2` is a spare button GZDoom already offers in
+# Customize Controls and nothing in Ashes uses [measured 2026-09-19, read from ashes-vr-3dtest.ini].
+GRIP_ACTION = "+user2"
+# The off-hand grip on a VR controller arrives as this key (gl_openvr.cpp: the secondary hand's
+# k_EButton_Grip -> KEY_PAD_LSHOULDER) [inferred-static 2026-09-19].
+GRIP_KEY = "LShoulder"
+# ⚠️ That key is already "run" in Ashes VR, so binding it straight to the grip would cost Tefa
+# their sprint. The alias below does BOTH at once, and is what the key should be bound to.
+GRIP_ALIAS = "+tefagrip"
+
 if VARIANT == "vr":
+    _names = " || ".join(f"n == '{c}'" for c in LONG_GUNS)
     EXTRA_LUMPS = {
         "zscript.txt": '''version "4.10"
+// Two-handed long guns. Needs our GZDoomVR build (TwoHandedAim, OffhandValid).
 class TefaTwoHandedHandler : EventHandler
 {
+	bool wasGrip, seenState;
+	int lastWhy;
+
 	override void WorldTick()
 	{
 		let pl = players[consoleplayer];
 		if (!pl || !pl.mo) return;
+
 		bool longgun = false;
 		if (pl.ReadyWeapon)
 		{
 			Name n = pl.ReadyWeapon.GetClassName();
-			// Only the pump shotgun to begin with, so the first headset test is unambiguous.
-			// The other Ashes long guns, once each has been tried: FAL, Musket, Ingram,
-			// NapalmGun, SawedOff. pumpaction2 is the Classic shotgun (no model of ours yet).
-			longgun = (n == 'pumpaction' || n == 'pumpaction2');
+			longgun = (''' + _names + ''');
 		}
-		pl.mo.TwoHandedAim = longgun && pl.mo.OffhandValid;
+
+		// The grip button, held. NOT the trigger any more -- a long gun is two-handed the moment
+		// it is in your hands -- but kept, so it can be made deliberate again with one setting.
+		bool grip = (pl.cmd.buttons & BT_USER2) != 0;
+
+		bool needgrip = ''' + ("true" if GRIP_REQUIRED_BY_DEFAULT else "false") + ''';
+		let cv = CVar.GetCVar('tefa_grip_required', pl);
+		if (cv) needgrip = cv.GetBool();
+
+		// 0 = the shot follows the line between the hands. Anything else says what is missing.
+		int why = 0;
+		if (!longgun) why = 1;
+		else if (!pl.mo.OffhandValid) why = 2;
+		else if (needgrip && !grip) why = 3;
+
+		pl.mo.TwoHandedAim = (why == 0);
+
+		let dbg = CVar.GetCVar('tefa_grip_debug', pl);
+		if (dbg && dbg.GetBool())
+		{
+			// Says where things stand the moment it is switched on, then only when it changes.
+			if (!seenState || why != lastWhy)
+			{
+				if (why == 0) Console.Printf("two-handed aim: ON");
+				else if (why == 1) Console.Printf("two-handed aim: off (not a two-handed weapon)");
+				else if (why == 2) Console.Printf("two-handed aim: off (off hand not tracked)");
+				else Console.Printf("two-handed aim: off (grip not held)");
+				lastWhy = why;
+				seenState = true;
+			}
+			if (grip != wasGrip)
+			{
+				if (grip) Console.Printf("grip: HELD");
+				else Console.Printf("grip: let go");
+			}
+		}
+		else
+		{
+			seenState = false;
+		}
+		wasGrip = grip;
 	}
 }
 ''',
         "mapinfo.shotgun": 'GameInfo { AddEventHandlers = "TefaTwoHandedHandler" }\n',
+        "cvarinfo.shotgun": (
+            "// Two-handed long guns. Both are in Options -> Customize Controls / the console.\n"
+            "user bool tefa_grip_required = " + ("true" if GRIP_REQUIRED_BY_DEFAULT else "false") + ";   // 1 = only two-hand while the grip button is held\n"
+            "user bool tefa_grip_debug = false;     // say in the console when the grip is seen\n"
+        ),
+        "keyconf.shotgun": (
+            "// The off-hand grip button on a VR controller comes through as \"%s\", which Ashes\n"
+            "// already uses for running. This alias does BOTH, so gripping the fore-end costs\n"
+            "// nothing: you still run, and the mod is told you are holding on.\n"
+            "alias %s \"+speed; %s\"\n"
+            "alias -%s \"-speed; -%s\"\n"
+            "defaultbind %s %s\n"
+            "addkeysection \"Ashes 2063 VR (Tefa)\" TefaAshesVR\n"
+            "addmenukey \"Grip fore-end + run (VR grip)\" %s\n"
+            "addmenukey \"Grip fore-end only\" %s\n"
+        ) % (GRIP_KEY, GRIP_ALIAS, GRIP_ACTION, GRIP_ALIAS[1:], GRIP_ACTION[1:],
+             GRIP_KEY, GRIP_ALIAS, GRIP_ALIAS, GRIP_ACTION),
     }
