@@ -47,6 +47,11 @@ The result goes in its own folder (`gzdoomvr-tefa/`) beside the original engine;
   it should have been low, which is the failure the test suite was built to catch. The shipped code writes the
   vector out longhand in `p_map.cpp`'s convention (`{ pc*cos(yaw), pc*sin(yaw), -sin(pitch) }`)
   `[inferred-static 2026-09-19, read from p_map.cpp and vectors.h]`.
-  ⚠️ **Still unworn, and the guard numbers are still guesses.** What to look for in the headset, and what each
-  outcome means, is in [`TWO-HANDED-AIM.md`](TWO-HANDED-AIM.md).
+  ⚠️ **Still unworn.** What to look for in the headset is in [`TWO-HANDED-AIM.md`](TWO-HANDED-AIM.md).
+- **2026-09-20: the guard numbers stopped mattering.** Tefa asked for long guns to be two-handed always —
+  *"no proximity at all… there is no way to fire a long rifle or shotgun with one hand"* — so the mod now
+  switches `TwoHandedAim` on for every long gun by itself, and this setup runs with `vr_two_handed_min_sep 0`
+  and `vr_two_handed_max_disagree 180`, which leaves the engine only its divide-by-zero guard. Nothing in the
+  engine changed; both are settings. The mod side is in `ashes-2063-weapons/kit/gz_shotgun.py`, and
+  `shotgun/gzdoom/TEST.md` describes what the wear should look like `[verified-live 2026-09-20, n=4 flat launches]`.
 If this is ever released, GPL-3.0 means the patched source must be published with it (a public fork).

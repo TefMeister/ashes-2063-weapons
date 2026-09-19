@@ -51,22 +51,43 @@ that work even, i just instinctively pressed LG to grip it"*.
    the lantern whenever the off hand was tracked, full stop. It now follows the game's own
    `lightlit` flag, so **the lantern key puts it away and takes it out again**, and the off hand is
    free. Rebuilt `Ashes2063_lefthand_lantern_test.pk3`.
-3. **There is no grip button — and Tefa asked for one, which is the right answer.** Their words, same
-   wear: *"can there be a grip button LG to hold on to a forend of the weapon? just holding my hand at
-   the wooden bit did nothing"*. ⚠️ **"Did nothing" is the finding to carry forward**, and that wear
-   could not explain it: the gun was 8.61° nose-down, so lining the hand up with the *visible* fore-end
-   lined it up with the wrong direction, and the lantern was stuck in that hand too. Both are fixed, so
-   a plain re-wear is worth one minute first. The button itself is **mod-side only, no engine rebuild** —
-   ZScript reads `players[n].cmd.buttons`, so `TwoHandedAim` becomes "a long gun is out, the off hand is
-   tracked, **and** the grip action is held", with the grip bound to `+user2` in the VR controls menu.
-   A held button is a far better signal than geometry, because it says *I am gripping it* outright; the
-   two unmeasured guard numbers then stop deciding anything.
+3. **There was nothing to press — and now there is nothing to press for a different reason.** Tefa's
+   words that wear: *"can there be a grip button LG to hold on to a forend of the weapon? just holding
+   my hand at the wooden bit did nothing"*. ⚠️ **"Did nothing" is the finding that mattered**, and that
+   wear could not explain it: the gun was 8.61° nose-down, so lining the hand up with the *visible*
+   fore-end lined it up with the wrong direction, and the lantern was stuck in that hand too.
 
-   As things stand today there is nothing to press: Nothing to press: you just bring your left hand up
-   to where the fore-end is and hold the controllers as if holding a real rifle. The engine watches the
-   two hands. It needs them a minimum distance apart *and* roughly in line with the way the gun points,
-   or it refuses and leaves aiming exactly as it is. **The visible sign that it worked is the red laser
-   dot moving** to line up with the barrel when the off hand comes up.
+   A grip button was built on 2026-09-20 (`+user2`, with an alias so the VR grip still runs as well),
+   and then **demoted the same day**, because Tefa asked for something simpler: *"i would actually like
+   … for there to be no proximity at all, that when choosing a long weapon, it automatically switches to
+   two handing. that in this game there is no way to fire a long rifle or shotgun with one hand"*.
+
+## How it works now (2026-09-20): a long gun is ALWAYS two-handed
+
+Nothing is conditional. Pick up any two-handed weapon and the shot follows the line from the off hand
+to the weapon hand, every tic, for as long as both controllers are tracked.
+
+- **Mod side** (`kit/gz_shotgun.py`, VR pk3 only): `TwoHandedAim` is on whenever the weapon is one of
+  `LONG_GUNS` and the off hand is tracked. The ten Ashes weapons on that list are matched by class
+  name, so a name that does not exist in the loaded game is simply never true.
+- **Engine side**: the two guards are turned off for this setup — `vr_two_handed_min_sep 0` and
+  `vr_two_handed_max_disagree 180`, set both in `gzdoomvr-tefashes-vr-3dtest.ini` and on the
+  launcher's command line. The engine can now only refuse if the two hands are in exactly the same
+  place, which is a divide-by-zero guard, not a judgement about how you are standing.
+- ⚠️ **The price, and it is the deal that was asked for:** if the off hand drops to your side, the shot
+  follows *that* line. There is no one-handed shot with a long gun.
+- **The grip button is still there and does nothing** until `tefa_grip_required 1` is set, which makes
+  two-handing deliberate again. The VR off-hand grip (`LShoulder`) is bound to `+tefagrip`, an alias
+  that runs **and** grips, so nothing was taken away.
+- **`tefa_grip_debug 1`** says where things stand the moment it is switched on, and then only when it
+  changes: `two-handed aim: ON`, or `off (not a two-handed weapon)` / `off (off hand not tracked)` /
+  `off (grip not held)`.
+
+**Checked flat, on the real build, 2026-09-20** `[verified-live 2026-09-20, n=4 launches]`: the engine
+starts with the new ZScript, both settings read back their new defaults, the pump shotgun is recognised
+as a long gun, and the only thing left between it and two-handed aiming is a second tracked hand —
+which is exactly what the headset adds. The probe is `tools/grip_test.py`, and it also proves the
+button path end to end (`grip: HELD` / `grip: let go`). ⚠️ **The aim itself is still unworn.**
 
 Desktop-folder launcher: **`Play Ashes 2063 VR (shotgun + two-handed test).bat`** in `C:\NonSteam\Ashes 2063 VR`.
 It loads our engine build plus the shotgun, the revolver and the lantern, and **drops you straight into
@@ -88,12 +109,13 @@ weapon hand either way.
 | Gun huge or tiny | `UNITS_PER_M` in `kit/gz_shotgun.py` (100 = real size) |
 | Flat sprite instead of the model | the pk3 was not loaded (check the `-file` path) |
 | **Shots land where the barrel points when you hold it with both hands** | the two-handed aim works — then tune the two sliders |
-| **Shots land where they did before** | the engine refused. Turn on Options → VR Options → "Two-handed aim: print why" and read which guard said no |
+| **Shots land where they did before** | the override never ran. Turn on `tefa_grip_debug 1` — it names what is missing — and Options → VR Options → "Two-handed aim: print why" for the engine's side |
 | Shots consistently high or low by a fixed amount | the pitch sign; see `engine/TWO-HANDED-AIM.md` |
 
-The guard limits are **sliders in Options → VR Options** ("Least hand separation", "Most disagreement"),
-so they can be tuned while wearing the headset — no rebuild. Both defaults (8 map units, 55°) are
-guesses `[hypothesis]`.
+The guard limits are still **sliders in Options → VR Options** ("Least hand separation", "Most
+disagreement"), but they are set out of the way (0 and 180) so they decide nothing. Turning them back up
+is how you would re-introduce a "your hands must look like a rifle hold" rule, if the unconditional
+version ever feels wrong.
 
 ⚠️ The VR pk3 **only works on our engine build** (`gzdoomvr-tefa`): its ZScript names `TwoHandedAim`,
 which the stock engine does not have, and a missing field stops the game from starting rather than
