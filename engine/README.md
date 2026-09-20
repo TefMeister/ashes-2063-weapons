@@ -18,7 +18,14 @@ the VR engine Ashes 2063 runs on here. Patch file: `gzdoomvr-gvr4.13.2.2-offhand
    plus `vr_two_handed_debug` which prints which guard refused. That is on purpose — both numbers are guesses
    until someone measures a comfortable rifle hold, and this way tuning them needs no rebuild.
    The maths is `two_handed_aim.h`, shipped unchanged from the copy the test compiles.
-4. **Stop-motion weapon hand (dropped by Tefa 2026-09-17, left in the code, off).** `vr_weapon_stopmotion` (on/off) and `vr_weapon_stopmotion_skip` (rendered frames the
+4. **Two-handed long guns, the visible half** (2026-09-20). The gun is now **drawn** along the same
+   hand-to-hand line: the rear hand keeps its position and the twist of the wrist, and the off hand
+   sets where the barrel points, however far apart the hands are. Before this, only the shot ever
+   moved, so the change was invisible in the headset and read as "the left hand does nothing".
+   Setting: `vr_two_handed_draw` (on), Options → VR Options. Anything missing falls back to the
+   one-handed gun, so the worst case is the behaviour the engine had before. The maths is
+   `two_handed_pose.h`; full write-up in [`TWO-HANDED-DRAW.md`](TWO-HANDED-DRAW.md).
+5. **Stop-motion weapon hand (dropped by Tefa 2026-09-17, left in the code, off).** `vr_weapon_stopmotion` (on/off) and `vr_weapon_stopmotion_skip` (rendered frames the
    weapon stays frozen after each update, 1 to 12). The world and the view stay smooth.
    Shots use the same frozen pose, so bullets still leave the barrel you see. Menu: Options → VR Options.
 
@@ -54,4 +61,16 @@ The result goes in its own folder (`gzdoomvr-tefa/`) beside the original engine;
   and `vr_two_handed_max_disagree 180`, which leaves the engine only its divide-by-zero guard. Nothing in the
   engine changed; both are settings. The mod side is in `ashes-2063-weapons/kit/gz_shotgun.py`, and
   `shotgun/gzdoom/TEST.md` describes what the wear should look like `[verified-live 2026-09-20, n=4 flat launches]`.
+- **⭐ 2026-09-20, after the second wear: THE GUN IS NOW DRAWN ALONG THE HAND LINE.** Tefa wore the
+  build and reported *"all weapons are still one handed and left hand does not affect aiming at all
+  visually"* `[reported 2026-09-20, n=1 wear]`. That was correct and it was our own doing: every
+  change so far moved the **shot**, and nothing had ever touched how the gun is **drawn**, so a
+  working change was invisible by construction. Fixed in `GetWeaponTransform()`; the maths is
+  `two_handed_pose.h` (103 checks, five deliberate breakages all caught
+  `[verified-numerically 2026-09-20, n=103 checks]`), the shot path deliberately kept on the
+  untouched raw transform, and the whole thing switchable with `vr_two_handed_draw`. Rebuilt clean,
+  deployed to `gzdoomvr-tefa/` with the replaced build kept beside it as
+  `gzdoomvr.exe.pre-twohanded-draw` / `gzdoom.pk3.pre-twohanded-draw`; both flat probes pass on it
+  `[verified-live 2026-09-20, n=3 launches]`. ⚠️ **Not worn.** What to look for:
+  [`TWO-HANDED-DRAW.md`](TWO-HANDED-DRAW.md).
 If this is ever released, GPL-3.0 means the patched source must be published with it (a public fork).
