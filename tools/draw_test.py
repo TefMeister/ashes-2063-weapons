@@ -9,7 +9,7 @@
 #   * the shotgun still fires on this build.
 # A missing setting is the failure this exists for: it would mean the engine in the game folder is
 # not the one that was just built, which is exactly the kind of thing a wear should never discover.
-import sys, os, time, subprocess, ctypes
+import sys, os, time, subprocess, ctypes, ctypes.wintypes
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gzdrive as g
 
@@ -34,6 +34,25 @@ def click():
         i = MIN(); i.type = 0; i.u.mi = MI(0, 0, 0, fl, 0, None)
         g.u32.SendInput(1, ctypes.byref(i), ctypes.sizeof(MIN)); time.sleep(0.03)
 
+
+def game_window(pid, timeout=60):
+    """The window belonging to OUR process -- never one that merely has the right title.
+
+    ⚠️ This used to match any window whose title started with "Ashes". On 2026-09-20 that
+    picked up a FILE EXPLORER window sitting on the game folder, which is called "Ashes 2063
+    VR", and every console command of this probe was typed into Explorer instead of the game.
+    The probe then hung waiting for a quit that was never delivered. Match on the process id.
+    """
+    want = ctypes.wintypes.DWORD(pid)
+    for _ in range(timeout * 2):
+        for h, _t in g.all_windows():
+            got = ctypes.wintypes.DWORD()
+            g.u32.GetWindowThreadProcessId(h, ctypes.byref(got))
+            if got.value == want.value:
+                return h
+        time.sleep(0.5)
+    return None
+
 PK3 = os.path.join(g.REPO, "shotgun", "gzdoom", "Ashes2063_shotgun3d_VR_test.pk3")
 LOG = os.path.join(g.REPO, "_renders", "live", "draw-test.log")
 os.makedirs(os.path.dirname(LOG), exist_ok=True)
@@ -51,15 +70,7 @@ args = ["-iwad", r"Resources\freedoom-0.12.1\freedoom2.wad", "-file", r"Resource
 proc = subprocess.Popen([os.path.join(g.GAME, "gzdoomvr-tefa", "gzdoomvr.exe"), *args],
                         cwd=g.GAME, stdout=log, stderr=subprocess.STDOUT)
 
-h = None
-for _ in range(120):
-    time.sleep(0.5)
-    for hh, t in g.all_windows():
-        if t.strip().lower().startswith("ashes"):
-            h = hh
-            break
-    if h:
-        break
+h = game_window(proc.pid)
 if not h:
     proc.kill(); raise SystemExit("no game window")
 time.sleep(3)
