@@ -152,3 +152,29 @@ no headset until it is built.
 ⚠️ A second thing to decide when it is built: the model's own rest pose points along its local forward,
 and the current VR fit (`GRIP`, `VR_NUDGE_*` in `kit/gz_shotgun.py`) was tuned against the controller's
 tilt. Turning the gun to the hand line may want those re-tuned `[hypothesis]`.
+
+---
+
+## Built 2026-09-20 late — the gun IS now drawn along the hand line. Not worn.
+
+The change above is done. Tefa confirmed the shape first: *"the back of the gun has to be locked to
+the right controller as the anchor … left controller moves the front end, so it doesn't really matter
+how far the controllers are apart."* That is what was built — rear hand keeps the position and the
+twist of the wrist, off hand sets where the barrel points, distance ignored.
+
+⚠️ **One thing in the plan above changed on contact with the code.** It said to keep the translation
+and take the forward axis from `tha::decide()`. The shipped version builds the whole weapon **pose**
+instead, in OpenVR's own tracking space, before any of the engine's scaling — because the world
+transform is scaled non-uniformly (pixelstretch, and a flipped Z), so its axes are not a clean set of
+directions to rotate. `engine/two_handed_pose.h` does that, and the shot deliberately stays on the
+untouched one-handed matrix so the hand line is not applied twice.
+`[inferred-static 2026-09-20, read from GetHandTransformEx and MapAttackDir]`
+
+**What to look at in the headset, and what each outcome points at:**
+[`engine/TWO-HANDED-DRAW.md`](../../engine/TWO-HANDED-DRAW.md). If it is worse than before,
+`vr_two_handed_draw 0` in the console puts it straight back.
+
+The second thing to decide is still open: the VR fit (`GRIP`, `VR_NUDGE_*` in `kit/gz_shotgun.py`)
+was tuned against the controller's own tilt, and the two-handed pose no longer applies that tilt on
+top. If the gun sits in the wrong place — as opposed to pointing the wrong way — that is where it
+gets fixed `[hypothesis]`.
