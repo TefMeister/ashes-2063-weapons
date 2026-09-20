@@ -34,7 +34,14 @@ def _read(name):
 
 exec(_read("anim_kit.py"))
 exec(_read("shotgun_settings.py"))
-exec(_read("shotgun_hands.py"))
+
+# The gun AND the hands come from one model file, linked like any other weapon model. The hands
+# used to be built straight into this scene, which worked for looking at but could never be
+# exported: a linked mesh cannot be unwrapped, so the hands had no UVs and no place in the baked
+# atlas. build_shotgun_hands_model.py makes that model; this file just animates it.
+HANDS_MODEL = os.path.abspath(os.path.join(KIT, "..", "shotgun",
+                                           "Ashes_2063_EP1_shotgun_hands_model.blend"))
+HANDS_COLL = "SHOTGUN_HANDS"
 
 OUT = os.path.join(KIT, "..", "shotgun", "Ashes_2063_EP1_shotgun_hands_all.blend")
 OUT = os.path.abspath(OUT)
@@ -52,12 +59,11 @@ GAP = 12                      # blank frames between one animation and the next
 # ---------------------------------------------------------------------------
 reset_scene()
 setup_scene("Shotgun_Hands_All", 1)
-_ov, _O = link_model(MODEL, "SHOTGUN")
+_ov, _O = link_model(HANDS_MODEL, HANDS_COLL)
 _cam = fp_view(lens=VIEW_LENS_SG)
 
-_coll = bpy.context.scene.collection
-_hand_l, _hand_r = build_hands(_O["SG_Root"], _O["SG_Pump"], _coll, globals())
-print("hands built:", _hand_l.name, "->", _hand_l.parent.name,
+_hand_l, _hand_r = _O["SG_HandLeft"], _O["SG_HandRight"]
+print("hands linked:", _hand_l.name, "->", _hand_l.parent.name,
       "|", _hand_r.name, "->", _hand_r.parent.name)
 
 # ---------------------------------------------------------------------------

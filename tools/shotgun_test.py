@@ -12,7 +12,12 @@ from PIL import Image
 
 TAG = sys.argv[1] if len(sys.argv) > 1 else "run"
 ENGINE = sys.argv[2] if len(sys.argv) > 2 else "gzdoomvr-tefa"
-PK3 = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\shotgun\gzdoom\Ashes2063_shotgun3d_test.pk3"
+# Which build to look at. Pass `hands` as the third argument for the one with the gloved hands
+# modelled into it; anything else (or nothing) gives the hand-free shotgun.
+WHICH = sys.argv[3] if len(sys.argv) > 3 else "plain"
+PK3 = os.path.join(g.REPO, "shotgun", "gzdoom",
+                   "Ashes2063_shotgun3d_hands_test.pk3" if WHICH == "hands"
+                   else "Ashes2063_shotgun3d_test.pk3")
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "_renders", "live", TAG)
 os.makedirs(OUT, exist_ok=True)
 
