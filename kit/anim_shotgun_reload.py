@@ -102,8 +102,15 @@ f += hold_len
 #   O P P P = 28 tics) because the action still has to close on it. Every shell
 #   after that is the 15-tic Reloadloop (P Q R S 2, T U V 1, W 2, X Y 1).
 # ---------------------------------------------------------------------------
+# Every shell-loading window this run produced, as (first frame, length). Nothing here uses it;
+# it is recorded so a file that HAS hands can send the trigger hand to fetch each shell and push
+# it in, without having to re-derive the reload's timing.
+LOAD_WINDOWS = []
+
+
 def load_one(f0, length, close_action):
     """One shell: it rises from below the gun, goes into the port, and is pushed home."""
+    LOAD_WINDOWS.append((f0, length))
     steps = [(0.00, (0.030, -0.022, -0.155), (-25, 0, -12), True),
              (0.25, (0.020, 0.010, -0.095), (-15, 0, -7), True),
              (0.50, (0.010, 0.034, -0.040), (-6, 0, -3), True),

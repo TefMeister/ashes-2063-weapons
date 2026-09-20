@@ -337,3 +337,37 @@ a timing fix there is a fix here.
 
 **Everything about the hands' size, pose and colour is by eye** `[hypothesis]` — the reference is a
 screenshot of a different game. Tefa judges it.
+
+### Second pass on the hands (2026-09-20, after Tefa's four screenshots)
+
+**Both hands went through the gun, and both for the same kind of reason: I placed the fingers
+against a shape I had imagined rather than against the shape that is actually there.**
+
+- **Left hand — fingers were wrapped OVER the forend.** There is no room over the top of a
+  pump-action's forend: the barrel and the magazine tube sit on it. Every fingertip came out
+  through the barrel. They now wrap **under**, which is also how a support hand really holds a
+  pump gun. Angles run 196° → 262° → 328° (left, bottom, right).
+- **Right hand — the radius cleared the stock's WRIST but not its BELLY**, which hangs a further
+  35 mm below, so the fingertips went straight through it and showed on the far side. The radius
+  is now derived from the belly's actual bottom rather than guessed.
+- **The index finger and the thumb both crossed to the wrong side of the gun**, ending up inside
+  the receiver and inside the stock. Both are now pinned outside their own side, measured off
+  `REC_HALF_W` and the stock's half-width.
+
+⭐ **The habit worth keeping:** every one of these was a number that could have been read off
+`build_shotgun.py` in two minutes. The kit already names `REC_W`, `MAG_Z`, `BARREL_R` and the rest
+— the fix was to *use* them instead of eyeballing a clearance.
+
+### The trigger hand feeds the shells (2026-09-20)
+
+Tefa: *"the right hand needs to come off the weapon while left hand holds the front, so right hand
+can insert shells into the gun"*. It now does: it lets go of the grip as the gun tips over, makes
+one trip per shell — down out of sight, up with a round, push it into the port — and takes the grip
+back at the end. Six trips on a dry reload, three on a top-up.
+
+`anim_shotgun_reload.py` gained one thing only: a `LOAD_WINDOWS` list recording each shell's
+(first frame, length). Nothing there uses it. It exists so a file that HAS hands can send the hand
+to meet each shell **without re-deriving the reload's timing**, which is the one part of this that
+was expensive to get right and must not end up written down twice.
+
+Evidence: `shotgun/progress/hands-2026-09-20/reload-1..4-*.png`.
