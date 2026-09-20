@@ -371,3 +371,37 @@ to meet each shell **without re-deriving the reload's timing**, which is the one
 was expensive to get right and must not end up written down twice.
 
 Evidence: `shotgun/progress/hands-2026-09-20/reload-1..4-*.png`.
+
+### The hands go into the game (2026-09-20)
+
+**⚠️ The hands could not be exported while they were built straight into the animation file, and
+the reason is worth knowing before anyone tries it again.** GZDoom cannot read Blender node
+materials, so every part of a weapon shares ONE UV layout and the colours are baked into a single
+PNG. Unwrapping needs real, local mesh data — and an animation file only *links* its model, so its
+meshes are library data and cannot be unwrapped. The hands therefore had no UVs and no place in
+the atlas.
+
+So the shape of it changed, and it now matches every other weapon here:
+
+| File | What it is |
+| --- | --- |
+| `kit/build_shotgun_hands_model.py` | **appends** the gun (a real copy, not a link), adds the hands, unwraps and bakes them together → `Ashes_2063_EP1_shotgun_hands_model.blend` + `gzdoom/shotgun_hands.png` |
+| `kit/anim_shotgun_hands_all.py` | now just *links* that model, like every other animation file |
+| `kit/gz_shotgun_hands.py` | the export profile. **Reads `gz_shotgun.py` rather than copying it** — the sprite sheet (which game letter shows which Blender frame) was read letter by letter out of the mod's own `Shotgun.txt` and must never exist twice |
+
+The export profile changes exactly three things: the model is called `shotgun_hands` so the
+hand-free build stays installable; every animation comes from the one all-in-one file; and reload
+frames are shifted by `RELOAD_OFFSET` (42), where `RELOAD_FULL` starts on the shared timeline.
+⚠️ That offset is the one number that can silently drift out of step with
+`anim_shotgun_hands_all.py`, so there is an assert at the foot of the profile that catches it.
+
+**In the game, flat** `[verified-live 2026-09-20, n=1 launch]`: 42 frames, 4,878 verts, 1,626
+tris; it loads, idles, fires and reloads with no fallback to the flat sprite
+(`_renders/live/hands-in-game/`). ⚠️ **In the flat view you barely see the hands** — the camera
+sits to the gun's left, so the trigger hand is behind the gun and the support hand is underneath.
+That is not a fault; the flat build exists to prove the model loads. **VR is where this gets
+judged.**
+
+Launcher: **`Play Ashes 2063 VR (shotgun + HANDS test).bat`**, beside the hand-free one so the two
+can be compared. ⚠️ The revolver is deliberately left out of it — it has no hands yet, and mixing
+them would read as the hands breaking when you change weapon.
