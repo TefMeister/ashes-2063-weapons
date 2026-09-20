@@ -9,7 +9,8 @@ import sys, os, time, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gzdrive as g
 
-PK3 = r"C:\Users\TD3KX\ashes-2063-weapons\shotgun\gzdoom\Ashes2063_shotgun3d_VR_test.pk3"
+# Repo-relative; the old absolute path stopped existing when the clone root moved (2026-08-31).
+PK3 = os.path.join(g.REPO, "shotgun", "gzdoom", "Ashes2063_shotgun3d_VR_test.pk3")
 LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "_renders", "live", "grip-test.log")
 os.makedirs(os.path.dirname(LOG), exist_ok=True)
 KEY = 'k'                 # a keyboard stand-in for the controller's grip

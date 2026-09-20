@@ -1,7 +1,7 @@
-From 2ae22faec2392d7e9c99ab9e27af0f8adce7ef63 Mon Sep 17 00:00:00 2001
+﻿From 2ae22faec2392d7e9c99ab9e27af0f8adce7ef63 Mon Sep 17 00:00:00 2001
 From: TefMeister <td3kxlvr@proton.me>
 Date: Thu, 17 Sep 2026 17:59:31 +0300
-Subject: [PATCH 1/4] VR: off-hand pose for mods; stop-motion weapon hand
+Subject: [PATCH 1/5] VR: off-hand pose for mods; stop-motion weapon hand
  (toggle + rate slider)
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
@@ -226,7 +226,7 @@ index 3e56350..b4e56a2 100644
 From 15d82a48f9b7ffb33593c3f97250611ccaa34528 Mon Sep 17 00:00:00 2001
 From: TefMeister <td3kxlvr@proton.me>
 Date: Thu, 17 Sep 2026 20:19:47 +0300
-Subject: [PATCH 2/4] Stop-motion weapon hand: skip N rendered frames instead
+Subject: [PATCH 2/5] Stop-motion weapon hand: skip N rendered frames instead
  of a per-second rate
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
@@ -313,7 +313,7 @@ index c3ad6ec..26d6907 100644
 From fa0765cb0e0b2adced81ec5694fc86289afd1fec Mon Sep 17 00:00:00 2001
 From: TefMeister <td3kxlvr@proton.me>
 Date: Thu, 17 Sep 2026 20:44:04 +0300
-Subject: [PATCH 3/4] FollowOffhand: draw an actor rigidly at the off hand on
+Subject: [PATCH 3/5] FollowOffhand: draw an actor rigidly at the off hand on
  every rendered frame
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
@@ -458,7 +458,7 @@ index b4e56a2..75582f7 100644
 From 6293d1b5dcb1365c3ab60210b6e0e76ff04cf748 Mon Sep 17 00:00:00 2001
 From: TefMeister <td3kxlvr@proton.me>
 Date: Sat, 19 Sep 2026 00:23:23 +0300
-Subject: [PATCH 4/4] Two-handed long guns: aim the shot down the line between
+Subject: [PATCH 4/5] Two-handed long guns: aim the shot down the line between
  the hands
 
 TwoHandedAim, a bool a mod sets on the player. When it is on and the off hand
@@ -736,6 +736,436 @@ index 75582f7..7576e0e 100644
  	native readonly bool OffhandValid;
  	native readonly vector3 OffhandPos;
  	native readonly vector3 OffhandDir;
+-- 
+2.55.0.windows.3
+
+
+From c56087c3a5e3d7bcc75c1686d36090feca88d2a6 Mon Sep 17 00:00:00 2001
+From: TefMeister <td3kxlvr@proton.me>
+Date: Sun, 20 Sep 2026 17:21:19 +0300
+Subject: [PATCH 5/5] Two-handed long guns: DRAW the gun along the line between
+ the hands
+
+The shot already followed the hand-to-hand line; the gun itself never did. It
+stayed glued to the weapon controller, so from inside the headset a working
+change looked like nothing at all -- the barrel did not move, and the off hand
+appeared to do nothing.
+
+GetWeaponTransform now rebuilds the weapon pose: the rear hand keeps the gun's
+position and the twist of the wrist, and the off hand sets which way the barrel
+points, however far apart the hands are. openvr_weaponRotate is folded into the
+frame the barrel direction replaces rather than applied on top of it.
+
+MapAttackDir and the per-tic AttackPos block take the new GetWeaponTransformRaw
+instead. AttackAngle/AttackPitch are already turned onto the hand line by the
+aim block, so feeding them the re-aimed matrix as well would apply the same turn
+twice.
+
+New setting vr_two_handed_draw (on, Options -> VR Options) turns it off for
+comparison. Anything missing -- no off hand, no player, hands in the same place
+-- falls back to the one-handed transform, so the worst case is the behaviour
+the engine had before.
+
+Maths in two_handed_pose.h; 103 checks in the Ashes repo, and five deliberate
+breakages all caught.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ .../rendering/hwrenderer/data/hw_vrmodes.cpp  |   3 +
+ .../rendering/hwrenderer/data/hw_vrmodes.h    |   3 +
+ src/rendering/gl/stereo3d/gl_openvr.cpp       | 157 +++++++++++++++---
+ src/rendering/gl/stereo3d/gl_openvr.h         |   4 +
+ src/rendering/gl/stereo3d/two_handed_pose.h   | 108 ++++++++++++
+ wadsrc/static/menudef.txt                     |   1 +
+ 6 files changed, 252 insertions(+), 24 deletions(-)
+ create mode 100644 src/rendering/gl/stereo3d/two_handed_pose.h
+
+diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
+index 3bffbf9..c83ada9 100644
+--- a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
++++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
+@@ -86,6 +86,9 @@ CVAR(Int, vr_weapon_stopmotion_skip, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Float, vr_two_handed_min_sep, 8.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Float, vr_two_handed_max_disagree, 55.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Bool, vr_two_handed_debug, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
++// Draw the gun along the line between the hands, not hanging off the weapon controller. This is
++// the half you can SEE; vr_two_handed_min_sep / _max_disagree above only ever moved the shot.
++CVAR(Bool, vr_two_handed_draw, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ 
+ CVAR(Bool, vr_snap_turn, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Float, vr_snap_angle, 45.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.h b/src/common/rendering/hwrenderer/data/hw_vrmodes.h
+index 9122984..f5ec1e2 100644
+--- a/src/common/rendering/hwrenderer/data/hw_vrmodes.h
++++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.h
+@@ -80,6 +80,9 @@ struct VRMode
+ 
+ 	virtual bool GetHandTransform(int hand, VSMatrix* out) const { return false; }
+ 	virtual bool GetWeaponTransform(VSMatrix* out) const { return false; }
++	// The gun hanging off the weapon controller, before any two-handed re-aim. Callers that
++	// work out where the SHOT goes need this one; only the drawing uses the two-handed version.
++	virtual bool GetWeaponTransformRaw(VSMatrix* out) const { return GetWeaponTransform(out); }
+ 	// off hand at render time, in Doom map coordinates; yaw in degrees
+ 	bool GetOffhandRenderPos(double* x, double* y, double* z, double* yaw) const;
+ 	virtual bool RenderPlayerSpritesCrossed() const { return false; }
+diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
+index de56343..6d1e92f 100644
+--- a/src/rendering/gl/stereo3d/gl_openvr.cpp
++++ b/src/rendering/gl/stereo3d/gl_openvr.cpp
+@@ -49,6 +49,7 @@
+ #include "cmdlib.h"
+ #include "LSMatrix.h"
+ #include "two_handed_aim.h"	// two-handed long guns: where does the gun actually point
++#include "two_handed_pose.h"	// two-handed long guns: which way is the gun DRAWN
+ //#include "common/filesystem/filesystem.h"
+ #include "m_joy.h"
+ #include "d_gui.h"
+@@ -155,6 +156,7 @@ EXTERN_CVAR(Int, vr_weapon_stopmotion_skip);
+ EXTERN_CVAR(Float, vr_two_handed_min_sep);
+ EXTERN_CVAR(Float, vr_two_handed_max_disagree);
+ EXTERN_CVAR(Bool, vr_two_handed_debug);
++EXTERN_CVAR(Bool, vr_two_handed_draw);
+ 
+ EXTERN_CVAR(Bool, vr_enable_haptics);
+ EXTERN_CVAR(Float, vr_kill_momentum)
+@@ -1056,37 +1058,46 @@ namespace s3d
+ 		return GetHandTransformEx(hand, mat, false);
+ 	}
+ 
+-	bool OpenVRMode::GetHandTransformEx(int hand, VSMatrix* mat, bool held) const
++	// The body of GetHandTransformEx, split out so a pose we have BUILT ourselves (the two-handed
++	// gun below) goes through exactly the same chain as a real controller pose.
++	bool OpenVRMode::GetPoseTransform(const HmdMatrix34_t& poseToAbs, VSMatrix* mat) const
+ 	{
+-		if (controllers[hand].active)
++		auto player = r_viewpoint.camera->player;
++		if (player == nullptr)
+ 		{
+-			auto player = r_viewpoint.camera->player;
+-			if (player == nullptr)
+-			{
+-				return false;
+-			}
++			return false;
++		}
+ 
+-			AActor* playermo = player->mo;
+-			DVector3 pos = playermo->InterpolatedPosition(r_viewpoint.TicFrac);
+-		
+-			double pixelstretch = level.info ? level.info->pixelstretch : 1.2;
++		AActor* playermo = player->mo;
++		DVector3 pos = playermo->InterpolatedPosition(r_viewpoint.TicFrac);
+ 
+-			mat->loadIdentity();
+-			mat->translate(r_viewpoint.Pos.X, r_viewpoint.Pos.Z - getDoomPlayerHeightWithoutCrouch(player), r_viewpoint.Pos.Y);
+-			mat->scale(vr_vunits_per_meter, vr_vunits_per_meter / pixelstretch , -vr_vunits_per_meter);
+-			mat->rotate(-deltaYawDegrees - 180, 0, 1, 0);
+-			mat->translate(-openvr_origin.x, -vr_floor_offset, -openvr_origin.z);
++		double pixelstretch = level.info ? level.info->pixelstretch : 1.2;
+ 
+-			LSMatrix44 handToAbs;
+-			vSMatrixFromHmdMatrix34(handToAbs, (held ? controllers[hand].heldPose : controllers[hand].pose).mDeviceToAbsoluteTracking);
+-			mat->multMatrix(handToAbs.transpose());
+-			
+-			return true;
++		mat->loadIdentity();
++		mat->translate(r_viewpoint.Pos.X, r_viewpoint.Pos.Z - getDoomPlayerHeightWithoutCrouch(player), r_viewpoint.Pos.Y);
++		mat->scale(vr_vunits_per_meter, vr_vunits_per_meter / pixelstretch , -vr_vunits_per_meter);
++		mat->rotate(-deltaYawDegrees - 180, 0, 1, 0);
++		mat->translate(-openvr_origin.x, -vr_floor_offset, -openvr_origin.z);
++
++		LSMatrix44 handToAbs;
++		vSMatrixFromHmdMatrix34(handToAbs, poseToAbs);
++		mat->multMatrix(handToAbs.transpose());
++
++		return true;
++	}
++
++	bool OpenVRMode::GetHandTransformEx(int hand, VSMatrix* mat, bool held) const
++	{
++		if (controllers[hand].active)
++		{
++			return GetPoseTransform((held ? controllers[hand].heldPose : controllers[hand].pose).mDeviceToAbsoluteTracking, mat);
+ 		}
+ 		return false;
+ 	}
+ 
+-	bool OpenVRMode::GetWeaponTransform(VSMatrix* out) const
++	// The one-handed transform: the gun hangs off the weapon controller. This is what the engine
++	// has always done, and it stays the fallback for everything.
++	bool OpenVRMode::GetWeaponTransformRaw(VSMatrix* out) const
+ 	{
+ 		if (GetHandTransformEx(openvr_rightHanded ? 1 : 0, out, vr_weapon_stopmotion))
+ 		{
+@@ -1098,11 +1109,109 @@ namespace s3d
+ 		return false;
+ 	}
+ 
++	// Two-handed long guns, the VISIBLE half (2026-09-20). The rear hand is the anchor -- it keeps
++	// the gun's position and the twist of the wrist -- and the off hand swings the muzzle, so the
++	// barrel always points at the off hand however far apart the hands are.
++	//
++	// Anything missing at all means "return false", and the caller falls back to the one-handed
++	// transform, so the worst case here is exactly the behaviour the engine had before.
++	bool OpenVRMode::TwoHandedWeaponTransform(VSMatrix* out) const
++	{
++		const int rearHand = openvr_rightHanded ? 1 : 0;
++		const int frontHand = openvr_rightHanded ? 0 : 1;
++
++		const char* refused = nullptr;
++		double gap = 0;
++
++		auto player = (r_viewpoint.camera != nullptr) ? r_viewpoint.camera->player : nullptr;
++		if (player == nullptr || player->mo == nullptr)					refused = "no player yet";
++		else if (!player->mo->TwoHandedAim)								refused = "the mod has not asked for two-handed on this weapon";
++		else if (!controllers[rearHand].active)							refused = "the weapon hand is not tracked";
++		else if (!controllers[frontHand].active)						refused = "the OFF HAND is not tracked";
++
++		thp::Result r;
++		r.used = false;
++		HmdMatrix34_t pose;
++
++		if (refused == nullptr)
++		{
++			const bool held = vr_weapon_stopmotion;
++			const HmdMatrix34_t& rearPose = (held ? controllers[rearHand].heldPose : controllers[rearHand].pose).mDeviceToAbsoluteTracking;
++			const HmdMatrix34_t& frontPose = (held ? controllers[frontHand].heldPose : controllers[frontHand].pose).mDeviceToAbsoluteTracking;
++
++			// The gun's own frame is the rear controller tilted by openvr_weaponRotate about its
++			// local X axis -- that tilt is how the barrel was lined up with the hand in the first
++			// place, so the tilt is folded in here and NOT applied again afterwards.
++			const double tilt = (double)openvr_weaponRotate * M_PI / 180.0;
++			const double ct = cos(tilt), st = sin(tilt);
++
++			thp::Basis gun;
++			double rearPos[3], frontPos[3];
++			for (int i = 0; i < 3; ++i)
++			{
++				const double hx = rearPose.m[i][0], hy = rearPose.m[i][1], hz = rearPose.m[i][2];
++				gun.x[i] = hx;
++				gun.y[i] = hy * ct + hz * st;
++				gun.z[i] = -hy * st + hz * ct;
++				rearPos[i] = rearPose.m[i][3];
++				frontPos[i] = frontPose.m[i][3];
++			}
++
++			r = thp::aim_along_hands(gun, rearPos, frontPos);
++			gap = r.gap;
++			if (!r.used)
++				refused = "both hands are in the same place";
++			else
++			{
++				for (int i = 0; i < 3; ++i)
++				{
++					pose.m[i][0] = (float)r.basis.x[i];
++					pose.m[i][1] = (float)r.basis.y[i];
++					pose.m[i][2] = (float)r.basis.z[i];
++					pose.m[i][3] = (float)rearPos[i];
++				}
++			}
++		}
++
++		if (vr_two_handed_debug)
++		{
++			// Throttled: this runs on every rendered frame, for every eye.
++			static int drawLog = 0;
++			if (++drawLog >= 120)
++			{
++				drawLog = 0;
++				if (refused != nullptr)
++					Printf("two-handed DRAW: off -- %s\n", refused);
++				else
++					Printf("two-handed DRAW: on, hands %.2f m apart\n", gap);
++			}
++		}
++
++		if (refused != nullptr || !r.used)
++			return false;
++
++		if (!GetPoseTransform(pose, out))
++			return false;
++		if (!openvr_rightHanded)
++			out->scale(-1.0f, 1.0f, 1.0f);
++		return true;
++	}
++
++	bool OpenVRMode::GetWeaponTransform(VSMatrix* out) const
++	{
++		if (vr_two_handed_draw && TwoHandedWeaponTransform(out))
++			return true;
++		return GetWeaponTransformRaw(out);
++	}
++
+ 	static DVector3 MapAttackDir(AActor* actor, DAngle yaw, DAngle pitch)
+ 	{
+ 		LSMatrix44 mat;
+ 		auto vrmode = VRMode::GetVRMode(true);
+-		if (!vrmode->GetWeaponTransform(&mat))
++		// Deliberately the RAW transform. AttackAngle/AttackPitch have already been turned onto
++		// the hand-to-hand line by the two-handed AIM block below; feeding the two-handed DRAW
++		// matrix in here as well would apply the same turn a second time.
++		if (!vrmode->GetWeaponTransformRaw(&mat))
+ 		{
+ 			double pc = pitch.Cos();
+ 
+@@ -1633,7 +1742,7 @@ namespace s3d
+ 			LSMatrix44 mat;
+ 			if (player)
+ 			{
+-				if (GetWeaponTransform(&mat))
++				if (GetWeaponTransformRaw(&mat))
+ 				{
+ 					player->mo->OverrideAttackPosDir = true;
+ 
+diff --git a/src/rendering/gl/stereo3d/gl_openvr.h b/src/rendering/gl/stereo3d/gl_openvr.h
+index 6c27b1a..e0b65fe 100644
+--- a/src/rendering/gl/stereo3d/gl_openvr.h
++++ b/src/rendering/gl/stereo3d/gl_openvr.h
+@@ -33,6 +33,7 @@
+ namespace openvr {
+ 	// forward declarations
+ 	struct TrackedDevicePose_t;
++	struct HmdMatrix34_t;
+ 	struct Texture_t;
+ 	struct VR_IVRSystem_FnTable;
+ 	struct VR_IVRCompositor_FnTable;
+@@ -119,7 +120,10 @@ public:
+ 	
+ 	virtual bool GetHandTransform(int hand, VSMatrix* out) const override;
+ 	bool GetHandTransformEx(int hand, VSMatrix* out, bool held) const;
++	bool GetPoseTransform(const openvr::HmdMatrix34_t& poseToAbs, VSMatrix* out) const;
+ 	virtual bool GetWeaponTransform(VSMatrix* out) const override;
++	virtual bool GetWeaponTransformRaw(VSMatrix* out) const override;
++	bool TwoHandedWeaponTransform(VSMatrix* out) const;
+ 	virtual bool RenderPlayerSpritesCrossed() const { return true; }
+ 	virtual bool RenderPlayerSpritesInScene() const { return true; }
+ 	virtual bool IsInitialized() const { return hmdWasFound; }
+diff --git a/src/rendering/gl/stereo3d/two_handed_pose.h b/src/rendering/gl/stereo3d/two_handed_pose.h
+new file mode 100644
+index 0000000..1079b7b
+--- /dev/null
++++ b/src/rendering/gl/stereo3d/two_handed_pose.h
+@@ -0,0 +1,108 @@
++// two_handed_pose.h -- how a two-handed long gun is DRAWN (2026-09-20)
++//
++// Companion to two_handed_aim.h, which decides where the shot GOES. This one decides which way
++// the gun POINTS on screen, and it exists because shipping the invisible half first read, from
++// inside the headset, as "the left hand does nothing" (owed/HOME, 2026-09-20).
++//
++// The shape Tefa asked for, in their words: the handle sits in the right hand and the gun
++// "shoots to wherever the left controller is". So the rear hand is the ANCHOR -- it keeps the
++// gun's position and its twist -- and the off hand only swings the muzzle. How far apart the
++// hands are does not matter.
++//
++// Pure maths, plain doubles, no GZDoom and no OpenVR types, so it can be tested on its own.
++// Everything here is in OpenVR's absolute tracking space: right-handed, metres, and the frame's
++// FORWARD is -Z (the direction a controller points out of its front).
++
++#pragma once
++
++#include <cmath>
++
++namespace thp
++{
++	// Below this, the two hands are effectively in the same place and there is no line to aim
++	// along. This is a divide-by-zero guard ONLY -- it is deliberately not a "are you really
++	// holding it with two hands?" test, because Tefa asked for no such condition.
++	constexpr double kMinHandGapMetres = 0.02;	// 2 cm
++
++	// A gun pointed almost exactly along its own up axis leaves no room to work out which way is
++	// up any more; below this we rebuild the frame from the old right axis instead.
++	constexpr double kDegenerateAxis = 1e-4;
++
++	struct Basis
++	{
++		// Columns of the rotation: where the frame's local X, Y and Z axes point.
++		double x[3];
++		double y[3];
++		double z[3];
++	};
++
++	struct Result
++	{
++		Basis basis;		// only meaningful when used == true
++		double gap;			// how far apart the hands are, in metres
++		bool used;			// false -> leave the gun drawn exactly as it is today
++	};
++
++	inline void cross3(const double a[3], const double b[3], double out[3])
++	{
++		out[0] = a[1] * b[2] - a[2] * b[1];
++		out[1] = a[2] * b[0] - a[0] * b[2];
++		out[2] = a[0] * b[1] - a[1] * b[0];
++	}
++
++	inline double length3(const double a[3])
++	{
++		return std::sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
++	}
++
++	inline bool normalize3(double a[3])
++	{
++		const double len = length3(a);
++		if (len < kDegenerateAxis) return false;
++		a[0] /= len; a[1] /= len; a[2] /= len;
++		return true;
++	}
++
++	// rear:  the weapon hand's own frame and position (the anchor).
++	// front: the off hand's position. Its rotation is not used -- only where it is.
++	inline Result aim_along_hands(const Basis& rear, const double rear_pos[3], const double front_pos[3])
++	{
++		Result r;
++		r.used = false;
++
++		double fwd[3] = { front_pos[0] - rear_pos[0], front_pos[1] - rear_pos[1], front_pos[2] - rear_pos[2] };
++		r.gap = length3(fwd);
++		if (r.gap < kMinHandGapMetres) return r;
++
++		fwd[0] /= r.gap; fwd[1] /= r.gap; fwd[2] /= r.gap;
++
++		// Forward is -Z, so the new Z axis is the opposite of where we want to point.
++		double nz[3] = { -fwd[0], -fwd[1], -fwd[2] };
++
++		// Right-handed frame: X = Y x Z, Y = Z x X. Keeping the rear hand's up axis as the
++		// starting point is what preserves the twist of the right wrist.
++		double nx[3];
++		cross3(rear.y, nz, nx);
++		double ny[3];
++		if (normalize3(nx))
++		{
++			cross3(nz, nx, ny);
++		}
++		else
++		{
++			// Pointing along the up axis: fall back to the rear hand's right axis.
++			cross3(nz, rear.x, ny);
++			if (!normalize3(ny)) return r;
++			cross3(ny, nz, nx);
++		}
++
++		for (int i = 0; i < 3; ++i)
++		{
++			r.basis.x[i] = nx[i];
++			r.basis.y[i] = ny[i];
++			r.basis.z[i] = nz[i];
++		}
++		r.used = true;
++		return r;
++	}
++}
+diff --git a/wadsrc/static/menudef.txt b/wadsrc/static/menudef.txt
+index 221367d..b4fa109 100644
+--- a/wadsrc/static/menudef.txt
++++ b/wadsrc/static/menudef.txt
+@@ -2773,6 +2773,7 @@ OptionMenu "OpenVROptions" protected
+ 	StaticText "Two-handed long guns", 1
+ 	Slider "Least hand separation",				vr_two_handed_min_sep,					0, 40, 1, 0
+ 	Slider "Most disagreement (deg)",			vr_two_handed_max_disagree,				10, 120, 5, 0
++	Option "Two-handed: turn the gun too",		vr_two_handed_draw,						"OnOff"
+ 	Option "Two-handed aim: print why",			vr_two_handed_debug,					"OnOff"
+ 	StaticText " "
+ 	StaticText "$VRPREFMNU_HAPTICS"
 -- 
 2.55.0.windows.3
 

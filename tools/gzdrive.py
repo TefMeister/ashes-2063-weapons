@@ -93,7 +93,10 @@ SC.update({'.':0x34, ',':0x33, '-':0x0C, '=':0x0D, '/':0x35, ';':0x27, "'":0x28}
 import subprocess, os
 TITLE = "ashes"            # window title prefix, lower case; checked against all visible windows
 GAME = r"C:\NonSteam\Ashes 2063 VR"
-TEST_PK3 = r"C:\Users\TD3KX\ashes-2063-weapons\revolver\gzdoom\Ashes2063_revolver3d_test.pk3"
+# Repo-relative. This used to be an absolute path into C:\Users\TD3KX\ashes-2063-weapons, which
+# stopped existing when the clone root moved to github-backups\ (2026-08-31).
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEST_PK3 = os.path.join(REPO, "revolver", "gzdoom", "Ashes2063_revolver3d_test.pk3")
 FLAT_INI = r"gzdoomvr\ashes-flat-test.ini"   # a copy, so the VR config is never rewritten
 
 def launch(extra_files=(TEST_PK3,), map_name="MAP01", engine="gzdoomvr", extra_args=()):
