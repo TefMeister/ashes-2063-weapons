@@ -92,34 +92,40 @@ def build_hands(root, pump, coll, S):
 
     # =======================================================================
     # LEFT HAND - the support hand, wrapped around the pump.
-    # Palm against the left face of the forend, fingers over the top and curling down the far
-    # side, thumb lying along the left. This is the pose the reference screenshot shows.
+    #
+    # ⚠️ THE FINGERS GO UNDER THE FOREND, NOT OVER IT. The first version wrapped them over the
+    # top, which is where the BARREL and the magazine tube are: every fingertip came out through
+    # the barrel, which is what Tefa's "front right side" screenshot shows. There is no room over
+    # the top of a pump-action's forend, and there never was - a support hand grips from below.
     # =======================================================================
     FORE_HALF_W = 0.0235                 # the ribs are the widest part of the forend
-    MAG_Z_R = 0.0275                     # half-height of the forend
+    FORE_HALF_H = 0.0245                 # half-height of the forend box
     CY = 0.326                           # middle of the grip, along the forend
+    CLEAR = 0.009                        # how far clear of the wood a finger sits
 
     p = Part()
 
-    # back of the hand, flat against the left side of the wood
-    p.box((0.013, 0.058, 0.040), (-(FORE_HALF_W + 0.009), CY - 0.006, MAG_Z + 0.002), GLOVE,
+    # Back of the hand, flat against the left side of the wood and low, because the hand is
+    # underneath now rather than on top.
+    p.box((0.013, 0.058, 0.038), (-(FORE_HALF_W + 0.009), CY - 0.006, MAG_Z - 0.006), GLOVE,
           rot=(0, 0.06, 0))
 
-    # Four fingers wrapping the forend: knuckles on the left, over the top, tips curling down the
-    # far side. Spacing is close to the rib pitch so they sit in the grooves.
+    # Four fingers: knuckles on the left, round the BOTTOM, tips coming up the right side.
+    # 180 is the left, 270 is straight down, 360 is the right.
     # Knuckle gloved, middle and tip bare - that is what makes it a half-glove.
-    FORE_R = (FORE_HALF_W + 0.007, MAG_Z_R + 0.007)
+    FORE_R = (FORE_HALF_W + CLEAR, FORE_HALF_H + CLEAR)
     for i, fy in enumerate((CY - 0.030, CY - 0.009, CY + 0.012, CY + 0.033)):
         reach = (0, -5, -11, -18)[i]                 # little finger does not get as far round
-        _finger(p, (0.0, MAG_Z), fy, FORE_R,
-                (172 + reach * 0.3, 112 + reach * 0.7, 40 + reach),
+        _finger(p, (0.0, MAG_Z + 0.002), fy, FORE_R,
+                (196 + reach * 0.3, 262 + reach * 0.7, 328 + reach),
                 (0.022, 0.012), (GLOVE, SKIN, SKIN),
                 width=(0.015, 0.015, 0.014, 0.012)[i])   # gaps between them, or it is one slab
 
-    # thumb, lying forward along the left of the forend
-    p.box((0.015, 0.032, 0.017), (-(FORE_HALF_W + 0.012), CY + 0.040, MAG_Z + 0.010),
+    # Thumb, lying forward along the LEFT side. It cannot go over the top either, for the same
+    # reason, so it stays on the flank and angles up only as far as the barrel allows.
+    p.box((0.015, 0.032, 0.017), (-(FORE_HALF_W + 0.013), CY + 0.040, MAG_Z + 0.008),
           GLOVE, rot=(-0.30, 0, 0.10))
-    p.box((0.013, 0.024, 0.015), (-(FORE_HALF_W + 0.013), CY + 0.066, MAG_Z + 0.019),
+    p.box((0.013, 0.024, 0.015), (-(FORE_HALF_W + 0.014), CY + 0.066, MAG_Z + 0.014),
           SKIN, rot=(-0.45, 0, 0.10))
 
     # wrist, then the CUFF, then the forearm running off toward the player
@@ -148,25 +154,37 @@ def build_hands(root, pump, coll, S):
     # back of the hand
     p.box((0.013, 0.054, 0.046), (GX + 0.008, GY - 0.012, GZ + 0.002), GLOVE, rot=(0.10, -0.05, 0))
 
-    # index finger, reaching forward to the trigger
-    p.box((0.026, 0.022, 0.014), (GX + 0.002, GY + 0.055, GZ - 0.004), GLOVE, rot=(0, 0.20, 0))
-    p.box((0.016, 0.026, 0.012), (GX - 0.012, GY + 0.082, GZ - 0.013), SKIN, rot=(0.20, 0.55, 0))
+    # Index finger, reaching forward to the trigger. It runs down the RIGHT of the receiver and
+    # into the front of the trigger guard - it must never cross to x < 0, which is what the first
+    # version did: both of its segments were inside the receiver and showed through the far side
+    # of the stock in Tefa's "back left side" screenshot.
+    REC_HALF_W = 0.025                   # the receiver is 0.050 wide
+    p.box((0.024, 0.024, 0.014), (REC_HALF_W + 0.010, GY + 0.058, GZ - 0.016), GLOVE,
+          rot=(0.10, 0.22, 0))
+    p.box((0.014, 0.026, 0.012), (REC_HALF_W - 0.004, GY + 0.086, GZ - 0.042), SKIN,
+          rot=(0.30, 0.70, 0))
 
-    # Three fingers curling under the wrist of the stock: knuckles on the right, round the
-    # bottom, tips coming up the far side. Angles run negative because they go UNDER.
-    GRIP_R = (0.017 + 0.007, 0.025 + 0.007)
+    # Three fingers round the wrist of the stock: knuckles on the right, round the bottom, tips
+    # coming up the far side. Angles run negative because they go UNDER.
+    # ⚠️ The radius has to clear the stock's BELLY, not just the wrist: the belly box hangs to
+    # REC_Z - 0.053, and the first version's 0.032 put every fingertip straight through it.
+    STOCK_HALF_W = 0.017
+    BELLY_BOTTOM = REC_Z - 0.053
+    GRIP_CZ = REC_Z - 0.012
+    GRIP_R = (STOCK_HALF_W + 0.011, (GRIP_CZ - BELLY_BOTTOM) + 0.010)
     for i, fy in enumerate((GY + 0.028, GY + 0.006, GY - 0.016)):
         reach = (0, -7, -16)[i]
-        _finger(p, (0.0, REC_Z), fy, GRIP_R,
-                (-30 + reach * 0.3, -92 + reach * 0.7, -158 - reach),
+        _finger(p, (0.0, GRIP_CZ), fy, GRIP_R,
+                (-25 + reach * 0.3, -80 + reach * 0.7, -135 - reach),
                 (0.022, 0.012), (GLOVE, SKIN, SKIN),
                 width=(0.016, 0.015, 0.013)[i])
 
-    # thumb over the top of the stock wrist
-    p.box((0.016, 0.034, 0.017), (GX + 0.004, GY + 0.018, GZ + 0.030), GLOVE,
+    # Thumb along the top-RIGHT of the stock wrist. Like the index finger it stays on its own
+    # side of the gun; the earlier version crossed over and buried its tip in the stock.
+    p.box((0.016, 0.034, 0.017), (STOCK_HALF_W + 0.006, GY + 0.018, GZ + 0.026), GLOVE,
           rot=(0.25, 0, -0.18))
-    p.box((0.014, 0.025, 0.015), (GX - 0.008, GY + 0.042, GZ + 0.036), SKIN,
-          rot=(0.40, 0, -0.30))
+    p.box((0.014, 0.025, 0.015), (STOCK_HALF_W + 0.003, GY + 0.042, GZ + 0.032), SKIN,
+          rot=(0.40, 0, -0.26))
 
     # wrist, CUFF, forearm
     p.box((0.027, 0.032, 0.036), (GX + 0.020, GY - 0.048, GZ - 0.018), GLOVE,
