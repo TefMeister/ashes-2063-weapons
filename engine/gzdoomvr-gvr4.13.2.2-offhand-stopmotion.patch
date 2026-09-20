@@ -1,7 +1,7 @@
 ﻿From 2ae22faec2392d7e9c99ab9e27af0f8adce7ef63 Mon Sep 17 00:00:00 2001
 From: TefMeister <td3kxlvr@proton.me>
 Date: Thu, 17 Sep 2026 17:59:31 +0300
-Subject: [PATCH 1/5] VR: off-hand pose for mods; stop-motion weapon hand
+Subject: [PATCH 1/6] VR: off-hand pose for mods; stop-motion weapon hand
  (toggle + rate slider)
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
@@ -226,7 +226,7 @@ index 3e56350..b4e56a2 100644
 From 15d82a48f9b7ffb33593c3f97250611ccaa34528 Mon Sep 17 00:00:00 2001
 From: TefMeister <td3kxlvr@proton.me>
 Date: Thu, 17 Sep 2026 20:19:47 +0300
-Subject: [PATCH 2/5] Stop-motion weapon hand: skip N rendered frames instead
+Subject: [PATCH 2/6] Stop-motion weapon hand: skip N rendered frames instead
  of a per-second rate
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
@@ -313,7 +313,7 @@ index c3ad6ec..26d6907 100644
 From fa0765cb0e0b2adced81ec5694fc86289afd1fec Mon Sep 17 00:00:00 2001
 From: TefMeister <td3kxlvr@proton.me>
 Date: Thu, 17 Sep 2026 20:44:04 +0300
-Subject: [PATCH 3/5] FollowOffhand: draw an actor rigidly at the off hand on
+Subject: [PATCH 3/6] FollowOffhand: draw an actor rigidly at the off hand on
  every rendered frame
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
@@ -458,7 +458,7 @@ index b4e56a2..75582f7 100644
 From 6293d1b5dcb1365c3ab60210b6e0e76ff04cf748 Mon Sep 17 00:00:00 2001
 From: TefMeister <td3kxlvr@proton.me>
 Date: Sat, 19 Sep 2026 00:23:23 +0300
-Subject: [PATCH 4/5] Two-handed long guns: aim the shot down the line between
+Subject: [PATCH 4/6] Two-handed long guns: aim the shot down the line between
  the hands
 
 TwoHandedAim, a bool a mod sets on the player. When it is on and the off hand
@@ -743,7 +743,7 @@ index 75582f7..7576e0e 100644
 From c56087c3a5e3d7bcc75c1686d36090feca88d2a6 Mon Sep 17 00:00:00 2001
 From: TefMeister <td3kxlvr@proton.me>
 Date: Sun, 20 Sep 2026 17:21:19 +0300
-Subject: [PATCH 5/5] Two-handed long guns: DRAW the gun along the line between
+Subject: [PATCH 5/6] Two-handed long guns: DRAW the gun along the line between
  the hands
 
 The shot already followed the hand-to-hand line; the gun itself never did. It
@@ -1166,6 +1166,93 @@ index 221367d..b4fa109 100644
  	Option "Two-handed aim: print why",			vr_two_handed_debug,					"OnOff"
  	StaticText " "
  	StaticText "$VRPREFMNU_HAPTICS"
+-- 
+2.55.0.windows.3
+
+
+From f3815e7b6d02ac825fa328951c6ce376cca3785b Mon Sep 17 00:00:00 2001
+From: TefMeister <td3kxlvr@proton.me>
+Date: Sun, 20 Sep 2026 18:18:39 +0300
+Subject: [PATCH 6/6] Two-handed long guns: the SHOT follows the drawn barrel
+ as well
+
+Worn 2026-09-20: the gun turns with the off hand, and the bullets did not -
+they still left along the rear controller.
+
+That was my own doing, one commit earlier. A shot''s direction comes from the
+weapon matrix inside MapAttackDir, not from AttackAngle/AttackPitch: the yaw
+and pitch handed in are the actor''s plus the weapon''s spread, and subtracting
+the actor''s own angles leaves just that spread, so with no spread the answer is
+exactly the matrix''s forward axis. I had pointed MapAttackDir at the RAW
+one-handed matrix on the belief that the aim block''s AttackAngle would
+otherwise be applied twice. Nothing on a bullet''s path reads AttackAngle, so
+there was no double application - only a gun aimed one way and bullets going
+another.
+
+MapAttackDir now takes the same two-handed matrix the gun is drawn with, so the
+bullet leaves the barrel you can see, by construction.
+
+AttackAngle/AttackPitch are now derived from that same matrix too. Nothing on
+the bullet path reads them, but a mod does - the laser sight - and a laser that
+disagrees with the barrel is worse than none. The older tha::decide block stays
+as the fallback for when vr_two_handed_draw is off.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+---
+ src/rendering/gl/stereo3d/gl_openvr.cpp | 33 +++++++++++++++++++++----
+ 1 file changed, 28 insertions(+), 5 deletions(-)
+
+diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
+index 6d1e92f..7af05e4 100644
+--- a/src/rendering/gl/stereo3d/gl_openvr.cpp
++++ b/src/rendering/gl/stereo3d/gl_openvr.cpp
+@@ -1208,10 +1208,19 @@ namespace s3d
+ 	{
+ 		LSMatrix44 mat;
+ 		auto vrmode = VRMode::GetVRMode(true);
+-		// Deliberately the RAW transform. AttackAngle/AttackPitch have already been turned onto
+-		// the hand-to-hand line by the two-handed AIM block below; feeding the two-handed DRAW
+-		// matrix in here as well would apply the same turn a second time.
+-		if (!vrmode->GetWeaponTransformRaw(&mat))
++		// THIS is where a shot's direction comes from, and it is the weapon matrix -- not
++		// AttackAngle/AttackPitch. The yaw and pitch passed in are the ACTOR's, plus whatever
++		// spread the weapon adds, and the subtraction below leaves only that spread; with no
++		// spread the answer is exactly this matrix's forward axis.
++		//
++		// ⚠️ 2026-09-20: this briefly used GetWeaponTransformRaw, on the belief that feeding it
++		// the two-handed matrix would apply the hand-to-hand turn twice, because the aim block
++		// further down had already written AttackAngle/AttackPitch. It would not: those two are
++		// not read here, or anywhere else on the path a bullet takes. The only thing that did
++		// was to make the gun point at the off hand while the bullets still followed the rear
++		// controller -- which is exactly what Tefa saw in the headset
++		// `[reported 2026-09-20, n=1 wear]`.
++		if (!vrmode->GetWeaponTransform(&mat))
+ 		{
+ 			double pc = pitch.Cos();
+ 
+@@ -1793,7 +1802,21 @@ namespace s3d
+ 				// just above are the values everything downstream will use.
+ 				// Guarded twice, and refusing means "leave the aim exactly as it is today", so the
+ 				// worst case is the behaviour we already have. See two_handed_aim.h beside this file.
+-				if (player->mo->TwoHandedAim && player->mo->OffhandValid && player->mo->OverrideAttackPosDir)
++				// When the gun is DRAWN along the hand line, take the reported aim angles from that
++				// same matrix. Nothing on the bullet's path reads them -- MapAttackDir above works
++				// straight off the matrix -- but a mod does (the laser sight), and a laser that
++				// disagrees with the barrel is worse than no laser. One source, so they cannot drift.
++				LSMatrix44 twoHanded;
++				if (vr_two_handed_draw && TwoHandedWeaponTransform(&twoHanded))
++				{
++					DVector3 fwd(-twoHanded[2][0], -twoHanded[2][2], -twoHanded[2][1]);
++					fwd.MakeUnit();
++					player->mo->AttackAngle = fwd.Angle();
++					// Pitch is POSITIVE DOWNWARD here, the same convention as the off-hand block
++					// above and as p_map.cpp's { pc*cos(yaw), pc*sin(yaw), -sin(pitch) }.
++					player->mo->AttackPitch = -DAngle::fromRad(asin(clamp(fwd.Z, -1.0, 1.0)));
++				}
++				else if (player->mo->TwoHandedAim && player->mo->OffhandValid && player->mo->OverrideAttackPosDir)
+ 				{
+ 					tha::Hands hh;
+ 					hh.rear_x  = player->mo->AttackPos.X;  hh.rear_y  = player->mo->AttackPos.Y;  hh.rear_z  = player->mo->AttackPos.Z;
 -- 
 2.55.0.windows.3
 
