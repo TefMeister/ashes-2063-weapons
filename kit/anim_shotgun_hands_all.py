@@ -67,6 +67,7 @@ _real = {"reset_scene": reset_scene, "setup_scene": setup_scene, "link_model": l
          "fp_view": fp_view, "side_view": side_view, "finish": finish, "key": key}
 _offset = 0
 _end_of_last = 0
+_last_globals = {}
 
 
 def _noop(*a, **k):
@@ -130,20 +131,83 @@ def run(script, offset, argv_extra=(), label=""):
         raise RuntimeError("a sub-script tried to save its own .blend (%s)" % script)
 
     bpy.ops.wm.save_as_mainfile = _refuse_save
+    global _last_globals
     try:
         exec(compile(src, os.path.join(KIT, script), "exec"), g)
     finally:
         bpy.ops.wm.save_as_mainfile = real_save
         sys.argv = old_argv
+    _last_globals = g          # the sub-script's own namespace, for LOAD_WINDOWS and PORT_IN
     mk = bpy.context.scene.timeline_markers.new(label, frame=offset + 1)
     mk.select = False
     print("  %-16s frames %d - %d" % (label, offset + 1, _end_of_last))
     return _end_of_last
 
 
+# ---------------------------------------------------------------------------
+# The trigger hand during a reload.
+#
+# Tefa, 2026-09-20: "the right hand needs to come off the weapon while left hand holds the front,
+# so right hand can insert shells into the gun". So it does exactly that: lets go of the grip as
+# the gun tips over, then makes one trip per shell - down out of sight, up with a round, push it
+# into the port - and takes the grip back at the end.
+#
+# The hand is parented to SG_Root, so these are positions RELATIVE TO THE GUN, which is what we
+# want: the loading port is on the gun, so the hand meets it wherever the gun is pointing.
+# ---------------------------------------------------------------------------
+GRIP_CENTRE = (0.026, -0.046, REC_Z - 0.004)    # where the hand's geometry sits when gripping
+HOLD_OFF = (0.008, -0.038, -0.004)              # hand sits just behind the shell it is holding
+AWAY = (0.055, -0.090, -0.150)                  # off the gun entirely, down by the player's waist
+
+
+def _hand_at(shell_loc):
+    """Where the hand object must sit for its fingers to be on a shell at shell_loc."""
+    return tuple(s - g + o for s, g, o in zip(shell_loc, GRIP_CENTRE, HOLD_OFF))
+
+
+def reload_hand(hand, offset, g, reload_end):
+    """Key the trigger hand across one whole reload."""
+    wins = [(f0 + offset, ln) for f0, ln in g["LOAD_WINDOWS"]]
+    port_in = g["PORT_IN"]
+    K = _real["key"]
+
+    K(hand, offset + 1, loc=(0, 0, 0), rot_deg=(0, 0, 0))          # still on the grip
+
+    # Let go while the gun tips over. Two hops, because everything here is stop-motion.
+    first = wins[0][0]
+    K(hand, max(offset + 2, first - 10), loc=(0.030, -0.050, -0.070), rot_deg=(-10, 0, -6))
+    K(hand, max(offset + 3, first - 4), loc=AWAY, rot_deg=(-22, 0, -12))
+
+    # One trip per shell, following the same path the shell itself takes.
+    for f0, ln in wins:
+        path = [(0.00, (0.030, -0.022, -0.155), (-25, 0, -12)),
+                (0.25, (0.020, 0.010, -0.095), (-15, 0, -7)),
+                (0.50, (0.010, 0.034, -0.040), (-6, 0, -3)),
+                (0.70, port_in, (0, 0, 0)),
+                (0.82, (0, port_in[1] + 0.012, port_in[2] + 0.004), (0, 0, 0)),
+                (0.95, AWAY, (-22, 0, -12))]          # back down for the next one
+        for t, loc, rot in path:
+            K(hand, round(f0 + ln * t), loc=_hand_at(loc), rot_deg=rot)
+
+    # Take the grip back as the gun comes down.
+    last_end = wins[-1][0] + wins[-1][1]
+    K(hand, min(last_end + 3, reload_end - 6), loc=(0.030, -0.050, -0.070), rot_deg=(-10, 0, -6))
+    K(hand, reload_end - 2, loc=(0, 0, 0), rot_deg=(0, 0, 0))
+
+
 f = run("anim_shotgun_shoot1.py", 0, label="SHOOT")
-f = run("anim_shotgun_reload.py", f + GAP, label="RELOAD_FULL")
-f = run("anim_shotgun_reload.py", f + GAP, argv_extra=["partial"], label="RELOAD_PARTIAL")
+# The trigger hand never leaves the gun while shooting, but it has to be keyed here anyway: keys
+# are CONSTANT, so without one at the start of each block it would still be holding whatever pose
+# the previous animation left it in.
+_real["key"](_hand_r, 1, loc=(0, 0, 0), rot_deg=(0, 0, 0))
+
+start = f + GAP
+f = run("anim_shotgun_reload.py", start, label="RELOAD_FULL")
+reload_hand(_hand_r, start, _last_globals, f)
+
+start = f + GAP
+f = run("anim_shotgun_reload.py", start, argv_extra=["partial"], label="RELOAD_PARTIAL")
+reload_hand(_hand_r, start, _last_globals, f)
 
 if STATIC:
     _real["side_view"](_O["SG_Root"], (-0.95, 0.15, 0.13), (0, 0.15, 0.02))
