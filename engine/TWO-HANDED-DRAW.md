@@ -49,15 +49,20 @@ side. There is no one-handed long gun. Say so if it feels wrong in play.
 | `GetWeaponTransformRaw()` (new) | The old `GetWeaponTransform()`, unchanged. Still the fallback for everything. |
 | `TwoHandedWeaponTransform()` (new) | Builds the two-handed pose. Returns false — and so falls back to the line above — if there is no player, the mod has not asked for two-handed on this weapon, either hand is untracked, or both hands are in the same place. |
 | `GetWeaponTransform()` | Now: two-handed if it can, one-handed otherwise. |
-| `MapAttackDir()` and the per-tic `AttackPos` block | Switched to `GetWeaponTransformRaw()`. **This matters** — see below. |
+| `MapAttackDir()` | ⚠️ **RETRACTED — see the 2026-09-20 wear at the foot of this page.** It briefly used `GetWeaponTransformRaw()`; it now uses the two-handed matrix, so the bullet leaves the barrel you can see. The per-tic `AttackPos` block still uses the raw one, which is only the bullet's starting point and is the same either way. |
 | `vr_two_handed_draw` (new setting, ON) | Options → VR Options, "Two-handed: turn the gun too". Switches the whole thing off for comparison without a rebuild. |
 
-### ⚠️ Why the shot deliberately uses the RAW transform
+### ⚠️ ~~Why the shot deliberately uses the RAW transform~~ — **DISPROVED 2026-09-20, by a wear**
 
-`MapAttackDir()` maps `AttackAngle` / `AttackPitch` through the weapon matrix. The aim block has
-**already** turned those onto the hand-to-hand line. Handing it the re-aimed matrix as well would
-apply the same turn a second time, and the shot would swing about twice as far as the gun.
-`[inferred-static 2026-09-20, read from MapAttackDir in gl_openvr.cpp]`
+> ~~`MapAttackDir()` maps `AttackAngle` / `AttackPitch` through the weapon matrix. The aim block has
+> **already** turned those onto the hand-to-hand line. Handing it the re-aimed matrix as well would
+> apply the same turn a second time, and the shot would swing about twice as far as the gun.~~
+> ~~`[inferred-static 2026-09-20]`~~
+
+`[disproved 2026-09-20]` — **nothing on a bullet's path reads `AttackAngle` or `AttackPitch`**, so
+there was no double application to avoid. The full reading of the call sites, and what it cost, is at
+the foot of this page. Left here struck through rather than deleted, because the wrong reasoning is
+the useful part.
 
 ### `openvr_weaponRotate` is folded in, not applied on top
 
@@ -94,3 +99,46 @@ both hands, and **move the left controller while keeping the right one still.**
 | The gun jumps rather than sweeps as you move slowly | A rate fault, not a maths fault — say so and it gets looked at separately. |
 
 If it is worse than before, **`vr_two_handed_draw 0`** in the console puts it back instantly.
+
+---
+
+## Worn 2026-09-20 — ✅ IT WORKS. And the shot did not follow it.
+
+Tefa, in the headset, on the build above:
+
+> "it does actually work!!! very cool, but the bullets still go to where i aim with right
+> controller, not where the muzzle is pointed."
+
+**So the drawing is right and stays.** `[verified-live 2026-09-20, n=1 wear]` The off hand swings the
+front of a long gun and you can see it.
+
+### ⚠️ The shot was wrong because of a wrong call made in this very document
+
+The section above says the shot deliberately keeps the raw one-handed transform, "because
+`AttackAngle`/`AttackPitch` are already turned onto the hand line and feeding the re-aimed matrix in
+as well would apply the same turn twice". **That reasoning was wrong, and this is where it broke.**
+
+A shot's direction does not come from `AttackAngle`/`AttackPitch` at all. It comes from the weapon
+matrix, inside `MapAttackDir`:
+
+- the `yaw`/`pitch` handed to `MapAttackDir` are the **actor's** angles plus whatever spread the
+  weapon adds — `p_map.cpp` and `p_mobj.cpp` pass `source->Angles.Yaw` and friends, never
+  `AttackAngle` `[inferred-static 2026-09-20, read from all five call sites]`;
+- `MapAttackDir` then subtracts the actor's own angles, so what is left is **only the spread**;
+- with no spread that leaves the identity, and the answer is exactly the matrix's forward axis.
+
+So pointing it at the raw matrix did not prevent a double application — there was never going to be
+one. It simply aimed the gun one way and sent the bullets another, which is precisely what the wear
+found.
+
+**Fixed:** `MapAttackDir` now takes the same two-handed matrix the gun is drawn with, so the bullet
+leaves the barrel you can see by construction. `AttackAngle`/`AttackPitch` are derived from that same
+matrix as well — nothing on the bullet's path reads them, but the laser-sight mod does, and a laser
+that disagrees with the barrel is worse than no laser. One source, so they cannot drift apart.
+
+⭐ **Worth keeping, because it is the second time the same shape of mistake has cost a wear:** the
+first was shipping a correctness fix with no visible half; this was reasoning about which value feeds
+which, from the names of the values, instead of reading the call sites. Both were caught by a wear
+rather than by a check — and both were readable statically in about ten minutes.
+
+`vr_two_handed_draw 0` still puts everything back, gun and shot together.

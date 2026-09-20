@@ -5,7 +5,7 @@
 #   python tools/grip_test.py
 # Passes when the game's own console says "two-handed aim: off (off hand not tracked)" -- i.e.
 # it got as far as it can get with one hand -- and when the (now optional) grip button is seen.
-import sys, os, time, subprocess
+import sys, os, time, subprocess, ctypes, ctypes.wintypes
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gzdrive as g
 
@@ -29,15 +29,24 @@ args = ["-iwad", r"Resources\freedoom-0.12.1\freedoom2.wad", "-file", r"Resource
 proc = subprocess.Popen([os.path.join(g.GAME, "gzdoomvr-tefa", "gzdoomvr.exe"), *args],
                         cwd=g.GAME, stdout=log, stderr=subprocess.STDOUT)
 
-h = None
-for _ in range(120):
-    time.sleep(0.5)
-    for hh, t in g.all_windows():
-        if t.strip().lower().startswith("ashes"):
-            h = hh
-            break
-    if h:
-        break
+def game_window(pid, timeout=60):
+    """The window belonging to OUR process -- never one that merely has the right title.
+
+    Was a title match until 2026-09-20, when it picked up a File Explorer window sitting on
+    the game folder (which is called "Ashes 2063 VR") and typed every console command into it.
+    """
+    want = ctypes.wintypes.DWORD(pid)
+    for _ in range(timeout * 2):
+        for h, _t in g.all_windows():
+            got = ctypes.wintypes.DWORD()
+            g.u32.GetWindowThreadProcessId(h, ctypes.byref(got))
+            if got.value == want.value:
+                return h
+        time.sleep(0.5)
+    return None
+
+
+h = game_window(proc.pid)
 if not h:
     proc.kill(); raise SystemExit("no game window")
 time.sleep(3)
