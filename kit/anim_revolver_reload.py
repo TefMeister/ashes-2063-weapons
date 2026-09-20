@@ -5,9 +5,9 @@
 # Cylinder swings out left, gun tips muzzle-up and the spent cases drop out,
 # gun tips down, a speedloader comes up from the left hip and seats six rounds,
 # a flick of the wrist closes the cylinder.
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\anim_kit.py").read())
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\revolver_settings.py").read())
-OUT = r"C:\Users\TD3KX\ashes-2063-weapons\revolver\Ashes_2063_EP1_revolver_reload.blend"
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\revolver_settings.py").read())
+OUT = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\revolver\Ashes_2063_EP1_revolver_reload.blend"
 
 STATIC = globals().get("STATIC", False)
 if STATIC:

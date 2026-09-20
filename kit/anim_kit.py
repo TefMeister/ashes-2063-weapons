@@ -1,7 +1,7 @@
 # Shared helpers for the animation files. Each animation file LINKS its weapon's
 # model file (so model fixes flow into every animation) and makes an editable
 # override of it to animate. All keys are CONSTANT: stop-motion, no in-betweens.
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\pixel_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\pixel_kit.py").read())
 
 VIEW_LENS = 32          # first-person camera lens (mm)
 

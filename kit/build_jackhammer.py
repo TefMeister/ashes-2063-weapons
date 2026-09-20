@@ -2,9 +2,9 @@
 # the handle loop is toward the player (-Y). The hidden underside and far side
 # are guessed. Moving parts: JH_Bit (hammers in and out), JH_Puff (exhaust smoke).
 import math
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\pixel_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\pixel_kit.py").read())
 
-OUT = r"C:\Users\TD3KX\ashes-2063-weapons\jackhammer\Ashes_2063_EP1_jackhammer_model.blend"
+OUT = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\jackhammer\Ashes_2063_EP1_jackhammer_model.blend"
 
 # ---- dimensions (metres) --------------------------------------------------
 BODY = (0.28, 0.24, 0.26)          # red lower body, centre at z = BODY_Z

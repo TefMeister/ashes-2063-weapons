@@ -3,13 +3,13 @@
 # tube, dark green-grey receiver with a big open port, deeply ribbed warm-brown wooden pump,
 # near-black worn stock with a rubber pad. Everything is deliberately darker and dirtier than the
 # revolver and the lantern (Tefa, 2026-09-18).
-# The port is on the gun's RIGHT, as it is in the game and on any real 12-gauge (Tefa, 2026-09-18 —
+# The port is on the gun's RIGHT, as it is in the game and on any real 12-gauge (Tefa, 2026-09-18 â€”
 # the heavily zoomed screenshots read as left, which was our mistake, not the game's).
 # Moving parts are separate objects so the shoot/reload files can animate them:
 # SG_Pump (racks back and forward), SG_Trigger, SG_PortShell, SG_MuzzleFlash, SG_Casing, SG_LoadShell.
 import math
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\pixel_kit.py").read())
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\shotgun_settings.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\pixel_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\shotgun_settings.py").read())
 
 OUT = MODEL
 
@@ -215,8 +215,8 @@ bpy.ops.wm.save_as_mainfile(filepath=OUT)
 print("saved", OUT)
 
 # GZDoom cannot read Blender node materials, so every part shares one UV atlas and the flat
-# colours are baked into a PNG. ⚠️ This re-saves the .blend (with the UVs) and rewires the
+# colours are baked into a PNG. âš ï¸ This re-saves the .blend (with the UVs) and rewires the
 # materials afterwards, so it must stay the LAST thing this script does.
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\gz_bake.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\gz_bake.py").read())
 ATLAS_SIZE = 1024      # a much bigger object than the revolver, so a bigger sheet
-uv_save_bake(OUT, r"C:\Users\TD3KX\ashes-2063-weapons\shotgun\gzdoom\shotgun.png")
+uv_save_bake(OUT, r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\shotgun\gzdoom\shotgun.png")

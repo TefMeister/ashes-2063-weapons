@@ -1,9 +1,9 @@
 # Handgun "shoot 1": one shot, stop-motion. One frame = one game tic (35 fps).
 # Timing is the game's own (Actors/Weapons/Glock.txt, FireReal):
 #   GLKF A 1 (bright), GLKF B 1 (bright, casing out), GLOK B 2, GLOK C 1, GLOK A 1 (can fire again).
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\anim_kit.py").read())
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\handgun_settings.py").read())
-OUT = r"C:\Users\TD3KX\ashes-2063-weapons\handgun\Ashes_2063_EP1_handgun_shoot1.blend"
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\handgun_settings.py").read())
+OUT = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\handgun\Ashes_2063_EP1_handgun_shoot1.blend"
 
 # STATIC=True makes the "_static" version: the weapon itself stays put in its rest
 # pose and only its parts move (for adding hands later).

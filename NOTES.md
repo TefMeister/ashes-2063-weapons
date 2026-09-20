@@ -297,3 +297,43 @@ Checked by looking at the atlas: weathering, rust specks and the glass pattern a
 - Lantern (hand-built file): converted by `kit/unlit_lantern.py`: non-glow materials show their base colour flat, lights and the
   studio floor removed. The lit version is kept as `lantern/Ashes_2063_EP1_lantern_v07_lit_backup.blend`.
 - Consequence: highlights, shadows and chrome shine no longer exist anywhere; if we want them, they get painted into the texture.
+
+## Gloved hands on the shotgun (2026-09-20)
+
+Tefa's brief, with a Duke-style screenshot as the reference: *"add hands to the gun ... black
+gloves, the line where the wrist should start, make that black leather as well and fingers showing
+so like half-gloves"*, and *"make a new blender file, one with all the animation"*.
+
+**Files**
+- `kit/shotgun_hands.py` — the hands. Fingerless leather gloves: glove over the back of the hand,
+  the palm and the first knuckle; middle and tip segments bare; a raised leather **cuff** at the
+  wrist, with a dark sleeve past it so the cuff reads as a *line* rather than black-on-black.
+- `kit/anim_shotgun_hands_all.py` — builds **one** file holding the gun, the hands and **every**
+  animation on one timeline, with markers: `SHOOT` 1–30, `RELOAD_FULL` 43–206,
+  `RELOAD_PARTIAL` 219–294.
+- `shotgun/Ashes_2063_EP1_shotgun_hands_all.blend` and its `_static` twin.
+
+**⚠️ The left hand is parented to `SG_Pump`, not to `SG_Root`.** A support hand parented to the gun
+slides through the wood every time the action is racked. Checked both ways in
+`shotgun/progress/hands-2026-09-20/` (`pump-forward.png` vs `pump-racked-back.png`).
+
+**Why the driver re-runs the existing animation scripts instead of re-typing them.** The timing in
+`anim_shotgun_shoot1.py` and `anim_shotgun_reload.py` was read tic-for-tic from the mod's own
+`Actors/Weapons/Shotgun.txt`, and the 164-tic dry reload matches Tefa's 162-screenshot recording.
+That is the expensive part and it is already right, so the driver runs those files with four of
+their helpers replaced and keys everything into one scene at an offset. Neither file is edited, so
+a timing fix there is a fix here.
+
+**⚠️ Three traps this hit, all recorded because they will recur:**
+1. **The sub-scripts re-import the kit at their top**, which re-defines `key()`, `finish()` and
+   `link_model()` and throws away the replacements. The first run therefore **saved over all three
+   real per-animation `.blend` files** (restored from git). The driver now strips those
+   `exec(open(...))` lines, and makes `save_as_mainfile` raise while a sub-script is running.
+2. **Fingers cannot be chained by stepping and rotating each segment in turn** — the drift
+   compounds and every fingertip ends up standing off the wood like a row of bricks. They are
+   placed on an arc around the grip's cross-section instead.
+3. **Tan skin on the warm-brown pump is invisible**, which is exactly where the support hand sits.
+   The skin tone is pulled pinker and flatter to separate it from both the wood and the steel.
+
+**Everything about the hands' size, pose and colour is by eye** `[hypothesis]` — the reference is a
+screenshot of a different game. Tefa judges it.

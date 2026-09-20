@@ -1,9 +1,9 @@
 # Revolver "shoot 1": one shot, stop-motion. One frame = one game tic (35 fps).
 # Timing is the game's own (Actors/Weapons/Revolver.txt, FireReal):
 #   REVF A 2 (shot), B 1 (bright), D 1, E 2, F 2, G 2, H 1, REVG A 1+1 (ready).
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\anim_kit.py").read())
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\revolver_settings.py").read())
-OUT = r"C:\Users\TD3KX\ashes-2063-weapons\revolver\Ashes_2063_EP1_revolver_shoot1.blend"
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\revolver_settings.py").read())
+OUT = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\revolver\Ashes_2063_EP1_revolver_shoot1.blend"
 
 # STATIC=True makes the "_static" version: the weapon itself stays put in its rest
 # pose and only its parts move (for adding hands later).

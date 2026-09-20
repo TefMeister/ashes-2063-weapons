@@ -4,10 +4,10 @@
 # Fire + Downswing, button not held):
 #   CROW N O P Q 1, (hidden) 4, R S T U 1, [hit], V W X Y 1, (hidden) 2 + 5, CROR C B A 2 = 29 tics.
 # Where the game hides the bar, it is swung out of view (above right, then below left).
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\anim_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
 
-MODEL = r"C:\Users\TD3KX\ashes-2063-weapons\crowbar\Ashes_2063_EP1_crowbar_model.blend"
-OUT = r"C:\Users\TD3KX\ashes-2063-weapons\crowbar\Ashes_2063_EP1_crowbar_shoot1.blend"
+MODEL = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\crowbar\Ashes_2063_EP1_crowbar_model.blend"
+OUT = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\crowbar\Ashes_2063_EP1_crowbar_shoot1.blend"
 VIEW_LENS_CB = 24
 FRAME_END = 30
 

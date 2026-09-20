@@ -1,9 +1,9 @@
 # Ashes 2063 crowbar model. Runs along +Y from the flat chisel end to the
 # hooked claw; +Z is the side the hook curls toward. Origin is where the hand holds it.
 import math
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\pixel_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\pixel_kit.py").read())
 
-OUT = r"C:\Users\TD3KX\ashes-2063-weapons\crowbar\Ashes_2063_EP1_crowbar_model.blend"
+OUT = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\crowbar\Ashes_2063_EP1_crowbar_model.blend"
 
 # ---- dimensions (metres) --------------------------------------------------
 SHAFT_R = 0.0115              # hex bar "radius"

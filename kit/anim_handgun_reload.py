@@ -4,10 +4,10 @@
 # Work2 + ReloadDone, the reload with a round still chambered, so no slide pull):
 #   GLOK E 2, F G 1, (hidden) 1, H I J 2, K 5, L M N 2, O O P 2 | Q Q Q R S T 2, (hidden) 3, G F E 1 = 46 tics.
 # Where the game hides the gun for a tic or three, the 3D gun holds its pose.
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\anim_kit.py").read())
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\handgun_settings.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\handgun_settings.py").read())
 
-OUT = r"C:\Users\TD3KX\ashes-2063-weapons\handgun\Ashes_2063_EP1_handgun_reload.blend"
+OUT = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\handgun\Ashes_2063_EP1_handgun_reload.blend"
 
 # STATIC=True makes the "_static" version: the weapon itself stays put in its rest
 # pose and only its parts move (for adding hands later).

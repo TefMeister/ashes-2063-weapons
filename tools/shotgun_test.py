@@ -12,7 +12,7 @@ from PIL import Image
 
 TAG = sys.argv[1] if len(sys.argv) > 1 else "run"
 ENGINE = sys.argv[2] if len(sys.argv) > 2 else "gzdoomvr-tefa"
-PK3 = r"C:\Users\TD3KX\ashes-2063-weapons\shotgun\gzdoom\Ashes2063_shotgun3d_test.pk3"
+PK3 = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\shotgun\gzdoom\Ashes2063_shotgun3d_test.pk3"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "_renders", "live", TAG)
 os.makedirs(OUT, exist_ok=True)
 

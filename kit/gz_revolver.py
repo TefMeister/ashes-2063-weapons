@@ -2,7 +2,7 @@
 # game sprite frame shows which Blender frame. Used by gz_export.py.
 NAME = "revolver"
 ROOT = "RV_Root"
-DIR = r"C:\Users\TD3KX\ashes-2063-weapons\revolver"
+DIR = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\revolver"
 OUT_DIR = DIR + r"\gzdoom"
 PK3 = "Ashes2063_revolver3d_test.pk3"    # the flat build; the VR build overrides this below
 MODEL_PATH = "models/ashes2063/revolver"     # folder inside the pk3

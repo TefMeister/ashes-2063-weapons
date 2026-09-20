@@ -3,8 +3,8 @@
 # RV_Crane (swings out left) > RV_Cylinder (turns) > RV_Ejector, RV_Casings, RV_Rounds;
 # RV_Hammer, RV_Trigger, RV_MuzzleFlash, RV_FlashLight, RV_Speedloader.
 import math
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\pixel_kit.py").read())
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\revolver_settings.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\pixel_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\revolver_settings.py").read())
 
 OUT = MODEL
 BARREL_Y = (0.032, 0.140)
@@ -186,5 +186,5 @@ for o in (sl, body):
 studio(target=(0, 0.03, 0.01), dist=0.6, name="RV_ModelCam")
 look_through(bpy.context.scene.camera)
 # shared UV atlas + baked texture for GZDoom (saves the .blend before baking)
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\gz_bake.py").read())
-uv_save_bake(OUT, r"C:\Users\TD3KX\ashes-2063-weapons\revolver\gzdoom\revolver.png")
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\gz_bake.py").read())
+uv_save_bake(OUT, r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\revolver\gzdoom\revolver.png")

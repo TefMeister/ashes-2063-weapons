@@ -4,7 +4,9 @@
 import sys, os
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 KIT = os.path.dirname(os.path.abspath(__file__))
-g = {"__name__": "__main__", "STATIC": "static" in args}
+# KIT is passed in so a script exec()d from here can still find the kit folder: exec() does
+# not define __file__, and anim_shotgun_hands_all.py needs the path to read its siblings.
+g = {"__name__": "__main__", "STATIC": "static" in args, "KIT": KIT}
 exec(open(os.path.join(KIT, args[0])).read(), g)
 for a in args[1:]:
     if a.startswith("render:"):

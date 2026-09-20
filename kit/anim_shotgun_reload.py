@@ -2,17 +2,17 @@
 # own, read from Actors/Weapons/Shotgun.txt (actor `pumpaction`).
 #
 # TWO VERSIONS, because the game has two (Tefa filmed both):
-#   full    — fired dry. Reload -> Reloadpump: the action is cycled first, then six shells
+#   full    â€” fired dry. Reload -> Reloadpump: the action is cycled first, then six shells
 #             go in one at a time. 1 + 26 + 47 + 15*5 + 15 = 164 tics.
 #             (Tefa's `reload when fully out of ammo` folder holds 162 screenshots.)
-#   partial — shells still in it. Reload -> ReloadStart: no opening pump cycle, a shorter
+#   partial â€” shells still in it. Reload -> ReloadStart: no opening pump cycle, a shorter
 #             lift, then one loop per shell. 1 + 15 + 15*N + 15 tics.
 #
 # Run the partial one by adding `partial` to the arguments, and `static` for the version
 # where the gun itself never moves:
 #   blender -b --factory-startup --python kit/run_background.py -- anim_shotgun_reload.py partial static
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\anim_kit.py").read())
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\shotgun_settings.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\shotgun_settings.py").read())
 
 import sys
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -20,7 +20,7 @@ STATIC = globals().get("STATIC", False)
 PARTIAL = "partial" in ARGS
 SHELLS = 3 if PARTIAL else 6           # how many go in; the dry gun takes all six
 
-OUT = r"C:\Users\TD3KX\ashes-2063-weapons\shotgun\Ashes_2063_EP1_shotgun_reload.blend"
+OUT = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\shotgun\Ashes_2063_EP1_shotgun_reload.blend"
 if PARTIAL:
     OUT = OUT.replace("_reload.blend", "_reload_partial.blend")
 if STATIC:
@@ -55,7 +55,7 @@ def gun(f, pose, pump_dy=0.0):
 
 def blend(f0, f1, a, b, steps, pump_a=0.0, pump_b=0.0):
     """Stop-motion hops from pose a to pose b across f0..f1 (CONSTANT keys, so each
-    hop is held — no sliding)."""
+    hop is held â€” no sliding)."""
     for i in range(steps + 1):
         t = i / steps
         f = round(f0 + (f1 - f0) * t)
@@ -65,7 +65,7 @@ def blend(f0, f1, a, b, steps, pump_a=0.0, pump_b=0.0):
 
 
 # ---------------------------------------------------------------------------
-# Phase 1 (dry gun only): cycle the action — GRIP A-D 2, D-G 1, H 3, I-M 2, GRIZ A 1
+# Phase 1 (dry gun only): cycle the action â€” GRIP A-D 2, D-G 1, H 3, I-M 2, GRIZ A 1
 # ---------------------------------------------------------------------------
 f = 1
 gun(f, REST)
@@ -133,7 +133,7 @@ for _ in range(SHELLS - 1):
     f += 15
 
 # ---------------------------------------------------------------------------
-# Phase 4: ReloadDone — GRIR P Z 3, E 2, D C 2, B 2, A 1 = 15 tics back to rest
+# Phase 4: ReloadDone â€” GRIR P Z 3, E 2, D C 2, B 2, A 1 = 15 tics back to rest
 # ---------------------------------------------------------------------------
 key(loader, f + 1, hide=True)
 key(port_shell, f + 1, hide=False)

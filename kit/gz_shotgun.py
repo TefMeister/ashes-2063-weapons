@@ -1,11 +1,11 @@
 # How the shotgun goes into GZDoom: which animation files, size, pivot, and which game
 # sprite frame shows which Blender frame. Used by gz_export.py. Same shape as gz_revolver.py.
 NAME = "shotgun"                             # file names inside the pk3
-ACTOR_CLASS = "pumpaction"                   # ⚠️ the GAME's class for this gun, which MODELDEF
+ACTOR_CLASS = "pumpaction"                   # âš ï¸ the GAME's class for this gun, which MODELDEF
                                              # keys on. `pumpaction2` is the Classic shotgun,
                                              # a different weapon with different sprites.
 ROOT = "SG_Root"
-DIR = r"C:\Users\TD3KX\ashes-2063-weapons\shotgun"
+DIR = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\shotgun"
 OUT_DIR = DIR + r"\gzdoom"
 PK3 = "Ashes2063_shotgun3d_test.pk3"         # the flat build; the VR build overrides this below
 MODEL_PATH = "models/ashes2063/shotgun"      # folder inside the pk3
@@ -19,7 +19,7 @@ SHOOT_FRAMES = [1, 2, 3, 4, 8, 10, 13, 14, 15, 16, 17, 20, 22, 24, 26, 28, 30]
 RELOAD_FRAMES = [28, 30, 32, 34, 36, 38, 40, 41, 44, 50, 56, 58, 61, 64, 68,
                  75, 77, 79, 81, 83, 84, 85, 86, 87, 88]
 
-# ⚠️ Frame 1 of shoot1 is the SHOT, not the gun at rest -- it is already kicked 8 degrees
+# âš ï¸ Frame 1 of shoot1 is the SHOT, not the gun at rest -- it is already kicked 8 degrees
 # nose-up. The VR build measures everything from the rest pose, so without this line the
 # gun sits 8 degrees nose-DOWN in the hand and shoots above where it points.
 REST_FRAME = ("shoot1", 30)          # GRIZ A: ready
@@ -39,7 +39,7 @@ if VARIANT == "vr":
     UNITS_PER_M = 100
     # A shotgun is held at the WRIST, not at a pistol grip: the trigger hand sits under the
     # receiver, about 6 cm behind its rear face and 3 cm below the bore line in model space.
-    # Starting point only — the revolver's took seven wears to settle. [hypothesis 2026-09-19]
+    # Starting point only â€” the revolver's took seven wears to settle. [hypothesis 2026-09-19]
     GRIP = (0.0, -0.055, 0.020)
     # The revolver ended up 9 cm below the engine's hand point and a little back; a long gun
     # rests lower in the hand still, so start from the same drop.
@@ -104,18 +104,18 @@ SPRITES = [
 # ---------------------------------------------------------------------------
 # VR only: long guns are ALWAYS held with two hands.
 #
-# Tefa, 2026-09-20: *"i would actually like … for there to be no proximity at all, that when
+# Tefa, 2026-09-20: *"i would actually like â€¦ for there to be no proximity at all, that when
 # choosing a long weapon, it automatically switches to two handing. that in this game there is no
 # way to fire a long rifle or shotgun with one hand"*. So nothing is conditional any more: pick up
 # a long gun and the shot follows the line between your two hands, full stop. No button to press,
 # no minimum hand separation, no check that the hands agree with the gun.
-# ⚠️ The price, and it is the deal that was asked for: if the off hand drops to your side, the
+# âš ï¸ The price, and it is the deal that was asked for: if the off hand drops to your side, the
 # shot follows THAT line. The gun cannot be fired one-handed.
 # The grip button below still exists and can be switched back on (`tefa_grip_required 1`), because
 # it cost nothing to keep; it is off, so it decides nothing.
 #
-# ⚠️ Needs OUR GZDoomVR build. `TwoHandedAim` does not exist in the stock engine, and a
-# ZScript file that names a missing field stops the game from starting at all — so this goes
+# âš ï¸ Needs OUR GZDoomVR build. `TwoHandedAim` does not exist in the stock engine, and a
+# ZScript file that names a missing field stops the game from starting at all â€” so this goes
 # in the VR pk3 only, which is already our-engine-only because of the off-hand fields.
 # The engine refuses by itself whenever the off hand is not really on the fore-end, so leaving
 # this on costs nothing: the worst case is the aiming we already had.
@@ -139,7 +139,7 @@ GRIP_ACTION = "+user2"
 # The off-hand grip on a VR controller arrives as this key (gl_openvr.cpp: the secondary hand's
 # k_EButton_Grip -> KEY_PAD_LSHOULDER) [inferred-static 2026-09-19].
 GRIP_KEY = "LShoulder"
-# ⚠️ That key is already "run" in Ashes VR, so binding it straight to the grip would cost Tefa
+# âš ï¸ That key is already "run" in Ashes VR, so binding it straight to the grip would cost Tefa
 # their sprint. The alias below does BOTH at once, and is what the key should be bound to.
 GRIP_ALIAS = "+tefagrip"
 

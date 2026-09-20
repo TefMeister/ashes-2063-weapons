@@ -5,9 +5,9 @@
 #   Pump: GRIP A-G 1 each (7) | GRIP H 3 | GRIP I-M 2 each (10) | GRIZ A 1
 # = 30 tics. The spent shell (`grizzlySpawner`) is thrown right after frame G,
 # so it leaves while the pump is fully back.
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\anim_kit.py").read())
-exec(open(r"C:\Users\TD3KX\ashes-2063-weapons\kit\shotgun_settings.py").read())
-OUT = r"C:\Users\TD3KX\ashes-2063-weapons\shotgun\Ashes_2063_EP1_shotgun_shoot1.blend"
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
+exec(open(r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\kit\shotgun_settings.py").read())
+OUT = r"C:\Users\TD3KX\github-backups\ashes-2063-weapons\shotgun\Ashes_2063_EP1_shotgun_shoot1.blend"
 
 # STATIC=True makes the "_static" version: the weapon itself stays put in its rest
 # pose and only its parts move (for adding hands later).
