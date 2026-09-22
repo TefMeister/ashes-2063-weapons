@@ -34,6 +34,9 @@ SKIN_STOPS = [(0.0, (0.196, 0.116, 0.094)), (0.42, (0.268, 0.170, 0.140)),
 BLOCK_HAND = 0.0032          # texture pixel size; a shade finer than the gun's 0.0045
 
 
+# RETIRED 2026-09-22: the sleeve is no longer built. Tefa asked for it off every hand -
+# "just the black glove left" - so the cuff now runs on to the end of the arm instead and
+# the slot is kept only so the material list keeps its order. Original reasoning below.
 # Past the cuff: a dark sleeve. It exists so the CUFF has something to be a line BETWEEN -- a
 # black band against black leather is not a line, it is a smudge.
 SLEEVE_STOPS = [(0.0, (0.026, 0.025, 0.023)), (0.48, (0.037, 0.036, 0.033)),
@@ -128,12 +131,12 @@ def build_hands(root, pump, coll, S):
     p.box((0.013, 0.024, 0.015), (-(FORE_HALF_W + 0.014), CY + 0.066, MAG_Z + 0.014),
           SKIN, rot=(-0.45, 0, 0.10))
 
-    # wrist, then the CUFF, then the forearm running off toward the player
+    # wrist, then the CUFF, and that is where the arm ENDS. Tefa, 2026-09-22: the sleeve
+    # comes off every hand we make - "just the black glove left". The cuff is longer than
+    # the strip it used to be, so the arm runs out of shot instead of stopping at the wrist.
     p.box((0.025, 0.030, 0.034), (-0.046, CY - 0.050, MAG_Z - 0.014), GLOVE,
           rot=(0.32, 0, -0.26))
-    p.box((0.032, 0.015, 0.041), (-0.056, CY - 0.074, MAG_Z - 0.030), CUFF,
-          rot=(0.32, 0, -0.26))                       # <-- the line where the wrist starts
-    p.box((0.027, 0.085, 0.034), (-0.074, CY - 0.122, MAG_Z - 0.060), SLEEVE,
+    p.box((0.032, 0.080, 0.041), (-0.060, CY - 0.106, MAG_Z - 0.040), CUFF,
           rot=(0.32, 0, -0.26))
 
     # Built at the PUMP's origin and parented to it, so it racks back and forward with the wood.
@@ -186,12 +189,10 @@ def build_hands(root, pump, coll, S):
     p.box((0.014, 0.025, 0.015), (STOCK_HALF_W + 0.003, GY + 0.042, GZ + 0.032), SKIN,
           rot=(0.40, 0, -0.26))
 
-    # wrist, CUFF, forearm
+    # wrist, then the CUFF, and that is where the arm ENDS - no sleeve (Tefa 2026-09-22).
     p.box((0.027, 0.032, 0.036), (GX + 0.020, GY - 0.048, GZ - 0.018), GLOVE,
           rot=(-0.28, 0, 0.22))
-    p.box((0.034, 0.016, 0.043), (GX + 0.030, GY - 0.074, GZ - 0.034), CUFF,
-          rot=(-0.28, 0, 0.22))                       # <-- the line where the wrist starts
-    p.box((0.029, 0.090, 0.036), (GX + 0.048, GY - 0.124, GZ - 0.064), SLEEVE,
+    p.box((0.034, 0.085, 0.043), (GX + 0.034, GY - 0.108, GZ - 0.046), CUFF,
           rot=(-0.28, 0, 0.22))
 
     hand_r = p.build("SG_HandRight", MATS, parent=root, coll=coll)
