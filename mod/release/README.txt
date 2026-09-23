@@ -28,15 +28,13 @@ WHAT THIS IS NOT
 ---------------------------------------------------------------------
 WHAT YOU NEED FIRST
 ---------------------------------------------------------------------
-  1. Ashes 2063, the free standalone pack, from its official ModDB page:
+  1. Ashes 2063, the free standalone pack (version 1.51), from its official ModDB page:
      https://www.moddb.com/mods/ashes-2063/downloads
-  2. It already playing in VR: GZDoomVR set up in the same folder (a "gzdoomvr" folder next
-     to the pack's "Resources" folder), launching through SteamVR. If Ashes 2063 already works
-     in your headset, you have this.
-  3. A PC VR headset through SteamVR (tested on a Quest 3 over Virtual Desktop) and 64-bit Windows.
+     The plain, unmodded pack is all you need - no other VR setup.
+  2. A PC VR headset through SteamVR (tested on a Quest 3 over Virtual Desktop) and 64-bit Windows.
 
-  This mod brings its OWN copy of GZDoomVR (a changed version - see "The engine" below), so it
-  does not change your existing VR setup at all.
+  This mod brings its OWN VR engine, a changed copy of GZDoomVR (see "The engine" below). If you
+  already play Ashes in VR some other way, that setup is left exactly as it is.
 
 ---------------------------------------------------------------------
 INSTALL
@@ -54,11 +52,9 @@ PLAY
      starts flat on your monitor instead.
   2. Double-click "Play Ashes 2063 VR - 3D Weapons.bat".
 
-  The first time, it copies your VR settings and buttons from gzdoomvr\ashes-vr.ini (if you have
-  that file) into 3DWeapons\settings.ini, so your controls carry over. After that the mod keeps
-  its own settings file and never touches your normal one.
-  If your VR settings file has a different name, copy it over 3DWeapons\settings.ini yourself
-  before the first launch.
+  The mod keeps its own settings in 3DWeapons\settings.ini, created on the first launch.
+  If you already had Ashes in VR with a gzdoomvr\ashes-vr.ini, your buttons and options are
+  copied from it the first time; otherwise the VR defaults are used, which work as they are.
 
   Every launch also sets the few values the models were tuned with:
     - the gun angle in your hand (openvr_weaponRotate -50; the engine default -40 points the
