@@ -5,3 +5,4 @@ CHANGES and questions.txt
 *.md3
 *.exe
 *.obj
+dist/
