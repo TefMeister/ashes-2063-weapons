@@ -17,6 +17,22 @@ flat weapon sprites look out of place.
 > ⚠️ **Caution.** Once this is used in VR it will be unfinished work and **may cause severe motion
 > sickness and discomfort**. Take breaks and stop if you feel unwell.
 
+## ▶️ Play it in VR — first release, v0.1.0 (2026-09-23)
+
+**[Download from Releases](https://github.com/TefMeister/ashes-2063-weapons/releases/latest)** — four weapons as
+3D models in your hands: the **revolver**, the **pistol** in a half-glove hand, the **shotgun** with gloved hands
+and a real **two-handed grip**, and the **lantern** in your left hand, held by its handle.
+
+**You need first:** the free Ashes 2063 standalone pack ([ModDB](https://www.moddb.com/mods/ashes-2063/downloads))
+already playing in VR through GZDoomVR and SteamVR.
+**Install:** unzip the download into your Ashes 2063 folder (the one holding `Resources`), then start
+`Play Ashes 2063 VR - 3D Weapons.bat` with the headset on and SteamVR running. Nothing of your game or your VR
+setup is overwritten; full instructions are in `3DWeapons/README.txt` inside the download.
+
+The release carries its own copy of **GZDoomVR** (by hh79, GPL-3.0) with our changes, which let a mod see
+your left hand and aim a long gun between your two hands. Those changes are in [`engine/`](engine/) and inside
+the download as patches. From here on each weapon is improved one at a time.
+
 ## What's here
 
 | Folder | Item | Files |

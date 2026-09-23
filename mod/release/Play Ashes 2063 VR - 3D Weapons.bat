@@ -54,5 +54,5 @@ if not exist "%CFG%" if exist "gzdoomvr\ashes-vr.ini" (
 rem The gun angle the models were tuned with, and the two-handed grip settings, every launch.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%W%\set-settings.ps1" "%CFG%"
 
-".\%W%\engine\gzdoomvr.exe" -iwad ".\Resources\freedoom-0.12.1\freedoom2.wad" -file ".\Resources\AshesSAMenu.pk3" ".\Resources\lightmodepatch.pk3" ".\Resources\Ashes2063Enriched2_23.pk3" ".\Resources\Ashes2063EnrichedFDPatch.pk3" ".\%W%\pk3\1_revolver.pk3" ".\%W%\pk3\2_pistol.pk3" ".\%W%\pk3\3_shotgun.pk3" ".\%W%\pk3\4_lantern.pk3" -config ".\%CFG%" +set language "enu" +vr_mode 10 +set vr_two_handed_min_sep 0 +set vr_two_handed_max_disagree 180
+".\%W%\engine\gzdoomvr.exe" -iwad ".\Resources\freedoom-0.12.1\freedoom2.wad" -file ".\Resources\AshesSAMenu.pk3" ".\Resources\lightmodepatch.pk3" ".\Resources\Ashes2063Enriched2_23.pk3" ".\Resources\Ashes2063EnrichedFDPatch.pk3" ".\%W%\pk3\1_revolver.pk3" ".\%W%\pk3\2_pistol.pk3" ".\%W%\pk3\3_shotgun.pk3" ".\%W%\pk3\4_lantern.pk3" -config ".\%CFG%" +set language "enu" +vr_mode 10 +set vr_two_handed_min_sep 0 +set vr_two_handed_max_disagree 180 %*
 endlocal
