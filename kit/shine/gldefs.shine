@@ -1,0 +1,6 @@
+// The cube shotgun's colours get the shine (kit/shine/shaders/cube_shine.fp). Add a line per weapon skin.
+material texture "models/ashes2063/cubeshotgun/cube_shotgun.png"
+{
+	shader "shaders/cube_shine.fp"
+	speed 0
+}
