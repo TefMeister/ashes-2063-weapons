@@ -20,7 +20,7 @@ const float METAL_SAT      = 0.12;   // above this colour saturation a texel cou
 
 void SetupMaterial(inout Material material)
 {
-	vec2 texCoord = GetTexCoord();
+	vec2 texCoord = vTexCoord.st;   // GetTexCoord() is not there for mod shaders (first test, 2026-10-06)
 	SetMaterialProps(material, texCoord);
 
 	vec3 base = material.Base.rgb;
