@@ -74,3 +74,15 @@ The result goes in its own folder (`gzdoomvr-tefa/`) beside the original engine;
   `[verified-live 2026-09-20, n=3 launches]`. ⚠️ **Not worn.** What to look for:
   [`TWO-HANDED-DRAW.md`](TWO-HANDED-DRAW.md).
 If this is ever released, GPL-3.0 means the patched source must be published with it (a public fork).
+
+## Light on the held weapon — how the engine already does it (read 2026-10-08; NO engine change needed)
+`hw_weapon.cpp` (`PreparePlayerSprites`) gathers every dynamic light touching the player (`hw_GetDynModelLight`) into a
+per-pixel light list and hands its index to the HUD model draw; the shader (`material_normal.fp`) lights each pixel
+from the model's own normal (`vWorldNormal`) and world position (`pixelpos`). For models the lights are forced
+"attenuated" (`AddLightToList(..., forceAttenuate=true)`), so a face only receives light it faces: **the model's
+normals decide everything.** In VR, `FHWModelRenderer::PrepareRenderHUDModel` (`hw_models.cpp`) builds the gun's matrix in
+world space from the controller pose, so the same inputs apply `[inferred-static 2026-10-08]`; flat mode is proven
+`[verified-live 2026-10-08, n=5 runs]` — see `tools/light_probe/README.md`. A metal shine needs BOTH a `specular` and a
+`normal` map in the GLDEFS `material` block (`hw_material.cpp` picks the specular shader only when both are present).
+Pitfall that cost the 2026-10-06 session: `Material.Bright` is added to the LIGHT colour and then multiplied by the
+paint, so a readout written there over black paint always reads black.

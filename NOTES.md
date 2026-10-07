@@ -405,3 +405,12 @@ judged.**
 Launcher: **`Play Ashes 2063 VR (shotgun + HANDS test).bat`**, beside the hand-free one so the two
 can be compared. ⚠️ The revolver is deliberately left out of it — it has no hands yet, and mixing
 them would read as the hands breaking when you change weapon.
+
+## 2026-10-08 — the cube gun catches the game's real lights (flat, proven)
+
+Tefa asked for real in-game light on the gun in VR. It already works: the engine lights the held model per pixel from
+its own normals, and the md3 exporter writes correct normals. The 2026-10-06 "no normals" finding was a readout mistake
+(`Material.Bright` is multiplied by the paint). Five painted flat runs and a metal shine map (needs a bump map beside
+it) are in `tools/light_probe/`, pictures in `_renders/live/light-probe-2026-10-08/`. Two headset shortcuts
+("light probe (colours)" / "light probe (real shine)") wait for Tefa. Next, once VR says yes: a shine map per cube weapon
+from the exporter, and turn the baked per-face shade down so real light does the work.
