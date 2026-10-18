@@ -48,7 +48,7 @@ if EXTRA:
     time.sleep(1.5)
     print("shot2", g.shot(h, SHOT.replace(".bmp", "_2.bmp")))
 subprocess.run([sys.executable, OBS, "stop"])
-g.console("quit")
+g.quit(proc)
 try:
     proc.wait(timeout=60)
 except subprocess.TimeoutExpired:

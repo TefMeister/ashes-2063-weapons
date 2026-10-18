@@ -127,6 +127,20 @@ def launch(extra_files=(TEST_PK3,), map_name="MAP01", engine="gzdoomvr", extra_a
             "+set", "language", "enu", "-skill", "3", "+map", map_name, *extra_args]
     return subprocess.Popen(args, cwd=GAME)
 
+def quit(proc, timeout=60):
+    """Close the game without needing it in front: WM_CLOSE to its windows. The engine turns that into
+    WM_DESTROY -> PostQuitMessage -> WM_QUIT -> CExitEvent(0), the very exit the console's "quit" throws
+    (i_input.cpp, c_enginecmds.cpp) [inferred-static 2026-10-18]. Kill only if it ignores that."""
+    for h, _t in all_windows():
+        pid = w.DWORD(); u32.GetWindowThreadProcessId(h, ctypes.byref(pid))
+        if pid.value == proc.pid:
+            u32.PostMessageW(h, 0x0010, 0, 0)
+    try:
+        return proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill(); print("gzdrive: game ignored the close, had to kill it", file=sys.stderr)
+        return proc.wait()
+
 def console(cmd, settle=0.4):
     if key('tilde') is False: return False
     time.sleep(settle)
