@@ -5,7 +5,7 @@ stale DWM-cached frame the moment the game stops presenting (menus, pauses),
 which is exactly when the picture matters (game-mod-rules / lm primitives).
 Arrow keys need KEYEVENTF_EXTENDEDKEY or the scancode reads as a numpad key.
 """
-import ctypes, ctypes.wintypes as w, sys, time
+import ctypes, ctypes.wintypes as w, os, sys, time
 
 u32, g32 = ctypes.windll.user32, ctypes.windll.gdi32
 u32.SetProcessDPIAware()
@@ -72,7 +72,22 @@ for i,c in enumerate("zxcvbnm"):    SC.setdefault(c, 0x2C+i)
 for i,c in enumerate("1234567890"): SC.setdefault(c, 0x02+i)
 SC[' '] = 0x39
 
+def game_in_front():
+    """True only when the window in front belongs to a gzdoom process. Keys sent while anything else is in
+    front land there instead: twice on 2026-10-18 a "quit" typed after a VR probe run went into the Claude Code
+    terminal and Claude Code crashed within the same second. [measured 2026-10-18, n=2]"""
+    pid = w.DWORD(); u32.GetWindowThreadProcessId(u32.GetForegroundWindow(), ctypes.byref(pid))
+    k32 = ctypes.windll.kernel32
+    hp = k32.OpenProcess(0x1000, False, pid.value)          # PROCESS_QUERY_LIMITED_INFORMATION
+    if not hp: return False
+    b = ctypes.create_unicode_buffer(520); n = w.DWORD(520)
+    ok = k32.QueryFullProcessImageNameW(hp, 0, b, ctypes.byref(n)); k32.CloseHandle(hp)
+    return bool(ok) and "gzdoom" in os.path.basename(b.value).lower()
+
 def key(name, hold=0.05):
+    if not game_in_front():
+        print("gzdrive: game not in front, key '%s' NOT sent" % name, file=sys.stderr)
+        return False
     sc = SC[name] if name in SC else SC[name.lower()]
     ext = EXT if name in ('up','down','left','right') else 0
     for fl in (SCAN|ext, SCAN|KEYUP|ext):
@@ -113,7 +128,8 @@ def launch(extra_files=(TEST_PK3,), map_name="MAP01", engine="gzdoomvr", extra_a
     return subprocess.Popen(args, cwd=GAME)
 
 def console(cmd, settle=0.4):
-    key('tilde'); time.sleep(settle)
+    if key('tilde') is False: return False
+    time.sleep(settle)
     typestr(cmd); key('enter'); time.sleep(0.2)
     key('tilde'); time.sleep(settle)
 
@@ -132,6 +148,7 @@ def all_windows():
 SHIFTED = {'+': '=', '_': '-', ':': ';', '"': "'"}
 
 def _raw(sc, up):
+    if not up and not game_in_front(): return False
     i = INP(); i.type = 1; i.u.ki = KI(0, sc, SCAN | (KEYUP if up else 0), 0, None)
     u32.SendInput(1, ctypes.byref(i), ctypes.sizeof(INP))
 
