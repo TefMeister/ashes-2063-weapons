@@ -62,7 +62,7 @@ time.sleep(HOLD_SECONDS)
 g._raw(g.SC[KEY], True)
 time.sleep(1.0)
 
-g.console("quit")
+g.quit(proc)
 proc.wait(timeout=60)
 log.close()
 
