@@ -91,7 +91,7 @@ time.sleep(1.5)
 click()
 time.sleep(1.5)
 
-g.console("quit")
+g.quit(proc)
 proc.wait(timeout=60)
 log.close()
 

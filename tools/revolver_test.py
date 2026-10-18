@@ -68,6 +68,6 @@ time.sleep(1.0)
 g.key('r'); burst(h, "reload", 30, 0.05)
 for n, c in (("idle", 1), ("fire", 5), ("reload", 6)):
     sheet(n, c)
-g.console("quit")
+g.quit(proc)
 proc.wait(timeout=30)
 print("done", OUT, "exit", proc.returncode)
