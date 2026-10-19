@@ -1,0 +1,36 @@
+version "4.10"
+// VR fixes for Ashes 2063 with our 3D weapons (ashes-2063-weapons, 2026-10-19, Tefa: "can you check ashes guns for it
+// too?"). Same fault as in Brutal Doom, much smaller: a few things are fired below the gun because their height was set
+// for the flat-screen gun picture, and in VR the gun is in the hand. Checked every Ashes weapon: bullets are hitscan
+// (nothing visible to lift); the napalm gun's firebombs and fire stream are 5 units low, the pump shotgun's casings 8
+// (grizzlySpawner), the sawed-off's 3 (shellCasingSpawner). Every missile the player fires from beside the gun hand,
+// and those two casing spawners, start at the gun hand's height (AttackPos). Flat play is left alone.
+
+class AshesVRFixesHandler : EventHandler
+{
+	int logged;
+
+	override void WorldThingSpawned(WorldEvent e)
+	{
+		static const Name spawners[] = { 'grizzlySpawner', 'shellCasingSpawner', 'pistolCasingSpawner',
+			'rifleCasingSpawner', 'slugCasingSpawner' };
+		let t = e.Thing;
+		if (!t) return;
+		Name cls = t.GetClassName();
+		bool ours = t.bMISSILE;
+		for (int i = 0; i < spawners.Size() && !ours; i++) if (cls == spawners[i]) ours = true;
+		if (!ours) return;
+		let pmo = players[consoleplayer].mo;
+		if (!pmo || t.target != pmo || !pmo.OverrideAttackPosDir) return;
+		double dz = pmo.AttackPos.Z - t.pos.Z;
+		if (abs(dz) > 48) return;
+		if ((t.pos.XY - pmo.AttackPos.XY).Length() > 64) return;
+		if (logged < 12)
+		{
+			logged++;
+			Console.Printf("ashes vr fix: %s from %s lifted %.1f units to the gun hand", cls,
+				pmo.player.ReadyWeapon ? pmo.player.ReadyWeapon.GetClassName() : 'none', dz);
+		}
+		t.SetOrigin((t.pos.X, t.pos.Y, pmo.AttackPos.Z), false);
+	}
+}
