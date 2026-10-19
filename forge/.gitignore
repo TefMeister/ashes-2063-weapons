@@ -1,0 +1,4 @@
+renders/*
+!renders/sheet_*.jpg
+!renders/overview.jpg
+__pycache__/
