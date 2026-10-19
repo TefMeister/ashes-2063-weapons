@@ -1,0 +1,48 @@
+// Fire that lights the room, the guns and the gloves (ashes-2063-weapons, 2026-10-19, Tefa: "make things emit lights?
+// like a burning bin in ashes to glow like a fire glow on the weapon and gloves"). Ashes' own GLDEFS gives its fires no
+// light at all; these flicker like flames, warm orange, about 2.5 to 3 m across (34 map units a metre).
+
+flickerlight2 TEFA_BURNINGDRUM
+{
+    color 1.0 0.45 0.12
+    size 84
+    secondarySize 104
+    interval 0.08
+    offset 0 34 0
+    dontlightself 1
+}
+
+flickerlight2 TEFA_CAMPFIRE
+{
+    color 1.0 0.5 0.15
+    size 72
+    secondarySize 92
+    interval 0.1
+    offset 0 18 0
+    dontlightself 1
+}
+
+flickerlight2 TEFA_FIREPATCH
+{
+    color 1.0 0.42 0.1
+    size 56
+    secondarySize 72
+    interval 0.07
+    offset 0 20 0
+    dontlightself 1
+}
+
+object PROPBurningDrum
+{
+    frame FCAN { light TEFA_BURNINGDRUM }
+}
+
+object Firewood
+{
+    frame LOG2 { light TEFA_CAMPFIRE }
+}
+
+object FirePatch
+{
+    frame FPCH { light TEFA_FIREPATCH }
+}
