@@ -95,5 +95,5 @@ the top of each script if you clone elsewhere.
 - **GZDoom / GZDoom VR** and the Doom modding community, the engine these are meant for.
 - Design direction, drawings and screenshots: Tefa. Modelling and scripting: made with Claude (Anthropic).
 
-If you should be credited here and aren't, email **td3kxlvr@proton.me** and we'll fix it as soon as
+If you should be credited here and aren't, open an issue on this repository and we'll fix it as soon as
 possible. We honour correction and removal requests from rights holders.
