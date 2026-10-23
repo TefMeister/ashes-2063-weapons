@@ -17,9 +17,12 @@ FOREEND = [(92, 2), (92, 9), (150, 9), (154, 6), (150, 3), (96, 1)]
 
 def build():
     m = Model("ashes_hunter_shotgun")
+    # the pieces each have a name, so each can be picked on its own in Blender (Tefa, 2026-10-23)
     m.pivot = (72, 0, 0)
+    m.part = 'stock'
     m.cprism(STOCK, 9.0, fp.wood(RED_WOOD, RED_WOOD_DK), bevel=2.5, edge=0.5)
     m.cbox(-2, 0, 9.5, -17, 13, fp.metal(DARK), size=0.5)
+    m.part = 'body'
     m.cprism(ACTION, 11.0, fp.metal(SILVER), bevel=1.5, edge=0.5)
     m.part = 'barrels'
     for y in (-GAP, GAP):
@@ -27,10 +30,13 @@ def build():
     m.cbox(92, 261, 1.5, Z_BORE + 1.5, Z_BORE + 3.0, fp.metal(BLACK), size=0.5)
     m.box(92, 260, -0.25, 0.25, Z_BORE + 3.0, Z_BORE + 3.25, GOLD, size=0.25)                  # the gold line
     m.ball(258, 0, Z_BORE + 3.75, 0.6, BRASS, edge=0.25)
+    m.part = 'foreend'
     m.cprism(FOREEND, 9.5, fp.wood(RED_WOOD, RED_WOOD_DK), bevel=2.0, edge=0.5)
     m.part = 'body'
+    m.part = 'lever'
     m.box(70, 82, -2, 2, 16, 17, fp.metal(STEEL_HI), size=0.5, edge=0.25)                       # top lever
     m.box(78, 84, -4, -1, 16, 17, fp.metal(STEEL_HI), size=0.5, edge=0.25)
+    m.part = 'guard'
     fp.guard(m, 66, 84, -8, -1, fp.metal(SILVER))
     fp.trigger(m, 72, -1, fp.metal(DARK), length=5)
     fp.trigger(m, 77, -1, fp.metal(DARK), length=5)
