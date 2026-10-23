@@ -19,6 +19,7 @@ GRIP = [(2, 2), (-4, 0), (-12, -16), (-14, -26), (-2, -29), (4, -24), (8, -10), 
 
 def build():
     m = Model("ashes_revolver")
+    # the pieces each have a name, so each can be picked on its own in Blender (Tefa, 2026-10-23)
     m.pivot = (4, 0, 0)
     st = fp.metal(STEEL_R)
     m.cprism(FRAME, 7.0, st, bevel=1.0, edge=0.5)
@@ -39,6 +40,7 @@ def build():
         m.cyl(cx1 - 1.5, cx1 + 0.5, yc, zc, 1.0, None, edge=0.25, carve=True)              # chamber mouths
         m.cyl(cx1 - 2, cx1 - 1.5, yc, zc, 1.0, BRASS, size=0.25, edge=0.25)
     m.part = 'body'
+    m.part = 'barrel'
     # barrel with an under-lug and a vented rib
     bx0, bx1, br, bore = BARREL
     fp.barrel(m, bx0, bx1, Z_BORE, br, st, bore=bore)
@@ -48,6 +50,7 @@ def build():
     m.cbox(bx0, bx1 - 1, 2.0, Z_BORE + 2, Z_BORE + 3.5, st, size=0.5, edge=0.25)
     for x in range(int(bx0) + 3, int(bx1) - 3, 4):
         m.box(x, x + 1.5, -1, 1, Z_BORE + 2.5, Z_BORE + 3.5, None, size=0.25, carve=True)  # rib vents
+    m.part = 'sight'
     m.box(bx1 - 4, bx1 - 1, -0.75, 0.75, Z_BORE + 3.5, Z_BORE + 6, fp.metal(STEEL), size=0.25)   # front sight
     m.box(bx1 - 4.25, bx1 - 4, -0.5, 0.5, Z_BORE + 4.75, Z_BORE + 5.5, (255, 140, 30), size=0.25)  # orange dot
     fp.rear_sight(m, 2, 16.5, 1.5, st, w=3.0, notch=1.0)
@@ -59,11 +62,14 @@ def build():
     for i in range(4):
         m.box(-5.5 + i * 0.75, -5.0 + i * 0.75, -1.25, 1.25, 16.75 - i * 0.25, 17.75 - i * 0.25, None, size=0.25,
               carve=True)
+    m.part = 'guard'
     fp.guard(m, 6, 22, -9, -1, st)
     fp.trigger(m, 15, -1, fp.metal(STEEL_HI), length=6.0)
+    m.part = 'grip'
     # grip: olive-brown wood with a red-brown butt, checkered panels, a medallion screw
     m.cprism(GRIP, 8.0, fp.wood(GRIP_WOOD, GRIP_DK, along='z', ring=2.0), bevel=2.0, edge=0.5)
     m.recolour(lambda x, y, z: z < -24.5, fp.wood(BUTT, mul(BUTT, 0.6), along='z'))
+    m.part = 'body'
     m.cprism([(-1, 1), (-4, 1), (-6, -4), (2, -4), (4, 1)], 7.5, st, size=0.5, edge=0.25)   # frame tang over the grip
     for side in ('+y', '-y'):
         fp.checker(m, (-10, 5, -22, -6), side, GRIP_WOOD, GRIP_DK)

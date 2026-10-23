@@ -12,9 +12,12 @@ RECEIVER = [(58, -1), (58, 18), (82, 18), (82, 2), (76, -1)]
 
 def build():
     m = Model("ashes_thumper")
+    # the pieces each have a name, so each can be picked on its own in Blender (Tefa, 2026-10-23)
     m.pivot = (64, 0, 0)
+    m.part = 'stock'
     m.cprism(STOCK, 10.0, fp.wood(WOOD_BR, WOOD_DK), bevel=2.5, edge=0.5)
     m.cbox(-3, 0, 10.5, -13, 13, (34, 30, 28), size=0.5)                                    # rubber pad
+    m.part = 'body'
     m.cprism(RECEIVER, 11.0, fp.metal(GUNMETAL), bevel=1.5, edge=0.5)
     m.part = 'barrel'
     m.cyl(82, 170, 0, Z_BORE, 6.5, fp.metal(GUNMETAL), edge=0.5)
@@ -24,9 +27,12 @@ def build():
     for x in range(96, 156, 10):                                                           # flats milled along it
         for side in ('+y', '-y'):
             m.groove([(x, Z_BORE - 1), (x + 6, Z_BORE - 1)], side, depth=2, width=8, dark=0.75)
+    m.part = 'foreend'
     m.cbox(96, 156, 10.0, 1, 7, fp.wood(WOOD_BR, WOOD_DK), bevel=2.0, edge=0.5)              # fore-end
+    m.part = 'sight'
     m.cbox(150, 154, 3.0, Z_BORE + 6, Z_BORE + 10, fp.metal(BLACK), size=0.5)               # front sight
     m.part = 'body'
+    m.part = 'sight'
     # the ladder sight, folded up
     m.cbox(74, 80, 6.0, 18, 20, fp.metal(BLACK), size=0.5)
     for y in (-2.5, 2.0):
@@ -36,6 +42,7 @@ def build():
     m.part = 'lever'
     m.box(66, 76, -2, 2, 18, 19.5, fp.metal(STEEL_HI), size=0.5, edge=0.25)                  # top latch
     m.part = 'body'
+    m.part = 'guard'
     fp.guard(m, 60, 80, -9, -1, fp.metal(STEEL))
     fp.trigger(m, 68, -1, fp.metal(DARK), length=6)
     for side in ('+y', '-y'):

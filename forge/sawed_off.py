@@ -13,8 +13,10 @@ GRIP = [(20, 2), (8, 4), (-4, -2), (-14, -12), (-20, -22), (-8, -26), (2, -14), 
 
 def build():
     m = Model("ashes_sawed_off")
+    # the pieces each have a name, so each can be picked on its own in Blender (Tefa, 2026-10-23)
     m.pivot = (12, 0, 0)
     bx0, bx1, br, bore = BARRELS
+    m.part = 'barrels'
     for y in (-GAP, GAP):
         fp.barrel(m, bx0, bx1, Z_BORE, br, fp.rusty(STEEL, RUST, 0.3), bore=bore, yc=y)
     m.cbox(bx0, bx1 - 1, 2.0, Z_BORE + 1.5, Z_BORE + 3.25, fp.metal(BLACK), size=0.5)        # rib between them
@@ -23,19 +25,24 @@ def build():
         y = -GAP - 2.5 + i * 1.1
         z = Z_BORE + (2.2 if i % 3 else -2.7)
         m.box(bx1 - 0.5, bx1, y, y + 0.5, z, z + 0.5, None, size=0.25, carve=True)
+    m.part = 'body'
     ax0, ax1, az0, az1, aw = ACTION
     m.cbox(ax0, ax1, aw, az0, az1, fp.metal(STEEL), bevel=2.0, bevel_x=1.0, edge=0.5)
     m.part = 'lever'
     m.box(24, 34, -3.5, 1.0, 14, 15.0, fp.metal(STEEL_HI), size=0.5, edge=0.25, bevel_x=0.5)      # top lever, lying flat
     m.part = 'body'
+    m.part = 'hammers'
     for y in (-2.5, 2.5):                                          # two hammers
         m.prism([(16, 12), (14, 15), (15.5, 15.5), (19, 13.5)], y - 0.75, y + 0.75, fp.metal(STEEL_HI), size=0.25)
+    m.part = 'foreend'
     m.cprism(FOREND, 9.0, fp.wood(WOOD, WOOD_DK), bevel=2.0, edge=0.5)
+    m.part = 'grip'
     # grip: the stock cut down, wrapped in blue cloth with tape turns, a brass cap on the butt
     m.cprism(GRIP, 8.0, fp.wood(WOOD, WOOD_DK, along='z'), bevel=2.0, edge=0.5)
     m.recolour(lambda x, y, z: -16 < z < -2 and x < 14, TAPE_BLUE)
     m.recolour(lambda x, y, z: -10 < z < -7.5 and x < 14, TAPE)
     m.ball(-14, 0, -23, 5.0, fp.metal(BRASS), ry=4.5, rz=4.0, edge=0.25)
+    m.part = 'guard'
     fp.guard(m, 18, 32, -8, -1, fp.metal(STEEL))
     fp.trigger(m, 23, -1, fp.metal(STEEL_HI), length=5)
     fp.trigger(m, 28, -1, fp.metal(STEEL_HI), length=5)
