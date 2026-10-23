@@ -103,6 +103,6 @@ CREDITS
     Modelling, animation and engine changes: made with Claude (Anthropic).
 
   If you should be credited here and are not, or you are a rights holder who wants something
-  corrected or removed, email (an issue on this repository) and it will be fixed promptly.
+  corrected or removed, open an issue on this repository and it will be fixed promptly.
 
   Project page: https://github.com/TefMeister/ashes-2063-weapons
