@@ -25,6 +25,7 @@ def blood(m, seed):
 
 def build():
     m = Model("ashes_handgun")
+    # the pieces each have a name, so each can be picked on its own in Blender (Tefa, 2026-10-23)
     m.pivot = (6, 0, 0)
     sx0, sx1, sz0, sz1, sw = SLIDE
     m.part = 'slide'
@@ -49,8 +50,10 @@ def build():
 
     def guard_in(x, y, z):
         return abs(y) < 1.0 and 18 <= x <= 36 and -8 <= z <= 0 and not (19.5 < x < 34.5 and -6.5 < z)
+    m.part = 'guard'
     m.fill(guard_in, (18, 36, -1, 1, -8, 0), fp.metal(FRAME_GREY), 0.5)
     fp.trigger(m, 26, 0, fp.metal(DARK), length=5.0, curve=1.5)
+    m.part = 'grip'
     # grip, stippled by hand on both sides
     m.cprism(GRIP, 7.5, fp.metal(FRAME_GREY), bevel=1.5, edge=0.5)
     for side in ('+y', '-y'):
@@ -61,6 +64,7 @@ def build():
         m.screw(20, 2.5, side, SCREW, kind='rivet')
         m.screw(44, 2.5, side, SCREW, kind='rivet')
         m.groove([(0, sz0 + 0.5), (sx1, sz0 + 0.5)], side, depth=1, dark=0.4)                 # slide / frame line
+    m.part = 'mag'
     m.cbox(-6, 7, 6.0, -27, -25, fp.metal(DARK), size=0.5)                                     # magazine base
     m.decal(["###.###", "#.#.#.#", "###.###", "..#...#", "###.###"], 46, 13, '+y', mul(SLIDE_GREY, 0.5), mode='carve')
     m.wear_edges(0.5, (186, 184, 180))

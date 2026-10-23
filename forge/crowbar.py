@@ -23,22 +23,26 @@ def bar_paint(x, y, z):
 
 def build():
     m = Model("ashes_crowbar")
+    # the pieces each have a name, so each can be picked on its own in Blender (Tefa, 2026-10-23)
     m.pivot = (60, 0, 0)
     # the straight bar, hex-ish: a round bar with two flats
     m.cyl(0, LENGTH, 0, 0, R, bar_paint, edge=0.25)
     m.box(0, LENGTH, -R, R, R - 0.5, R + 0.5, None, size=0.25, carve=True)
     m.box(0, LENGTH, -R, R, -R - 0.5, -R + 0.5, None, size=0.25, carve=True)
+    m.part = 'hook'
     # the goose-neck: the bar bends up and back round a circle at the front
     cx, cz = LENGTH, HOOK_R
     for i in range(70):
         a = -math.pi / 2 + i * (math.pi * 1.05) / 70
         x, z = cx + math.cos(a) * HOOK_R, cz + math.sin(a) * HOOK_R
         m.ball(x, 0, z, R, fp.metal(BAR_STEEL), edge=0.25)
+    m.part = 'claw'
     # the split claw at the end of the hook, pointing back
     end = (cx + math.cos(math.pi * 0.55) * HOOK_R, cz + math.sin(math.pi * 0.55) * HOOK_R)
     m.prism([(end[0], end[1] - 2), (end[0] - 12, end[1] - 4), (end[0] - 14, end[1] - 2.5),
              (end[0] - 12, end[1] + 0.5), (end[0], end[1] + 2)], -2.0, 2.0, fp.metal(BAR_STEEL), size=0.5, edge=0.25)
     m.box(end[0] - 15, end[0] - 5, -0.5, 0.5, end[1] - 5, end[1] + 2, None, size=0.25, carve=True)   # the split
+    m.part = 'chisel'
     # the flat chisel at the back, bent a little down
     m.prism([(0, -R), (-14, -4), (-16, -3), (-14, -1.5), (0, R)], -2.5, 2.5, fp.metal(BAR_STEEL), size=0.5,
             edge=0.25)

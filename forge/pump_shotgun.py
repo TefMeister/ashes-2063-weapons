@@ -17,6 +17,7 @@ STOCK_CAP = [(18, -32), (16, -38), (19, -42), (33, -42), (34, -36)]
 
 def build():
     m = Model("ashes_pump_shotgun")
+    # the pieces each have a name, so each can be picked on its own in Blender (Tefa, 2026-10-23)
     m.pivot = (40, 0, 0)
     blk = fp.metal(BLACK)
     # receiver: a box with bevelled long edges, the top a little narrower, the rear sloping into the grip
@@ -32,13 +33,16 @@ def build():
     m.cyl(px0 + 3, px0 + 6, -1.5, (pz0 + pz1) / 2, 2.0, BRASS, edge=0.25)
     # loading port underneath, a dark slot
     m.cbox(60, 96, 4, z0, z0 + 1, None, size=0.25, carve=True)
+    m.part = 'barrel'
     # barrel and magazine tube, joined at the front by a clamp
     bx0, bx1, br, bb = BARREL
     fp.barrel(m, bx0, bx1, Z_BARREL, br, fp.metal(mul(BLACK, 1.15)), bore=bb, muzzle_ring=(br + 0.25, 2, STEEL))
     tx0, tx1, tr = TUBE
+    m.part = 'tube'
     m.cyl(tx0, tx1, 0, Z_TUBE, tr, blk)
     m.cyl(tx1, tx1 + 2, 0, Z_TUBE, tr - 0.5, STEEL, edge=0.25)                  # tube cap
     m.cbox(tx1 - 6, tx1 - 2, 5.5, Z_TUBE - 2, Z_BARREL + 2, fp.metal(STEEL), bevel=1, edge=0.25)   # barrel clamp
+    m.part = 'sight'
     m.box(255, 257, -0.5, 0.5, Z_BARREL + 2, Z_BARREL + 3.5, STEEL_HI, size=0.25)   # front bead
     # the pump: orange wood, ribbed all round
     ux0, ux1, uz0, uz1, uw = PUMP
@@ -49,6 +53,7 @@ def build():
         for side in ('+y', '-y'):
             m.groove([(x, uz0 + 1), (x, uz1 - 1)], side, depth=2, width=2, dark=0.4)
         m.groove([(x, -2.5), (x, 2.5)], '-z', depth=2, width=2, dark=0.4)
+    m.part = 'grip'
     # pistol grip: black, wrapped in tape with a blue band; a wooden butt cap below
     m.cprism(GRIP, 6.0, fp.flat(TAPE), bevel=1.5, edge=0.5)
     m.cprism(STOCK_CAP, 6.5, fp.wood(WOOD, WOOD_DK, along='z'), bevel=1.0, edge=0.5)
@@ -56,6 +61,7 @@ def build():
     for z in (-8, -11, -24, -27, -30):                                           # tape turns
         for side in ('+y', '-y'):
             m.groove([(20, z), (50, z + 3)], side, depth=1, width=1, dark=0.6)
+    m.part = 'guard'
     # trigger guard and trigger
     fp.guard(m, 44, 62, -12, -4, blk)
     fp.trigger(m, 54, -4, STEEL)

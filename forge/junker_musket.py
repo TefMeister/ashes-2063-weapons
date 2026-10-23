@@ -16,14 +16,17 @@ SCOPE = (74, 128, 4.3)                 # x0, x1, radius; its axis above the acti
 
 def build():
     m = Model("ashes_junker_musket")
+    # the pieces each have a name, so each can be picked on its own in Blender (Tefa, 2026-10-23)
     m.pivot = (76, 0, 0)
     wood = fp.wood(WOOD, WOOD_DK)
+    m.part = 'stock'
     m.cprism(STOCK, 9.0, wood, bevel=2.5, edge=0.5)
     m.cbox(-2, 0.5, 9.5, -13, 13, fp.metal(BLACK), size=0.5)                            # iron butt plate
     m.recolour(lambda x, y, z: 46 < x < 60, lambda x, y, z: mul(RED_SHELL, 0.85 + 0.15 * ((int(x) + int(z)) % 2)))
     for x in (47, 52, 57):                                                             # the wrap's folds
         for side in ('+y', '-y'):
             m.groove([(x, -3), (x + 2, 12)], side, depth=1, dark=0.6)
+    m.part = 'body'
     ax0, ax1, az0, az1, aw = ACTION
     m.cbox(ax0, ax1, aw, az0, az1, fp.metal(STEEL), bevel=1.0, edge=0.5)
     m.box(80, 96, -aw / 2 - 0.5, -aw / 2 + 1.5, 10, 15, None, size=0.25, carve=True)  # loading port, right
@@ -31,7 +34,9 @@ def build():
     m.cyl(-aw / 2 - 6, -aw / 2, 92, 14, 0.9, fp.metal(STEEL_HI), axis='y', edge=0.25)
     m.ball(92, -aw / 2 - 6.5, 14, 1.8, fp.metal(STEEL_HI), edge=0.25)
     m.part = 'body'
+    m.part = 'foreend'
     m.cprism(FOREEND, 9.0, wood, bevel=2.0, edge=0.5)
+    m.part = 'barrel'
     bx0, bx1, br, bore = BARREL
     fp.barrel(m, bx0, bx1, Z_BORE, br, fp.metal(BLACK), bore=bore)
     m.cyl(bx1 - 10, bx1, 0, Z_BORE, 3.0, fp.metal(STEEL), edge=0.25)                   # slotted muzzle cap
@@ -39,6 +44,7 @@ def build():
         for side in ('+y', '-y', '+z'):
             m.groove([(x, Z_BORE - 1) if side != '+z' else (x, -1), (x + 1.5, Z_BORE + 1) if side != '+z' else
                       (x + 1.5, 1)], side, depth=2, width=2, dark=0.2)
+    m.part = 'bands'
     # brass bands and copper wire coils holding wood and barrel together
     for x in (114, 150, 172):
         m.cyl(x, x + 3, 0, 8.5, 5.4, fp.metal(BRASS), edge=0.25)
@@ -46,9 +52,11 @@ def build():
         for k in range(10):
             m.cyl(x0 + k * 1.0, x0 + k * 1.0 + 0.5, 0, Z_BORE if x0 > 180 else 8.5, 3.1 if x0 > 180 else 5.6,
                   fp.metal(COPPER if k % 2 == 0 else mul(COPPER, 0.7)), size=0.25, edge=0.25)
+    m.part = 'guard'
     # trigger guard, a loop, and the trigger
     fp.guard(m, 66, 86, -6, az0, fp.metal(BRASS))
     fp.trigger(m, 75, az0, fp.metal(STEEL_HI), length=6)
+    m.part = 'scope'
     # the scope: rings, a fat tube, an eyepiece with a rubber cup, white markings
     sx0, sx1, sr = SCOPE
     zs = az1 + 6

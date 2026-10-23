@@ -13,18 +13,25 @@ FOREEND = (98, 160, 0, 10, 9.0)
 
 def build():
     m = Model("ashes_lever_shotgun")
+    # the pieces each have a name, so each can be picked on its own in Blender (Tefa, 2026-10-23)
     m.pivot = (60, 0, 0)
     m.cprism(RECEIVER, 9.0, fp.metal(BLUE_STEEL), bevel=1.5, edge=0.5)
     m.box(56, 80, -5, -3, 9, 15, None, size=0.25, carve=True)                               # loading gate
     m.box(56, 80, -3, -2.5, 9, 15, fp.metal(DARK), size=0.5)
+    m.part = 'hammer'
     m.cprism([(48, 15), (44, 20), (47, 21), (52, 17)], 2.5, fp.metal(STEEL_HI), size=0.5, edge=0.25)   # hammer
+    m.part = 'stock'
     m.cprism(STOCK, 9.0, fp.wood(ORANGE_WOOD, WOOD_DK), bevel=2.5, edge=0.5)
     m.cbox(-2, 0, 9.5, -15, 11, fp.metal(DARK), size=0.5)
+    m.part = 'barrel'
     fp.barrel(m, 90, 240, Z_BARREL, 2.6, fp.metal(BLACK), bore=1.6)
+    m.part = 'tube'
     m.cyl(90, 226, 0, Z_TUBE, 2.3, fp.metal(BLACK), edge=0.25)
     m.cyl(226, 228, 0, Z_TUBE, 1.8, fp.metal(STEEL), edge=0.25)
     m.cbox(220, 224, 5.0, Z_TUBE - 2, Z_BARREL + 2, fp.metal(BLUE_STEEL), bevel=1.0, edge=0.25)
+    m.part = 'sight'
     m.ball(237, 0, Z_BARREL + 3, 0.75, BRASS, edge=0.25)
+    m.part = 'foreend'
     ux0, ux1, uz0, uz1, uw = FOREEND
     m.cbox(ux0, ux1, uw, uz0, uz1, fp.wood(ORANGE_WOOD, WOOD_DK), bevel=2.0, bevel_x=1.0, edge=0.5)
     # the lever: a big loop under the receiver
