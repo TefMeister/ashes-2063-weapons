@@ -40,5 +40,12 @@ Dead Man Walking ships inside the Episode 1 pack and uses the same weapons.
 python ../../blender-cubekit/forge_make.py "<blend folder>" renders pump_shotgun.py revolver.py
 ```
 
-**Still to do:** hands on each gun, upgrade variants (the episode 2 and Hard Reset "builds"), animations, and the
-game export (the exporter cannot read forge models yet). The earlier hand-shaped guns in this repo are untouched.
+**In the game (2026-10-24):** `brutal-doom-3d-guns/tools/gz_forge_export.py` (one exporter for both games) exports a
+forge gun with its hands as a still model held in the right hand; `brutal-doom-3d-guns/tools/forge_jobs.py` names the
+class each one stands in for. Episode 1's crowbar, sawed-off, Ingram (all three builds), Master Blaster, Junker Musket,
+pipe bomb, JackHammer, FAL, and the pump shotgun's upgraded build (`pumpaction2`) are in
+`Ashes2063_forge_guns_VR_test.pk3` (MEGA `3D blender/forge-2026-10-19/gzdoom/`), loaded by
+"Play Ashes 2063 VR (all 3D guns test)". The revolver, 9mm and pump shotgun Tefa shaped stay as they are.
+
+**Still to do:** upgrade variants, animations, the Afterglow and Hard Reset weapons in their own episodes. The earlier
+hand-shaped guns in this repo are untouched.
