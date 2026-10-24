@@ -1,3 +1,4 @@
+import os
 # Ashes 2063 pump-action shotgun model. +Y is the muzzle, +Z up, +X the gun's right side.
 # Built by eye from Tefa's screenshots (`Ashes 2063/shotgun/`): dark blued barrel and magazine
 # tube, dark green-grey receiver with a big open port, deeply ribbed warm-brown wooden pump,
@@ -8,8 +9,8 @@
 # Moving parts are separate objects so the shoot/reload files can animate them:
 # SG_Pump (racks back and forward), SG_Trigger, SG_PortShell, SG_MuzzleFlash, SG_Casing, SG_LoadShell.
 import math
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\pixel_kit.py").read())
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\shotgun_settings.py").read())
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\pixel_kit.py")).read())
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\shotgun_settings.py")).read())
 
 OUT = MODEL
 
@@ -217,6 +218,6 @@ print("saved", OUT)
 # GZDoom cannot read Blender node materials, so every part shares one UV atlas and the flat
 # colours are baked into a PNG. âš ï¸ This re-saves the .blend (with the UVs) and rewires the
 # materials afterwards, so it must stay the LAST thing this script does.
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\gz_bake.py").read())
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\gz_bake.py")).read())
 ATLAS_SIZE = 1024      # a much bigger object than the revolver, so a bigger sheet
-uv_save_bake(OUT, r"~\github-backups\ashes-2063-weapons\shotgun\gzdoom\shotgun.png")
+uv_save_bake(OUT, os.path.expanduser(r"~\github-backups\ashes-2063-weapons\shotgun\gzdoom\shotgun.png"))

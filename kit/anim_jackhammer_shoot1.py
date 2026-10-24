@@ -1,10 +1,11 @@
+import os
 # Jackhammer "shoot 1": the looping hammering cycle while fire is held, stop-motion.
 # One frame = one game tic (35 fps). Timing is the game's own (Actors/Weapons/Hammer.txt, FIREGAS):
 #   HAMM E 1, F 1 (the hit), G 1, H 1, E 1, then straight back to E: one hit every 5 tics.
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\anim_kit.py")).read())
 
-MODEL = r"~\github-backups\ashes-2063-weapons\jackhammer\Ashes_2063_EP1_jackhammer_model.blend"
-OUT = r"~\github-backups\ashes-2063-weapons\jackhammer\Ashes_2063_EP1_jackhammer_shoot1.blend"
+MODEL = os.path.expanduser(r"~\github-backups\ashes-2063-weapons\jackhammer\Ashes_2063_EP1_jackhammer_model.blend")
+OUT = os.path.expanduser(r"~\github-backups\ashes-2063-weapons\jackhammer\Ashes_2063_EP1_jackhammer_shoot1.blend")
 
 # STATIC=True makes the "_static" version: the weapon itself stays put in its rest
 # pose and only its parts move (for adding hands later).
