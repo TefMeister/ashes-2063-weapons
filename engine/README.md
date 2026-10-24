@@ -10,6 +10,12 @@ the VR engine Ashes 2063 runs on here. Patch file: `gzdoomvr-gvr4.13.2.2-offhand
 2. **`FollowOffhand`**, a bool any mod can set on any actor: the engine then draws that actor at the off hand's pose of the
    current rendered frame (position and yaw), exactly like the weapon, instead of at its once-per-tic position. Without it a
    hand-held actor rubber-bands: it lags when you walk and drifts back when you stop `[reported 2026-09-17, n=1]`.
+   ⚠️ **An actor drawn this way comes out MIRRORED, left and right swapped** `[verified-live 2026-10-24, n=1]`: a true
+   left hand in the file is seen in the headset as a right hand, and a right hand as a left one. Tefa, on the shotgun's
+   pump hand: *"still the right hand :D just shaped different"*; the same hand mirrored: *"it's a left hand now! it
+   worked"*. The weapon route is not mirrored (the guns' hands look right). This is what turned every free left hand
+   since September into "the right hand curled inwards". So a model for the off hand is built as its mirror image
+   (`tools/gz_left_hand.py`; the lantern too). Where in the engine the swap happens is not yet found `[hypothesis]`.
 3. **Two-handed long guns.** `TwoHandedAim`, a bool a mod sets on the **player**: while it is on and the off
    hand is tracked, the shot follows the line between the two hands instead of the rear controller's own tilt.
    Guarded twice — a least hand separation, and agreement with where the gun itself points — and refusing leaves
