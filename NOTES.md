@@ -414,3 +414,17 @@ its own normals, and the md3 exporter writes correct normals. The 2026-10-06 "no
 it) are in `tools/light_probe/`, pictures in `_renders/live/light-probe-2026-10-08/`. Two headset shortcuts
 ("light probe (colours)" / "light probe (real shine)") wait for Tefa. Next, once VR says yes: a shine map per cube weapon
 from the exporter, and turn the baked per-face shade down so real light does the work.
+
+## 2026-10-24 — the off hand is drawn mirrored; relaxed free left hand; every forge gun in the game (home PC)
+- ⭐ **Everything drawn at the off hand (FollowOffhand) comes out with left and right swapped** `[verified-live 2026-10-24, n=1]`:
+  the pump hand built as a true left hand was seen as "still the right hand :D just shaped different"; the same hand
+  mirrored, as "it's a left hand now! it worked". It explains every free left hand since September reading as a right
+  hand. With the relaxed hand the palm then faced out, so for this actor the swap acts on the file's up and down;
+  lowering it by moving it UP in the file came out right ("height is right") `[verified-live 2026-10-24, n=1]`. Where
+  in the engine the swap happens is NOT found `[hypothesis]` (engine/README.md).
+- Free left hand (`tools/gz_left_hand.py`): the approved glove as a RIGHT hand in a relaxed pose, turned palm to the
+  weapon, 3.5 cm lower, 4 cm back. Worn three times; the last change (4 cm back) is not yet worn.
+- The lantern's hand is still built as a true left hand (lantern folder `lt_hand_pump.py`), so it will show as a right
+  hand; Tefa wants the lantern with its hand designed together in Blender.
+- Nine Episode 1 forge weapons in the game as still models (forge/README.md): flat check, all drawn, no errors
+  `[verified-live 2026-10-24, n=1, flat]`. Placement and size per gun NOT yet seen in the headset.
