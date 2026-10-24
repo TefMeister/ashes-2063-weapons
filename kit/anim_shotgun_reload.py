@@ -1,3 +1,4 @@
+import os
 # Shotgun reload, stop-motion. One frame = one game tic (35 fps). Timing is the game's
 # own, read from Actors/Weapons/Shotgun.txt (actor `pumpaction`).
 #
@@ -11,8 +12,8 @@
 # Run the partial one by adding `partial` to the arguments, and `static` for the version
 # where the gun itself never moves:
 #   blender -b --factory-startup --python kit/run_background.py -- anim_shotgun_reload.py partial static
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\shotgun_settings.py").read())
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\anim_kit.py")).read())
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\shotgun_settings.py")).read())
 
 import sys
 ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -20,7 +21,7 @@ STATIC = globals().get("STATIC", False)
 PARTIAL = "partial" in ARGS
 SHELLS = 3 if PARTIAL else 6           # how many go in; the dry gun takes all six
 
-OUT = r"~\github-backups\ashes-2063-weapons\shotgun\Ashes_2063_EP1_shotgun_reload.blend"
+OUT = os.path.expanduser(r"~\github-backups\ashes-2063-weapons\shotgun\Ashes_2063_EP1_shotgun_reload.blend")
 if PARTIAL:
     OUT = OUT.replace("_reload.blend", "_reload_partial.blend")
 if STATIC:

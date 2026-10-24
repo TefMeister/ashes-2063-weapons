@@ -2,7 +2,7 @@
     python light_probe_run.py <probe pk3> <screenshot bmp> <log txt> [extra console commands...]
 """
 import sys, os, time, subprocess, ctypes, ctypes.wintypes
-sys.path.insert(0, r"~\github-backups\ashes-2063-weapons\tools")
+sys.path.insert(0, os.path.expanduser(r"~\github-backups\ashes-2063-weapons\tools"))
 import gzdrive as g
 
 PROBE, SHOT, LOG = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -36,7 +36,7 @@ if not h:
     proc.kill(); log.close(); raise SystemExit("no game window")
 time.sleep(6)
 # record the game window only (standing rule); OBS needs the window to exist first
-OBS = r"~\claude-memory\tools\obs-rec.py"
+OBS = os.path.expanduser(r"~\claude-memory\tools\obs-rec.py")
 LABEL = os.path.splitext(os.path.basename(PROBE))[0] + "-flat"
 subprocess.run([sys.executable, OBS, "start", "gzdoomvr.exe", LABEL, "--game", "ashes-2063-weapons"])
 g.fg(h)

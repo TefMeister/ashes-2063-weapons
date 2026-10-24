@@ -1,7 +1,8 @@
+import os
 # Shotgun numbers shared by the model, shoot and reload files.
 # +Y is the muzzle, +Z up, +X the gun's right side. Origin: rear face of the receiver,
 # on the receiver's bottom line, so the stock runs into -Y and the barrel into +Y.
-MODEL = r"~\github-backups\ashes-2063-weapons\shotgun\Ashes_2063_EP1_shotgun_model.blend"
+MODEL = os.path.expanduser(r"~\github-backups\ashes-2063-weapons\shotgun\Ashes_2063_EP1_shotgun_model.blend")
 REST_LOC = (0.130, 0.700, -0.170)     # where the gun sits in the first-person view
 REST_ROT = (2, 18, 12)                 # pitch, cant, yaw (degrees); +yaw swings the muzzle
                                       # toward the middle of the screen

@@ -1,5 +1,6 @@
+import os
 # Revolver numbers shared by the model, shoot and reload files.
-MODEL = r"~\github-backups\ashes-2063-weapons\revolver\Ashes_2063_EP1_revolver_model.blend"
+MODEL = os.path.expanduser(r"~\github-backups\ashes-2063-weapons\revolver\Ashes_2063_EP1_revolver_model.blend")
 REST_LOC = (-0.005, 0.24, -0.062)     # where the gun sits in the first-person view (same as the handgun)
 REST_ROT = (4, -10, 20)              # pitch, cant, yaw (degrees)
 

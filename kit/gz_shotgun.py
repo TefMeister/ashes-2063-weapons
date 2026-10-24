@@ -1,3 +1,4 @@
+import os
 # How the shotgun goes into GZDoom: which animation files, size, pivot, and which game
 # sprite frame shows which Blender frame. Used by gz_export.py. Same shape as gz_revolver.py.
 NAME = "shotgun"                             # file names inside the pk3
@@ -5,7 +6,7 @@ ACTOR_CLASS = "pumpaction"                   # âš ï¸ the GAME's class for
                                              # keys on. `pumpaction2` is the Classic shotgun,
                                              # a different weapon with different sprites.
 ROOT = "SG_Root"
-DIR = r"~\github-backups\ashes-2063-weapons\shotgun"
+DIR = os.path.expanduser(r"~\github-backups\ashes-2063-weapons\shotgun")
 OUT_DIR = DIR + r"\gzdoom"
 PK3 = "Ashes2063_shotgun3d_test.pk3"         # the flat build; the VR build overrides this below
 MODEL_PATH = "models/ashes2063/shotgun"      # folder inside the pk3

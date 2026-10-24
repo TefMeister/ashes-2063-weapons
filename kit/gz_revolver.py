@@ -1,8 +1,9 @@
+import os
 # How the revolver goes into GZDoom: which animation files, size, pivot, and which
 # game sprite frame shows which Blender frame. Used by gz_export.py.
 NAME = "revolver"
 ROOT = "RV_Root"
-DIR = r"~\github-backups\ashes-2063-weapons\revolver"
+DIR = os.path.expanduser(r"~\github-backups\ashes-2063-weapons\revolver")
 OUT_DIR = DIR + r"\gzdoom"
 PK3 = "Ashes2063_revolver3d_test.pk3"    # the flat build; the VR build overrides this below
 MODEL_PATH = "models/ashes2063/revolver"     # folder inside the pk3

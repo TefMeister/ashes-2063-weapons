@@ -1,13 +1,14 @@
+import os
 # Handgun reload, stop-motion: tip the gun up and over, old magazine drops out,
 # new one comes up from the left hip and slaps in, gun comes back down.
 # One frame = one game tic (35 fps). Timing is the game's own (Actors/Weapons/Glock.txt,
 # Work2 + ReloadDone, the reload with a round still chambered, so no slide pull):
 #   GLOK E 2, F G 1, (hidden) 1, H I J 2, K 5, L M N 2, O O P 2 | Q Q Q R S T 2, (hidden) 3, G F E 1 = 46 tics.
 # Where the game hides the gun for a tic or three, the 3D gun holds its pose.
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\handgun_settings.py").read())
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\anim_kit.py")).read())
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\handgun_settings.py")).read())
 
-OUT = r"~\github-backups\ashes-2063-weapons\handgun\Ashes_2063_EP1_handgun_reload.blend"
+OUT = os.path.expanduser(r"~\github-backups\ashes-2063-weapons\handgun\Ashes_2063_EP1_handgun_reload.blend")
 
 # STATIC=True makes the "_static" version: the weapon itself stays put in its rest
 # pose and only its parts move (for adding hands later).

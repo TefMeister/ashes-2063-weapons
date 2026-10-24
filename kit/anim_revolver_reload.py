@@ -1,3 +1,4 @@
+import os
 # Revolver reload, stop-motion. One frame = one game tic (35 fps).
 # Timing is the game's own (Actors/Weapons/Revolver.txt, Work1 + ReloadDone):
 #   REVR A B 3 | C C C D E F 2 | G G H I J L L L L 2 | M N O P 2 | P P P Q R S 2 |
@@ -5,9 +6,9 @@
 # Cylinder swings out left, gun tips muzzle-up and the spent cases drop out,
 # gun tips down, a speedloader comes up from the left hip and seats six rounds,
 # a flick of the wrist closes the cylinder.
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\anim_kit.py").read())
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\revolver_settings.py").read())
-OUT = r"~\github-backups\ashes-2063-weapons\revolver\Ashes_2063_EP1_revolver_reload.blend"
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\anim_kit.py")).read())
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\revolver_settings.py")).read())
+OUT = os.path.expanduser(r"~\github-backups\ashes-2063-weapons\revolver\Ashes_2063_EP1_revolver_reload.blend")
 
 STATIC = globals().get("STATIC", False)
 if STATIC:

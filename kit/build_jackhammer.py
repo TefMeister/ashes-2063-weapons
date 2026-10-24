@@ -1,10 +1,11 @@
+import os
 # Ashes 2063 jackhammer (petrol breaker) model. +Z up, the bit points down,
 # the handle loop is toward the player (-Y). The hidden underside and far side
 # are guessed. Moving parts: JH_Bit (hammers in and out), JH_Puff (exhaust smoke).
 import math
-exec(open(r"~\github-backups\ashes-2063-weapons\kit\pixel_kit.py").read())
+exec(open(os.path.expanduser(r"~\github-backups\ashes-2063-weapons\kit\pixel_kit.py")).read())
 
-OUT = r"~\github-backups\ashes-2063-weapons\jackhammer\Ashes_2063_EP1_jackhammer_model.blend"
+OUT = os.path.expanduser(r"~\github-backups\ashes-2063-weapons\jackhammer\Ashes_2063_EP1_jackhammer_model.blend")
 
 # ---- dimensions (metres) --------------------------------------------------
 BODY = (0.28, 0.24, 0.26)          # red lower body, centre at z = BODY_Z
