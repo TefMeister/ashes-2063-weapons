@@ -13,7 +13,7 @@
 # a relaxed pose (RELAXED_CURLS / RELAXED_THUMB: the approved glove's own pose curled a little more, most at the pinky,
 # and the thumb closer to the index, as a hand hangs at rest), turned the way the shotgun's right hand
 # holds its grip (vs_hands r_axes: fingers forward, thumb on top, back of the hand out) but with no grip and no lean.
-# Origin = the middle of the palm.
+# Origin = the middle of the palm, HAND_DOWN_CM above it in the file (see relaxed()).
 # Pump: the shotgun's own left hand under the pump with all of Tefa's 2026-09-24 cubes, mirrored into a right hand for
 # the swap; `thumb-up` turns it a quarter turn about the pump's line first. Origin = the pump's centre line.
 # MD3 axes as the guns (kit/gz_export.py): x forward, y = -gun y, z up; 34 units a metre.
@@ -39,6 +39,7 @@ ROLL_THUMB_UP = "thumb-up" in sys.argv[2:]
 # degrees down at each finger's three joints (gl_settings CURL = 14, 26, 16 is the glove's own, nearly straight)
 RELAXED_CURLS = {"index": (18, 30, 18), "middle": (22, 36, 22), "ring": (26, 40, 24), "pinky": (30, 44, 26)}
 RELAXED_THUMB = [(14, 38, 14), (12, 20, 30)]     # (length, degrees outward, degrees down); gl_settings: 56 out
+HAND_DOWN_CM = 3.5                                # Tefa: "sitting ... about 3 - 4 cm too high"
 
 
 def relaxed():
@@ -51,7 +52,14 @@ def relaxed():
     o = [(min(c[i] for c in palm) + max(c[i] for c in palm) + 1) / 2.0 for i in range(3)]
     # vs_hands r_axes without its offsets: across the hand -> down, wrist->fingertips -> forward, back of hand -> right
     out = {(yh, -zh - 1, -xh - 1): c for (xh, yh, zh), c in cells.items()}
-    return out, (o[1], -o[2], -o[0])
+    ox, oy, oz = o[1], -o[2], -o[0]
+    # Tefa wore that (2026-10-24): "the hand is correct, but ... the palm is outwards to the left, not facing the
+    # weapon", "about 3 - 4 cm too high". So it is turned half a turn about its own forward line (a turn, so it
+    # stays the same hand): the palm faces the weapon and the thumb comes back on top. With the palm out and the
+    # fingers forward the thumb must have been underneath, i.e. this actor shows the file's up-down flipped
+    # [inferred-static 2026-10-24]; so lowering it in the game means moving it UP in the file.
+    out = {(x, -y - 1, -z - 1): c for (x, y, z), c in out.items()}
+    return out, (ox, -oy, -oz - HAND_DOWN_CM / 100.0 / VOXEL_M)
 
 
 def pump():
