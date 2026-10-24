@@ -9,7 +9,11 @@
 # out, as a forearm does. ROLL_THUMB_UP turns it a quarter turn about the pump's line (a turn, not a mirror, so it
 # stays a left hand): thumb on top, back of the hand out, palm facing in, as a left hand holds its controller; but
 # then the wrist rises up and out instead of dropping. Both are built for Tefa to wear and choose (2026-10-24):
-#   python tools/gz_left_hand.py <out folder> [thumb-up]
+#   python tools/gz_left_hand.py <out folder> [thumb-up] [mirror]
+# `mirror` (2026-10-24 test): Tefa wore both and saw "still the right hand, just shaped different", as every left hand
+# drawn on the controller since September has looked. The guns' hands are drawn by the weapon route and look right;
+# this hand is drawn as a world actor (FollowOffhand), which may swap left and right [hypothesis]. The mirror makes a
+# RIGHT hand on purpose: if it shows as a left hand in the headset, the world route swaps them.
 # The hollow where the pump was is where the controller's handle is, so the origin is the pump's centre line.
 # Drawn by the lantern's route (FollowOffhand, OffhandAngle/Pitch/Roll; engine/README.md): MD3 x forward, y right, z up,
 # 34 units a metre.
@@ -31,7 +35,8 @@ exec(open(os.path.join(REPO, "kit", "gz_md3.py")).read())
 MAX_SURFACE_VERTS = 60000
 UNITS_PER_M = 34
 NAME = "cube_left_hand"
-ROLL_THUMB_UP = len(sys.argv) > 2 and sys.argv[2] == "thumb-up"
+ROLL_THUMB_UP = "thumb-up" in sys.argv[2:]
+MIRROR = "mirror" in sys.argv[2:]
 
 gun = build_gun()
 on_gun = hands(set().union(*(v for k, v in gun.p.items() if k != "shield")))
@@ -45,6 +50,9 @@ cz = (min(c[2] for c in pump) + max(c[2] for c in pump) + 1) / 2.0
 if ROLL_THUMB_UP:                  # a quarter turn about x: the gun's left (+y, the thumb) goes up
     left = {(x, -z - 1, y): c for (x, y, z), c in left.items()}
     cy, cz = -cz, cy
+if MIRROR:                         # left <-> right across the gun's middle
+    left = {(x, -y - 1, z): c for (x, y, z), c in left.items()}
+    cy = -cy
 xs = [c[0] for c in left]
 cx = (min(xs) + max(xs) + 1) / 2.0
 print(f"{NAME}: {len(left)} cubes, origin x {cx:.1f} y {cy:.1f} z {cz:.1f} (cubes)")
