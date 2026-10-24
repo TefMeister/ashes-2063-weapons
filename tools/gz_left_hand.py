@@ -1,16 +1,18 @@
-# The free LEFT hand for Ashes 2063 VR, rebuilt the way the weapon hands are (2026-10-19, Tefa: "now knowing how the left
-# hand looks, can you try to get the left hand to follow left motion controller with one handed weapons ... don't change
-# the side where the thumb is"). No Blender: plain Python.
+# The free LEFT hand for Ashes 2063 VR (2026-10-24, Tefa: "use the hand that is sitting under the pump handle for the
+# free floating left hand"). No Blender: plain Python.
 #   python tools/gz_left_hand.py <out folder>
 #
-# The hand is the approved fingerless glove (ashes gloves/blender, 2026-09-23) in the Ashes shotgun's approved pistol-grip
-# pose (vs_hands.py: R_CURLS, R_THUMB, placed by r_axes on its grip), i.e. exactly the right hand Tefa has worn on the
-# guns. That right hand is then mirrored across the controller's left/right into a TRUE left hand, and nothing else:
-# no roll, no turn. A left hand holds its controller as the mirror of how the right holds the right one (thumb on top,
-# back of the hand facing out), while both controllers share the same axes, so the mirror is the whole change.
-# (The mirror that went wrong in September was applied to a hand that was already a left one; this one starts right.)
+# The hand is the shotgun's own left hand under the pump (ashes shotgun/blender/vs_hands.py), every cube Tefa placed
+# by hand on 2026-09-24 included, taken off the gun as it is. It was built as a left hand, so it needs no mirror.
+# Replaces the 2026-10-19 hand (the shotgun's RIGHT hand mirrored; commit 9287b9b), which was never worn.
+# On the pump the palm is up, the thumb runs forward along the pump's left side and the wrist drops back, down and
+# out, as a forearm does. ROLL_THUMB_UP turns it a quarter turn about the pump's line (a turn, not a mirror, so it
+# stays a left hand): thumb on top, back of the hand out, palm facing in, as a left hand holds its controller; but
+# then the wrist rises up and out instead of dropping. Both are built for Tefa to wear and choose (2026-10-24):
+#   python tools/gz_left_hand.py <out folder> [thumb-up]
+# The hollow where the pump was is where the controller's handle is, so the origin is the pump's centre line.
 # Drawn by the lantern's route (FollowOffhand, OffhandAngle/Pitch/Roll; engine/README.md): MD3 x forward, y right, z up,
-# 34 units a metre, origin = the middle of the closed hand, where the controller's handle is.
+# 34 units a metre.
 import os
 import struct
 import sys
@@ -18,33 +20,34 @@ import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-GLOVES = os.path.join("D:" + os.sep, "MEGA transfer", "Game Files", "ashes-2063-weapons", "3D blender", "ashes gloves",
-                      "blender")
-sys.path.insert(0, GLOVES)
-from gl_pose import build, place          # noqa: E402
+BLENDER = os.path.join("D:" + os.sep, "MEGA transfer", "Game Files", "ashes-2063-weapons", "3D blender")
+sys.path.insert(0, os.path.join(BLENDER, "ashes gloves", "blender"))
+sys.path.insert(0, os.path.join(BLENDER, "ashes shotgun", "blender"))
 from gl_settings import COL, SHADE, VOXEL_M   # noqa: E402
+from vs_gun import build as build_gun         # noqa: E402
+from vs_hands import hands                    # noqa: E402
 
 exec(open(os.path.join(REPO, "kit", "gz_md3.py")).read())
 MAX_SURFACE_VERTS = 60000
 UNITS_PER_M = 34
 NAME = "cube_left_hand"
+ROLL_THUMB_UP = len(sys.argv) > 2 and sys.argv[2] == "thumb-up"
 
-# the Ashes shotgun's right hand on its grip (vs_hands.py, vs_settings GRIP): front 16 at the top, top -1, rake 0.38,
-# half width 5
-R_CURLS = {"middle": (45, 55, 60), "ring": (45, 55, 60), "pinky": (40, 50, 50), "index": (10, 35, 30)}
-R_THUMB = [(12, 5, 80), (10, -30, 20)]
-FRONT, TOP, RAKE, HALF = 16, -1, 0.38, 5
-RX0, RY0, RZ0 = FRONT - 27, -(HALF + 1) - 4, TOP - 12
-
-hand = build("right", R_CURLS, R_THUMB)
-right = {}
-for k in ("hand", "thumb", "tip"):
-    right.update(place(hand[k], lambda xh, yh, zh: (yh + RX0, -zh + RY0, -xh + RZ0),
-                       shear=lambda x, y, z: (x - round(max(0, TOP - z) * RAKE), y, z)))
-left = {(x, -y, z): c for (x, y, z), c in right.items()}          # the mirror: a true left hand
-xs, zs = [c[0] for c in left], [c[2] for c in left]
-cx, cz = (min(xs) + max(xs) + 1) / 2.0, (min(zs) + max(zs) + 1) / 2.0
-print(f"{NAME}: {len(left)} cubes, fist centre x {cx:.1f} z {cz:.1f} (cubes)")
+gun = build_gun()
+on_gun = hands(set().union(*(v for k, v in gun.p.items() if k != "shield")))
+left = {}
+for part in ("left_hand", "left_thumb"):
+    left.update(on_gun[part])
+pump = gun.p["pump"]
+# the pump's centre line, in cube corners (gun space: x forward, y left, z up)
+cy = (min(c[1] for c in pump) + max(c[1] for c in pump) + 1) / 2.0
+cz = (min(c[2] for c in pump) + max(c[2] for c in pump) + 1) / 2.0
+if ROLL_THUMB_UP:                  # a quarter turn about x: the gun's left (+y, the thumb) goes up
+    left = {(x, -z - 1, y): c for (x, y, z), c in left.items()}
+    cy, cz = -cz, cy
+xs = [c[0] for c in left]
+cx = (min(xs) + max(xs) + 1) / 2.0
+print(f"{NAME}: {len(left)} cubes, origin x {cx:.1f} y {cy:.1f} z {cz:.1f} (cubes)")
 
 # every exposed cube face, its corners counter-clockwise from outside in gun space (x forward, y left, z up)
 FACES = {
@@ -71,7 +74,7 @@ for (x, y, z), name in left.items():
             continue
         key = shade(rgb, n)
         # gun space -> MD3 (x forward, y RIGHT = -gun y, z up): one flip, so the corner order is reversed (as the guns)
-        pts = [(((x + a) - cx) * S, -((y + b) - 0.5) * S, ((z + c) - cz) * S) for a, b, c in quad]
+        pts = [(((x + a) - cx) * S, -((y + b) - cy) * S, ((z + c) - cz) * S) for a, b, c in quad]
         nm = (n[0], -n[1], n[2])
         for tri in ((pts[0], pts[2], pts[1]), (pts[0], pts[3], pts[2])):
             tris_out.append(([(p, nm) for p in tri], key))
