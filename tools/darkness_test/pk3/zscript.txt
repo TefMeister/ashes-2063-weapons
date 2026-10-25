@@ -1,0 +1,16 @@
+version "4.10"
+
+// Darkness test (2026-10-25): holds the player's own sector at a fixed light level, so the gun can be
+// compared at the same room light with vr_gun_darkness at 0, 1 and 2.
+class TefaDarkTest : EventHandler
+{
+	override void WorldTick()
+	{
+		CVar c = CVar.FindCVar("tefa_testlight");
+		if (!c) return;
+		int light = c.GetInt();
+		if (light < 0) return;
+		let mo = players[consoleplayer].mo;
+		if (mo && mo.CurSector && mo.CurSector.lightlevel != light) mo.CurSector.SetLightLevel(light);
+	}
+}

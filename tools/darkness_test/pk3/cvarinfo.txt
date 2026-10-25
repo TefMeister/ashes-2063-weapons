@@ -1,0 +1,2 @@
+// -1 = leave the room's light alone; 0..255 = set the light of the sector the player stands in
+server int tefa_testlight = -1;
