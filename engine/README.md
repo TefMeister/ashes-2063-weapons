@@ -35,6 +35,20 @@ the VR engine Ashes 2063 runs on here. Patch file: `gzdoomvr-gvr4.13.2.2-offhand
    weapon stays frozen after each update, 1 to 12). The world and the view stay smooth.
    Shots use the same frozen pose, so bullets still leave the barrel you see. Menu: Options → VR Options.
 
+6. **Darkness hides the held gun** (2026-10-25, Tefa: *"just as light lights them up, darkness must really also hide
+   the gun models depending how dark it is"*). The engine draws the weapon brighter than the room on purpose
+   (`GetWeaponLighting` in `hw_weapon.cpp`, Doom's own habit so the weapon always shows): a room at light 96 gave the
+   gun 149, a room at 64 gave 88 `[inferred-static 2026-10-25]`. In VR that reads as a gun that glows in the dark.
+   `vr_gun_darkness` (slider "Darkness hides the gun", Options → VR Options; default 1) moves the gun toward the
+   room's own light: 0 = the old brightening, 1 = the room's light (96 → 96, 64 → 64), 2 = darker still (the room's
+   light squared: 96 → 36). It never brightens (below about light 40 the old maths was already darker, kept), and it
+   is applied before sector glow, so lamps, fire, muzzle flashes and dynamic lights still light the gun on top.
+   Shared by both games on this engine (Ashes 2063 and Brutal Doom). Built and installed 2026-10-25 (the old engine
+   kept as `gzdoomvr.exe.pre-gundarkness` / `gzdoom.pk3.pre-gundarkness`) `[compile-verified 2026-10-25]`; not run yet.
+   ⚠️ The compiler on the home PC had been updated, so the build needed a full rebuild (old objects moved aside to
+   `build/src/zdoom.dir/RelWithDebInfo.old-compiler-20261025`); the menu file is packed by the separate
+   `gzdoom_pk3` target, not by `zdoom`.
+
 ## Building (Windows, as done on 2026-09-17) `[verified-live 2026-09-17, n=1]`
 VS 2022 Build Tools + CMake. The upstream `auto-setup-windows.cmd` failed here (vcpkg could not build yasm for ZMusic), so:
 - clone `ValveSoftware/openvr` (headers only are enough) and pass `-DOPENVR_SDK_PATH=<that folder>`;

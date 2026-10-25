@@ -1,7 +1,7 @@
-﻿From 2ae22faec2392d7e9c99ab9e27af0f8adce7ef63 Mon Sep 17 00:00:00 2001
+From 2ae22faec2392d7e9c99ab9e27af0f8adce7ef63 Mon Sep 17 00:00:00 2001
 From: TefMeister <313988079+TefMeister@users.noreply.github.com>
 Date: Thu, 17 Sep 2026 17:59:31 +0300
-Subject: [PATCH 1/6] VR: off-hand pose for mods; stop-motion weapon hand
+Subject: [PATCH 1/7] VR: off-hand pose for mods; stop-motion weapon hand
  (toggle + rate slider)
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
@@ -226,7 +226,7 @@ index 3e56350..b4e56a2 100644
 From 15d82a48f9b7ffb33593c3f97250611ccaa34528 Mon Sep 17 00:00:00 2001
 From: TefMeister <313988079+TefMeister@users.noreply.github.com>
 Date: Thu, 17 Sep 2026 20:19:47 +0300
-Subject: [PATCH 2/6] Stop-motion weapon hand: skip N rendered frames instead
+Subject: [PATCH 2/7] Stop-motion weapon hand: skip N rendered frames instead
  of a per-second rate
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
@@ -313,7 +313,7 @@ index c3ad6ec..26d6907 100644
 From fa0765cb0e0b2adced81ec5694fc86289afd1fec Mon Sep 17 00:00:00 2001
 From: TefMeister <313988079+TefMeister@users.noreply.github.com>
 Date: Thu, 17 Sep 2026 20:44:04 +0300
-Subject: [PATCH 3/6] FollowOffhand: draw an actor rigidly at the off hand on
+Subject: [PATCH 3/7] FollowOffhand: draw an actor rigidly at the off hand on
  every rendered frame
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
@@ -458,7 +458,7 @@ index b4e56a2..75582f7 100644
 From 6293d1b5dcb1365c3ab60210b6e0e76ff04cf748 Mon Sep 17 00:00:00 2001
 From: TefMeister <313988079+TefMeister@users.noreply.github.com>
 Date: Sat, 19 Sep 2026 00:23:23 +0300
-Subject: [PATCH 4/6] Two-handed long guns: aim the shot down the line between
+Subject: [PATCH 4/7] Two-handed long guns: aim the shot down the line between
  the hands
 
 TwoHandedAim, a bool a mod sets on the player. When it is on and the off hand
@@ -743,7 +743,7 @@ index 75582f7..7576e0e 100644
 From c56087c3a5e3d7bcc75c1686d36090feca88d2a6 Mon Sep 17 00:00:00 2001
 From: TefMeister <313988079+TefMeister@users.noreply.github.com>
 Date: Sun, 20 Sep 2026 17:21:19 +0300
-Subject: [PATCH 5/6] Two-handed long guns: DRAW the gun along the line between
+Subject: [PATCH 5/7] Two-handed long guns: DRAW the gun along the line between
  the hands
 
 The shot already followed the hand-to-hand line; the gun itself never did. It
@@ -1173,7 +1173,7 @@ index 221367d..b4fa109 100644
 From f3815e7b6d02ac825fa328951c6ce376cca3785b Mon Sep 17 00:00:00 2001
 From: TefMeister <313988079+TefMeister@users.noreply.github.com>
 Date: Sun, 20 Sep 2026 18:18:39 +0300
-Subject: [PATCH 6/6] Two-handed long guns: the SHOT follows the drawn barrel
+Subject: [PATCH 6/7] Two-handed long guns: the SHOT follows the drawn barrel
  as well
 
 Worn 2026-09-20: the gun turns with the off hand, and the bullets did not -
@@ -1253,6 +1253,104 @@ index 6d1e92f..7af05e4 100644
  				{
  					tha::Hands hh;
  					hh.rear_x  = player->mo->AttackPos.X;  hh.rear_y  = player->mo->AttackPos.Y;  hh.rear_z  = player->mo->AttackPos.Z;
+-- 
+2.55.0.windows.3
+
+
+From c53ab008b9eb75f65fe8b64e8cfd9c379a56d189 Mon Sep 17 00:00:00 2001
+From: TefMeister <313988079+TefMeister@users.noreply.github.com>
+Date: Sun, 25 Oct 2026 23:14:09 +0200
+Subject: [PATCH 7/7] Darkness hides the held gun: vr_gun_darkness (0 = old
+ brightening, 1 = the room's own light, 2 = darker)
+
+---
+ .../rendering/hwrenderer/data/hw_vrmodes.cpp  |  6 ++++++
+ src/rendering/hwrenderer/scene/hw_weapon.cpp  | 21 +++++++++++++++++++
+ wadsrc/static/menudef.txt                     |  1 +
+ 3 files changed, 28 insertions(+)
+
+diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
+index c83ada9..afd03e0 100644
+--- a/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
++++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.cpp
+@@ -89,6 +89,12 @@ CVAR(Bool, vr_two_handed_debug, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ // Draw the gun along the line between the hands, not hanging off the weapon controller. This is
+ // the half you can SEE; vr_two_handed_min_sep / _max_disagree above only ever moved the shot.
+ CVAR(Bool, vr_two_handed_draw, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
++// How much the dark of the room hides the held gun. The engine draws the weapon brighter than the room
++// on purpose (Doom's own habit, so it always shows); in a half-dark room that is about 1.5 times the
++// room's light, which in VR reads as a gun that glows. 0 = that old brightening, 1 = the gun gets the
++// room's own light, 2 = darker still (the room's light squared). Lamps, fire and muzzle flashes still
++// light it on top. Never brightens: in near black the old maths was already darker, and that is kept.
++CVAR(Float, vr_gun_darkness, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ 
+ CVAR(Bool, vr_snap_turn, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+ CVAR(Float, vr_snap_angle, 45.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+diff --git a/src/rendering/hwrenderer/scene/hw_weapon.cpp b/src/rendering/hwrenderer/scene/hw_weapon.cpp
+index 814fa60..b5a8d30 100644
+--- a/src/rendering/hwrenderer/scene/hw_weapon.cpp
++++ b/src/rendering/hwrenderer/scene/hw_weapon.cpp
+@@ -58,6 +58,7 @@
+ EXTERN_CVAR(Float, transsouls)
+ EXTERN_CVAR(Int, gl_fuzztype)
+ EXTERN_CVAR(Bool, r_deathcamera)
++EXTERN_CVAR(Float, vr_gun_darkness)
+ EXTERN_CVAR(Bool, r_drawplayersprites)
+ EXTERN_CVAR(Int, r_PlayerSprites3DMode)
+ EXTERN_CVAR(Float, gl_fatItemWidth)
+@@ -458,6 +459,24 @@ static FVector2 BobWeapon3D(WeaponPosition3D &weap, DPSprite *psp, FVector3 &tra
+ //
+ //==========================================================================
+ 
++// Let the dark of the room hide the held gun (vr_gun_darkness, see hw_vrmodes.cpp).
++// 0 keeps the brightened level, 1 moves it to the room's own light, 2 to the room's light squared.
++static int GunDarkness(int brightened, int roomlight, float darkness)
++{
++	const double MAX_LIGHT = 255.0;
++	if (darkness <= 0) return brightened;
++	double target = roomlight;
++	double amount = darkness;
++	if (amount > 1)
++	{
++		double squared = roomlight * roomlight / MAX_LIGHT;
++		target += (squared - roomlight) * std::min(amount - 1, 1.0);
++		amount = 1;
++	}
++	int light = int(brightened + (target - brightened) * amount + 0.5);
++	return std::min(brightened, std::max(light, 0));
++}
++
+ WeaponLighting HWDrawInfo::GetWeaponLighting(sector_t *viewsector, const DVector3 &pos, int cm, area_t in_area, const DVector3 &playerpos)
+ {
+ 	WeaponLighting l;
+@@ -507,6 +526,7 @@ WeaponLighting HWDrawInfo::GetWeaponLighting(sector_t *viewsector, const DVector
+ 		}
+ 
+ 		l.lightlevel = CalcLightLevel(lightmode, l.lightlevel, getExtraLight(), true, 0);
++		const int roomlight = l.lightlevel;	// the room's own light, before the held-weapon brightening below
+ 
+ 		if (isSoftwareLighting(lightmode) || l.lightlevel < 92)
+ 		{
+@@ -523,6 +543,7 @@ WeaponLighting HWDrawInfo::GetWeaponLighting(sector_t *viewsector, const DVector
+ 		{
+ 			l.lightlevel = (2 * l.lightlevel + 255) / 3;
+ 		}
++		l.lightlevel = GunDarkness(l.lightlevel, roomlight, vr_gun_darkness);
+ 		l.lightlevel = viewsector->CheckSpriteGlow(l.lightlevel, playerpos);
+ 		l.isbelow = fakesec != viewsector && in_area == area_below;
+ 	}
+diff --git a/wadsrc/static/menudef.txt b/wadsrc/static/menudef.txt
+index b4fa109..4c0dd25 100644
+--- a/wadsrc/static/menudef.txt
++++ b/wadsrc/static/menudef.txt
+@@ -2769,6 +2769,7 @@ OptionMenu "OpenVROptions" protected
+ 	Option "$VRPREFMNU_DRAWCONTROLLERS",		openvr_drawControllers,					"OnOff"
+ 	Option "Stop-motion weapon hand",			vr_weapon_stopmotion,					"OnOff"
+ 	Slider "Stop-motion frames to skip",		vr_weapon_stopmotion_skip,				1, 12, 1, 0
++	Slider "Darkness hides the gun",			vr_gun_darkness,						0, 2, 0.1, 1
+ 	StaticText " "
+ 	StaticText "Two-handed long guns", 1
+ 	Slider "Least hand separation",				vr_two_handed_min_sep,					0, 40, 1, 0
 -- 
 2.55.0.windows.3
 
