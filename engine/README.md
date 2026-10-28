@@ -61,7 +61,7 @@ The result goes in its own folder (`gzdoomvr-tefa/`) beside the original engine;
   light source, so it illuminates the world around it as i move it! this is awesome!"* Asked for: half the light radius, and the
   blue flicker (the lamp looked grey). Both changed, not worn yet.
 - **Stop-motion hand: DROPPED.** 12 updates a second felt bad, and so did skipping a single frame: *"stop motion is not good in here, so we'll drop that going forward"* `[reported 2026-09-17, n=1]`. The setting is off; the code stays, harmlessly.
-- **Two-handed long guns: BUILT AND IN THE GAME FOLDER, not yet worn** (2026-09-19, home PC `RTX`).
+- **Two-handed long guns: BUILT AND IN THE GAME FOLDER, not yet worn** (2026-09-19, home PC).
   The four edits described in `TWO-HANDED-AIM.md` were applied, plus three settings and menu sliders that the
   document did not ask for; the engine compiles clean and starts, ZScript loads with the new `TwoHandedAim`
   field, and all three settings read back their defaults in the running build `[verified-live 2026-09-19, n=1
