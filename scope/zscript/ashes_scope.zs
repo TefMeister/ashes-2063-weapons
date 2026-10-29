@@ -6,8 +6,8 @@
 // and the camera is removed, so nothing extra is rendered.
 //
 // The method (a camera texture, and the glass surface's skin swapped with A_ChangeModel / CMDL_USESURFACESKIN) is the
-// one the scope in the BD22Q VR pack uses, which another Brutal Doom VR modder kindly sent Tefa on 2026-10-29. This file
-// is our own code for our engine's gun-hand fields (AttackPos, AttackAngle, AttackPitch, AttackRoll); none of the pack's
+// one the scope in the BD22Q VR pack uses, by presidentkoopa (github.com/presidentkoopa/RSQ_UBQSeries), who kindly sent
+// it to Tefa on 2026-10-29. This file is our own code for our engine's gun-hand fields (AttackPos, AttackAngle, AttackPitch, AttackRoll); none of the pack's
 // code is copied into it.
 //
 // Not yet run in the game [hypothesis]: the pitch and roll signs, the picture's left-right, and whether a tic-rate
