@@ -1,2 +1,19 @@
 - 2026-10-16 settled `all-games--a-universal-poser-finds-a-game-s-hand-and-arm-joints-by-itself-then-be` - A universal poser: finds a game's hand and arm joints by itself, then bends them with sliders (Tefa: already being worked on in another session; cleared here)
 - 2026-10-16 settled `all-games--a-hand-and-body-poser-like-emv-engine-s-for-our-other-third-person-gam` - A hand and body poser like EMV Engine's, for our other third-person games (Tefa: already being worked on in another session; cleared here)
+- 2026-10-29 chosen `ashes-2063--weapons-built-from-real-cube-pixels-not-smooth-models-with-pixel-paint` - Weapons built from real cube pixels, not smooth models with pixel paint
+- 2026-10-29 chosen `ashes-2063--darkness-hides-the-guns-as-much-as-the-room-is-dark` - Darkness hides the guns, as much as the room is dark
+- 2026-10-29 chosen `ashes-2063--weapons-dissolve-out-and-un-dissolve-in-when-you-switch` - Weapons dissolve out and un-dissolve in when you switch
+- 2026-10-29 chosen `ashes-2063--the-left-hand-is-recognised-in-the-game` - The left hand is recognised in the game
+- 2026-10-29 chosen `ashes-2063--two-hands-on-long-guns` - Two hands on long guns
+- 2026-10-29 dropped `ashes-2063--hands-modelled-into-the-long-guns-themselves` - Hands modelled into the long guns themselves
+- 2026-10-29 chosen `ashes-2063--a-left-hand-that-is-always-there-on-the-left-controller` - A left hand that is always there, on the left controller
+- 2026-10-29 chosen `ashes-2063--floating-hands-you-can-see` - Floating hands you can see
+- 2026-10-29 chosen `ashes-2063--enemies-come-apart-when-you-shoot-them` - Enemies come apart when you shoot them
+- 2026-10-29 chosen `ashes-2063--big-guns-knock-enemies-backwards-and-kills-send-them-flying` - Big guns knock enemies backwards, and kills send them flying
+- 2026-10-29 dropped `all-games--let-the-game-s-own-animations-take-over-the-hands-then-hand-control-ba` - Let the game's own animations take over the hands, then hand control back
+- 2026-10-29 chosen `all-games--two-hands-on-the-weapon-makes-the-bullet-spread-go-away` - Two hands on the weapon makes the bullet spread go away
+- 2026-10-29 chosen `all-games--software-that-cancels-controller-drift-when-one-controller-hides-behin` - Software that cancels controller drift when one controller hides behind the other
+- 2026-10-29 dropped `all-games--a-launcher-to-switch-gameplay-features-on-or-off-before-playing` - A launcher to switch gameplay features on or off before playing
+- 2026-10-29 chosen `all-games--bullet-casings-stay-on-the-floor-until-the-level-ends` - Bullet casings stay on the floor until the level ends
+- 2026-10-29 chosen `all-games--left-and-right-handed-profiles` - Left- and right-handed profiles
+- 2026-10-29 chosen `all-games--vr-comfort-options` - VR comfort options

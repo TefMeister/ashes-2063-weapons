@@ -48,3 +48,5 @@ dissolve built here is a short step from the Brutal Doom weapons on the Doom pag
 That is a second reason to answer the shader question first.
 
 ---
+
+Chosen by Tefa: 2026-10-29

@@ -11,3 +11,5 @@ Shared: yes
 Verbatim record: [`inbox/2026-10-28-dump-sh2-all-games-re-menus.md`](../inbox/2026-10-28-dump-sh2-all-games-re-menus.md)
 
 ---
+
+Chosen by Tefa: 2026-10-29

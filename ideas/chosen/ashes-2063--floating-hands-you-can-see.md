@@ -19,3 +19,5 @@ half of the work. Two hands on long guns below wants exactly this too.
 ⚠️ Not checked in the real game.
 
 ---
+
+Chosen by Tefa: 2026-10-29

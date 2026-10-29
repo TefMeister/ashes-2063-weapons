@@ -30,3 +30,5 @@ time your left hand is simply missing, which feels wrong in a headset.
 ⚠️ **Not checked:** nobody has put a hand model on the left controller yet. The lantern proves the route; it does
 not prove how a hand looks or feels there. Related: [Floating hands you can see](#floating-hands-you-can-see) is
 the same idea for both hands.
+
+Chosen by Tefa: 2026-10-29
