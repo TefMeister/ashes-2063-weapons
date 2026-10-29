@@ -428,3 +428,11 @@ from the exporter, and turn the baked per-face shade down so real light does the
   hand; Tefa wants the lantern with its hand designed together in Blender.
 - Nine Episode 1 forge weapons in the game as still models (forge/README.md): flat check, all drawn, no errors
   `[verified-live 2026-10-24, n=1, flat]`. Placement and size per gun NOT yet seen in the headset.
+
+## 2026-10-29 — a live scope on the FAL, and shine for it (dev PC, /pd)
+- Tefa sent another modder's Brutal Doom VR pack (BD22Q) and asked for its scope in Ashes, plus the guns catching light.
+  His pack has no light-catching guns (only muzzle and impact lights) `[inferred-static 2026-10-29]`, so ours is merged in.
+- Built as our own code with his method: the FAL's eyepiece lens is its own part, exported as surface 0, and
+  `scope/` draws a 3x camera picture on it while the FAL is held (`scope/README.md`). The FAL test pk3 also carries
+  its shine. Model checked on the dev PC `[compile-verified 2026-10-29]`; the script is not compiled or run yet.
+- Ashes is on the dev PC after all (`D:/ashes2063vr/`, stock gzdoomvr) `[measured 2026-10-29]`.

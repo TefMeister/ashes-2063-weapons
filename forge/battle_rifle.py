@@ -65,7 +65,10 @@ def build():
     # the box sight: a tall square tube on top, a lens at each end, a red sticker on its left
     m.cbox(96, 116, 10.0, rz1 + 1.5, rz1 + 15, fp.metal(DARK), bevel=1.0, edge=0.5)
     m.cbox(95, 117, 6.0, rz1 + 4, rz1 + 12, None, size=0.5, carve=True)
+    m.part = 'glass'                # the eyepiece lens on its own: the live scope view is drawn on it (../scope/)
     m.cyl(98, 99, 0, rz1 + 8, 3.0, (60, 90, 110), size=0.25, edge=0.25)
+    m.part = 'sight'
+    m.box(97.5, 98, -0.25, 0.25, rz1 + 7.75, rz1 + 8.25, (255, 40, 30), size=0.25)   # aiming dot on the glass
     m.cyl(113, 114, 0, rz1 + 8, 3.0, (90, 130, 150), size=0.25, edge=0.25)
     m.box(100, 101, -0.25, 0.25, rz1 + 6.5, rz1 + 9.5, (230, 40, 30), size=0.25)
     m.decal(["..###..", ".#####.", "#######", "#.....#", "#######", ".#####.", "..###.."], 102, rz1 + 12, '+y',
