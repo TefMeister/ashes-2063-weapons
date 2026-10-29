@@ -1,0 +1,641 @@
+diff --git a/src/common/rendering/hwrenderer/data/hw_vrmodes.h b/src/common/rendering/hwrenderer/data/hw_vrmodes.h
+index f5ec1e2..a488c37 100644
+--- a/src/common/rendering/hwrenderer/data/hw_vrmodes.h
++++ b/src/common/rendering/hwrenderer/data/hw_vrmodes.h
+@@ -85,6 +85,9 @@ struct VRMode
+ 	virtual bool GetWeaponTransformRaw(VSMatrix* out) const { return GetWeaponTransform(out); }
+ 	// off hand at render time, in Doom map coordinates; yaw in degrees
+ 	bool GetOffhandRenderPos(double* x, double* y, double* z, double* yaw) const;
++	// A part of the player's body (actor->BodyPart, body_rig.h) as a model matrix for this rendered frame, built
++	// the way a controller's is. false = no VR, body off, or no such part: draw the actor the ordinary way.
++	virtual bool GetBodyPartTransform(int part, VSMatrix* out) const { return false; }
+ 	virtual bool RenderPlayerSpritesCrossed() const { return false; }
+ 	virtual bool RenderPlayerSpritesInScene() const { return false; }
+ 	virtual bool IsInitialized() const { return true; }
+diff --git a/src/playsim/actor.h b/src/playsim/actor.h
+index 8407957..3a9ebd2 100644
+--- a/src/playsim/actor.h
++++ b/src/playsim/actor.h
+@@ -1658,6 +1658,7 @@ public:
+ 
+ 	//For VR, the off hand (the one not holding the weapon), for mods
+ 	bool FollowOffhand;	// set by a mod on any actor: draw it rigidly at the off hand, every rendered frame
++	int BodyPart;		// set by a mod on any actor: draw it as that part of the player's body (body_rig.h: 1 torso .. 10 shin R), every rendered frame
+ 	bool TwoHandedAim;	// set by a mod on the PLAYER: aim shots from the weapon hand THROUGH the off hand
+ 	bool OffhandValid;
+ 	DVector3 OffhandPos;
+diff --git a/src/r_data/models.cpp b/src/r_data/models.cpp
+index d108811..60a3cee 100644
+--- a/src/r_data/models.cpp
++++ b/src/r_data/models.cpp
+@@ -139,10 +139,25 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
+ 	if (smf_flags & MDL_USEACTORROLL) roll += angles.Roll.Degrees();
+ 
+ 	VSMatrix objectToWorldMatrix;
+-	objectToWorldMatrix.loadIdentity();
++	// VR: a part of the player's body (body_rig.h). The rig hands over the part's own frame in the world for
++	// this rendered frame, built the way a controller's is (metres, the controller chain), so the actor's
++	// position, angle, pitch and roll play no part. The model file's axes (X forward, Y left, Z up; loaded
++	// here as GL X, Z, Y) are turned into that frame (x right, y up, z back). MODELDEF scale and offsets
++	// still apply after this, so a model built in centimetres uses Scale 0.01.
++	bool bodyPosed = false;
++	if (actor->BodyPart > 0 && VRMode::GetVRMode(true)->GetBodyPartTransform(actor->BodyPart, &objectToWorldMatrix))
++	{
++		static const float kModelToPart[16] = { 0, 0, -1, 0,   0, 1, 0, 0,   -1, 0, 0, 0,   0, 0, 0, 1 };
++		objectToWorldMatrix.multMatrix(kModelToPart);
++		bodyPosed = true;
++	}
++	else
++	{
++		objectToWorldMatrix.loadIdentity();
+ 
+-	// Model space => World space
+-	objectToWorldMatrix.translate(x, z, y);
++		// Model space => World space
++		objectToWorldMatrix.translate(x, z, y);
++	}
+ 
+ 	// [Nash] take SpriteRotation into account
+ 	angle += actor->SpriteRotation.Degrees();
+@@ -152,24 +167,27 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
+ 
+ 	// [MK] distortions might happen depending on when the pixel stretch is compensated for
+ 	// so we make the "undistorted" behavior opt-in
+-	if (smf_flags & MDL_CORRECTPIXELSTRETCH)
++	if (!bodyPosed && (smf_flags & MDL_CORRECTPIXELSTRETCH))
+ 	{
+ 		stretch = (smf->modelIDs[0] != -1 ? Models[smf->modelIDs[0]]->getAspectFactor(actor->Level->info->pixelstretch) : 1.f) / actor->Level->info->pixelstretch;
+ 		objectToWorldMatrix.scale(1, stretch, 1);
+ 	}
+ 
+ 	// Applying model transformations:
+-	// 1) Applying actor angle, pitch and roll to the model
+-	if (smf_flags & MDL_USEROTATIONCENTER)
++	// 1) Applying actor angle, pitch and roll to the model (a body part already has its frame)
++	if (!bodyPosed)
+ 	{
+-		objectToWorldMatrix.translate(smf->rotationCenterX, smf->rotationCenterZ/stretch, smf->rotationCenterY);
+-	}
+-	objectToWorldMatrix.rotate(-angle, 0, 1, 0);
+-	objectToWorldMatrix.rotate(pitch, 0, 0, 1);
+-	objectToWorldMatrix.rotate(-roll, 1, 0, 0);
+-	if (smf_flags & MDL_USEROTATIONCENTER)
+-	{
+-		objectToWorldMatrix.translate(-smf->rotationCenterX, -smf->rotationCenterZ/stretch, -smf->rotationCenterY);
++		if (smf_flags & MDL_USEROTATIONCENTER)
++		{
++			objectToWorldMatrix.translate(smf->rotationCenterX, smf->rotationCenterZ/stretch, smf->rotationCenterY);
++		}
++		objectToWorldMatrix.rotate(-angle, 0, 1, 0);
++		objectToWorldMatrix.rotate(pitch, 0, 0, 1);
++		objectToWorldMatrix.rotate(-roll, 1, 0, 0);
++		if (smf_flags & MDL_USEROTATIONCENTER)
++		{
++			objectToWorldMatrix.translate(-smf->rotationCenterX, -smf->rotationCenterZ/stretch, -smf->rotationCenterY);
++		}
+ 	}
+ 
+ 	// 2) Applying Doomsday like rotation of the weapon pickup models
+@@ -193,7 +211,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
+ 	objectToWorldMatrix.rotate(smf->pitchoffset, 0, 0, 1);
+ 	objectToWorldMatrix.rotate(-smf->rolloffset, 1, 0, 0);
+ 
+-	if (!(smf_flags & MDL_CORRECTPIXELSTRETCH))
++	if (!bodyPosed && !(smf_flags & MDL_CORRECTPIXELSTRETCH))
+ 	{
+ 		stretch = (smf->modelIDs[0] != -1 ? Models[smf->modelIDs[0]]->getAspectFactor(actor->Level->info->pixelstretch) : 1.f) / actor->Level->info->pixelstretch;
+ 		objectToWorldMatrix.scale(1, stretch, 1);
+diff --git a/src/rendering/gl/stereo3d/body_rig.h b/src/rendering/gl/stereo3d/body_rig.h
+new file mode 100644
+index 0000000..a8dd1e4
+--- /dev/null
++++ b/src/rendering/gl/stereo3d/body_rig.h
+@@ -0,0 +1,314 @@
++// body_rig.h -- a body for the player: where every part of it is, on every rendered frame (2026-10-29, /pd)
++//
++// Pure maths, plain doubles, no GZDoom and no OpenVR types, so engine/body_rig_test.cpp can compile
++// and run THIS FILE on a machine with no engine source and no headset. The engine calls update()
++// once per rendered frame and does nothing else with the numbers but draw them, so what the test
++// checks is what ships. Same shape as two_handed_aim.h / two_handed_pose.h beside it.
++//
++// THE PROBLEM. In the headset the player is a camera and two gloves. Tefa asked for a body under
++// the camera and arms running from the gloves to the shoulders (body/README.md), mechanics first,
++// looks later. Only three things are ever tracked -- the head and the two hands -- so everything
++// else is GUESSED from them, every frame, the way every VR game with a body does it:
++//
++//   head  ->  neck  ->  shoulders  ->  (two-bone IK to each controller)  ->  elbows
++//         ->  torso ->  hips       ->  (two-bone IK down to the floor)    ->  knees, ankles
++//
++// Everything here is in OpenVR's absolute tracking space: right-handed, metres, +Y up, and a
++// frame's FORWARD is its -Z (the direction a controller points out of its front). The engine turns
++// each part's pose into GZDoom's world with the very same chain a real controller goes through
++// (OpenVRMode::GetPoseTransform), so a part is drawn exactly where a controller held there would be.
++//
++// A PART'S OWN FRAME, which the model files are built against (body/build_body_test.py):
++//   LIMBS (upper arm, forearm, thigh, shin): origin at the upper joint (shoulder, elbow, hip, knee);
++//     -Z along the limb towards the next joint; +Y the side the up-hint points to (the front of a
++//     leg, the back of a hand for a forearm); +X the right-handed completion.
++//   TORSO and HIPS: origin at the neck base / the hip centre; -Z the body's forward, +Y up, +X the
++//     body's right. They hang DOWN from their origin, along -Y.
++//
++// ⚠️ WHAT IS NOT ESTABLISHED. Nothing here has been run in the game or worn. Every length below is
++// an average adult's for a 1.75 m player, scaled by the player's height, and every one is a guess
++// until someone stands in the headset and says the elbow is in the wrong place. They are settings
++// (Params), not constants, for exactly that reason. [hypothesis]
++#pragma once
++#include <cmath>
++
++namespace brg {
++
++constexpr double kPi = 3.14159265358979323846;
++constexpr double kDefaultHeight = 1.75;   // metres; every measurement in Params is for a player this tall
++
++enum Part { None = 0, Torso, Hips, UpperArmL, ForearmL, UpperArmR, ForearmR, ThighL, ShinL, ThighR, ShinR, kPartCount };
++enum Side { Left = 0, Right = 1 };        // OpenVR's controller roles: 0 = left hand, 1 = right hand
++
++inline const char* part_name(int p)
++{
++	static const char* names[kPartCount] = { "none", "torso", "hips", "upper arm L", "forearm L", "upper arm R",
++		"forearm R", "thigh L", "shin L", "thigh R", "shin R" };
++	return (p > 0 && p < kPartCount) ? names[p] : "?";
++}
++
++struct Vec { double x, y, z; };
++inline Vec vec(double x, double y, double z) { Vec r; r.x = x; r.y = y; r.z = z; return r; }
++inline Vec operator+(Vec a, Vec b) { return vec(a.x + b.x, a.y + b.y, a.z + b.z); }
++inline Vec operator-(Vec a, Vec b) { return vec(a.x - b.x, a.y - b.y, a.z - b.z); }
++inline Vec operator*(Vec a, double s) { return vec(a.x * s, a.y * s, a.z * s); }
++inline double dot(Vec a, Vec b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
++inline Vec cross(Vec a, Vec b) { return vec(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x); }
++inline double len(Vec a) { return std::sqrt(dot(a, a)); }
++inline Vec unit(Vec a) { double l = len(a); return l > 1e-12 ? a * (1.0 / l) : vec(0, 0, 0); }   // zero stays zero
++inline Vec horizontal(Vec a) { return vec(a.x, 0, a.z); }
++
++struct Basis { Vec x, y, z; };            // the columns of a rotation: where the frame's local axes point
++struct Pose { bool valid; Vec pos; Basis b; };
++
++inline Basis identity_basis() { Basis b; b.x = vec(1, 0, 0); b.y = vec(0, 1, 0); b.z = vec(0, 0, 1); return b; }
++inline Vec forward_of(const Basis& b) { return b.z * -1.0; }
++
++struct Hand { bool valid; Vec pos; Basis b; };
++
++struct Input {
++	Vec head_pos;       // the HMD's own origin (between the eyes, in front of the head's centre)
++	Basis head;         // the HMD's frame: -Z where the face points, +Y out of the top of the head
++	Hand hand[2];       // [Left], [Right]; valid = tracked this frame
++	double floor_y;     // tracking-space height of the real floor (vr_floor_offset)
++	// How the player is moving through the level (stick walking, not real-room steps): the legs step
++	// with it (Tefa, 2026-10-29: "legs animating with player speed"). speed in m/s; move_dir a
++	// horizontal unit vector in tracking space (anything when speed is 0).
++	double speed;
++	Vec move_dir;
++};
++
++// Every number is for a kDefaultHeight player and is multiplied by height / kDefaultHeight.
++struct Params {
++	double height = kDefaultHeight;      // the player's height in metres (vr_body_height)
++	// head and neck
++	double head_centre_back = 0.08;      // the HMD origin sits this far in front of the head's centre
++	double neck_below_head  = 0.12;      // head centre to the base of the neck (the point the head turns about)
++	// shoulders
++	double shoulder_half_width = 0.19;   // neck to each shoulder joint, sideways
++	double shoulder_below_neck = 0.04;
++	// arms
++	double upper_arm = 0.32;             // shoulder joint to elbow
++	double forearm   = 0.27;             // elbow to wrist
++	double wrist_back_of_controller = 0.06;   // the controller's origin is in the palm; the wrist is behind it...
++	double wrist_below_controller   = 0.02;   // ...and a little below it
++	double elbow_out  = 0.6;             // where the elbow bends to, as a direction in the body's frame:
++	double elbow_down = 1.0;             //   out to the side, down, and back. Shape only; it is normalised.
++	double elbow_back = 0.3;
++	// torso and legs
++	double torso_length   = 0.55;        // neck base to hip centre
++	double hip_half_width = 0.10;        // hip centre to each hip joint
++	double thigh = 0.45;                 // hip joint to knee
++	double shin  = 0.45;                 // knee to ankle
++	double ankle_above_floor = 0.08;
++	// how the body turns after the head
++	double yaw_deadzone_deg = 25.0;      // a glance this far to the side does not swing the chest
++	double yaw_rate = 4.0;               // per second; how fast the chest catches up once outside the dead zone
++	double hand_yaw_weight = 0.5;        // the chest also turns towards where the hands are (0 = head only)
++	double hand_yaw_min_reach = 0.15;    // hands closer than this to the body's axis say nothing about its facing
++	double hand_yaw_max_deg = 90.0;      // hands further round than this (behind the back) are ignored
++	// walking: the feet step along the direction of travel, one after the other
++	double stride = 0.65;                // metres covered by one full step cycle (both feet) at full amplitude
++	double step_height = 0.08;           // how high a swinging foot lifts
++	double walk_full_speed = 1.2;        // m/s at which the steps reach their full length
++	double walk_min_speed = 0.1;         // below this the player is standing: the feet settle under the hips
++	double walk_settle_rate = 6.0;       // per second; how fast the steps fade in and out and the feet settle
++};
++
++struct State {
++	bool started = false;
++	double body_yaw = 0.0;               // degrees; 0 = facing -Z, positive = turned to the left
++	double walk_phase = 0.0;             // step cycles; the left foot is forward at 0, the right at 0.5
++	double walk_amp = 0.0;               // 0 = standing, 1 = full stride
++};
++
++struct Rig {
++	Pose parts[kPartCount];
++	double body_yaw = 0.0;
++	Vec body_forward, body_right;        // horizontal unit vectors
++	Vec neck, hip_centre;
++	Vec shoulder[2], elbow[2], wrist[2]; // [Left], [Right]
++	Vec hip[2], knee[2], ankle[2];
++	bool arm_straight[2];                // the controller was out of reach; the forearm points at it and stops short
++	double walk_phase = 0.0, walk_amp = 0.0;
++	double foot_lift[2];                 // how high each foot is off the floor this frame
++};
++
++inline double wrap_deg(double a) { while (a > 180.0) a -= 360.0; while (a <= -180.0) a += 360.0; return a; }
++// Yaw of a horizontal direction: 0 facing -Z, +90 facing -X (to the left; right-handed about +Y).
++inline double yaw_of(Vec fwd) { return std::atan2(-fwd.x, -fwd.z) * (180.0 / kPi); }
++inline Vec forward_from_yaw(double yaw_deg) { double r = yaw_deg * kPi / 180.0; return vec(-std::sin(r), 0, -std::cos(r)); }
++inline Vec right_from_yaw(double yaw_deg)   { double r = yaw_deg * kPi / 180.0; return vec(std::cos(r), 0, -std::sin(r)); }
++
++// A limb's frame: origin `from`, -Z pointing at `to`, +Y the up-hint made perpendicular (the fallback
++// when the hint lies along the limb), +X completing a right-handed frame.
++inline Basis limb_basis(Vec from, Vec to, Vec up_hint, Vec up_fallback)
++{
++	Vec fwd = unit(to - from);
++	Vec y = up_hint - fwd * dot(up_hint, fwd);
++	if (len(y) < 1e-6) y = up_fallback - fwd * dot(up_fallback, fwd);
++	if (len(y) < 1e-6) y = cross(fwd, vec(1, 0, 0));            // both hints along the limb: anything perpendicular
++	Basis b;
++	b.z = fwd * -1.0;
++	b.y = unit(y);
++	b.x = cross(b.y, b.z);
++	return b;
++}
++
++// Two-bone IK: a joint at S, a bone of length L1 to the middle joint, a bone of length L2 to the
++// target T. Returns the middle joint, bent towards `pole` (the side the elbow / knee goes). Out of
++// reach: the first bone points straight at T (`*straight` = true), the second will stop short.
++inline Vec two_bone(Vec S, Vec T, double L1, double L2, Vec pole, Vec pole_fallback, bool* straight)
++{
++	*straight = false;
++	Vec d = T - S;
++	double dist = len(d);
++	if (dist < 1e-9) return S + unit(pole) * L1;                 // target on the joint itself: fold along the pole
++	Vec axis = d * (1.0 / dist);
++	double a, h;
++	if (dist >= L1 + L2) { a = L1; h = 0.0; *straight = true; }
++	else
++	{
++		a = (L1 * L1 - L2 * L2 + dist * dist) / (2.0 * dist);
++		if (a > L1) a = L1;
++		if (a < -L1) a = -L1;
++		h = std::sqrt(L1 * L1 - a * a);
++	}
++	Vec perp = pole - axis * dot(pole, axis);
++	if (len(perp) < 1e-6) perp = pole_fallback - axis * dot(pole_fallback, axis);
++	if (len(perp) < 1e-6) perp = cross(axis, vec(1, 0, 0));
++	return S + axis * a + unit(perp) * h;
++}
++
++// Where the chest faces this frame, from where it faced last frame, the head and the hands.
++inline double follow_yaw(const State& st, double head_yaw, bool hands_known, double hands_yaw, const Params& p, double dt)
++{
++	double target = head_yaw;
++	if (hands_known)
++	{
++		double off = wrap_deg(hands_yaw - head_yaw);
++		if (std::fabs(off) <= p.hand_yaw_max_deg) target = head_yaw + p.hand_yaw_weight * off;
++	}
++	if (!st.started) return wrap_deg(target);
++	double diff = wrap_deg(target - st.body_yaw);
++	if (std::fabs(diff) <= p.yaw_deadzone_deg) return st.body_yaw;
++	double overshoot = diff - (diff > 0 ? p.yaw_deadzone_deg : -p.yaw_deadzone_deg);  // how far outside the dead zone
++	double k = 1.0 - std::exp(-p.yaw_rate * (dt > 0 ? dt : 0));
++	return wrap_deg(st.body_yaw + overshoot * k);
++}
++
++inline void update(const Input& in, const Params& p, double dt, State& st, Rig& out)
++{
++	const double s = p.height / kDefaultHeight;
++	const Vec up = vec(0, 1, 0);
++	const Vec down = vec(0, -1, 0);
++
++	// 1. The neck: behind and below the HMD, along the head's own axes, so it stays put when the head nods.
++	const Vec head_fwd = forward_of(in.head);
++	const Vec head_centre = in.head_pos - head_fwd * (p.head_centre_back * s);
++	out.neck = head_centre - in.head.y * (p.neck_below_head * s);
++
++	// 2. Which way the body faces.
++	const double head_yaw = yaw_of(horizontal(head_fwd));
++	bool hands_known = in.hand[Left].valid && in.hand[Right].valid;
++	double hands_yaw = head_yaw;
++	if (hands_known)
++	{
++		Vec mid = (in.hand[Left].pos + in.hand[Right].pos) * 0.5;
++		Vec reach = horizontal(mid - out.neck);
++		if (len(reach) >= p.hand_yaw_min_reach * s) hands_yaw = yaw_of(reach);
++		else hands_known = false;
++	}
++	out.body_yaw = follow_yaw(st, head_yaw, hands_known, hands_yaw, p, dt);
++	st.body_yaw = out.body_yaw;
++	st.started = true;
++	out.body_forward = forward_from_yaw(out.body_yaw);
++	out.body_right = right_from_yaw(out.body_yaw);
++	Basis body;
++	body.x = out.body_right; body.y = up; body.z = out.body_forward * -1.0;
++
++	// 3. Walking: a step cycle that runs with the player's speed and fades out when they stand.
++	//    Each foot swings forward along the direction of travel, lifted while it swings, and then
++	//    stays planted while the body carries on past it (so, relative to the hips, it slides back).
++	const double k_settle = 1.0 - std::exp(-p.walk_settle_rate * (dt > 0 ? dt : 0));
++	const bool walking = in.speed >= p.walk_min_speed;
++	const double amp_target = walking ? (in.speed / p.walk_full_speed > 1.0 ? 1.0 : in.speed / p.walk_full_speed) : 0.0;
++	st.walk_amp += (amp_target - st.walk_amp) * k_settle;
++	if (walking)
++	{
++		st.walk_phase += in.speed * (dt > 0 ? dt : 0) / (p.stride * s);
++		st.walk_phase -= std::floor(st.walk_phase);
++	}
++	else
++	{
++		// settle on the nearest rest point (0 or 0.5: with the amplitude fading, both feet end under the hips)
++		double rest = std::floor(st.walk_phase * 2.0 + 0.5) / 2.0;
++		st.walk_phase += (rest - st.walk_phase) * k_settle;
++	}
++	out.walk_phase = st.walk_phase;
++	out.walk_amp = st.walk_amp;
++	Vec travel = horizontal(in.move_dir);
++	travel = len(travel) > 1e-6 ? unit(travel) : out.body_forward;
++	const double along_max = out.walk_amp * (p.stride * s) * 0.5;   // the furthest a foot gets from under its hip
++
++	// 4. Torso and hips hang from the neck. If the legs cannot reach the floor the hips come down to
++	//    where they can (the torso stretches a little rather than the feet floating); mid-stride that
++	//    is a little lower still, so the foot swung out in front can still be reached.
++	out.parts[Torso].valid = true; out.parts[Torso].pos = out.neck; out.parts[Torso].b = body;
++	out.hip_centre = out.neck + down * (p.torso_length * s);
++	const double leg_len = (p.thigh + p.shin) * s;
++	const double leg_reach = std::sqrt(leg_len * leg_len - along_max * along_max) + p.ankle_above_floor * s;
++	if (out.hip_centre.y - in.floor_y > leg_reach) out.hip_centre.y = in.floor_y + leg_reach;
++	out.parts[Hips].valid = true; out.parts[Hips].pos = out.hip_centre; out.parts[Hips].b = body;
++
++	// 5. Arms: shoulder to the controller, elbow out, down and back.
++	for (int side = 0; side < 2; ++side)
++	{
++		const double sgn = (side == Right) ? 1.0 : -1.0;
++		out.shoulder[side] = out.neck + out.body_right * (sgn * p.shoulder_half_width * s) + down * (p.shoulder_below_neck * s);
++		const Hand& h = in.hand[side];
++		Vec hand_up = up;
++		if (h.valid)
++		{
++			out.wrist[side] = h.pos + h.b.z * (p.wrist_back_of_controller * s) - h.b.y * (p.wrist_below_controller * s);
++			hand_up = h.b.y;
++		}
++		else
++		{
++			// Not tracked: the arm hangs by the side, a little forward, so the sleeve does not vanish.
++			out.wrist[side] = out.shoulder[side] + down * ((p.upper_arm + p.forearm) * s) + out.body_forward * (0.05 * s);
++		}
++		Vec pole = out.body_right * (sgn * p.elbow_out) + down * p.elbow_down - out.body_forward * p.elbow_back;
++		out.elbow[side] = two_bone(out.shoulder[side], out.wrist[side], p.upper_arm * s, p.forearm * s, pole, down, &out.arm_straight[side]);
++		const int ua = (side == Right) ? UpperArmR : UpperArmL;
++		const int fa = (side == Right) ? ForearmR : ForearmL;
++		out.parts[ua].valid = true; out.parts[ua].pos = out.shoulder[side];
++		out.parts[ua].b = limb_basis(out.shoulder[side], out.elbow[side], up, out.body_forward * -1.0);
++		out.parts[fa].valid = true; out.parts[fa].pos = out.elbow[side];
++		out.parts[fa].b = limb_basis(out.elbow[side], out.wrist[side], hand_up, up);
++	}
++
++	// 6. Legs: each hip down to its foot target, knees bending forward when the hips are low (crouching).
++	for (int side = 0; side < 2; ++side)
++	{
++		const double sgn = (side == Right) ? 1.0 : -1.0;
++		out.hip[side] = out.hip_centre + out.body_right * (sgn * p.hip_half_width * s);
++		const double phase = out.walk_phase + (side == Right ? 0.5 : 0.0);
++		const double along = out.walk_amp * (p.stride * s) * 0.5 * std::cos(2.0 * kPi * phase);
++		const double swing = -std::sin(2.0 * kPi * phase);                  // > 0 while this foot moves forward
++		out.foot_lift[side] = out.walk_amp * (p.step_height * s) * (swing > 0 ? swing : 0.0);
++		out.ankle[side] = vec(out.hip[side].x, in.floor_y + p.ankle_above_floor * s, out.hip[side].z)
++			+ travel * along + up * out.foot_lift[side];
++		bool straight;
++		out.knee[side] = two_bone(out.hip[side], out.ankle[side], p.thigh * s, p.shin * s, out.body_forward, out.body_right, &straight);
++		const int th = (side == Right) ? ThighR : ThighL;
++		const int sh = (side == Right) ? ShinR : ShinL;
++		out.parts[th].valid = true; out.parts[th].pos = out.hip[side];
++		out.parts[th].b = limb_basis(out.hip[side], out.knee[side], out.body_forward, out.body_right);
++		out.parts[sh].valid = true; out.parts[sh].pos = out.knee[side];
++		out.parts[sh].b = limb_basis(out.knee[side], out.ankle[side], out.body_forward, out.body_right);
++	}
++	out.parts[None].valid = false;
++}
++
++} // namespace brg
+diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
+index d6a1c53..d6f32ed 100644
+--- a/src/rendering/gl/stereo3d/gl_openvr.cpp
++++ b/src/rendering/gl/stereo3d/gl_openvr.cpp
+@@ -50,6 +50,18 @@
+ #include "LSMatrix.h"
+ #include "two_handed_aim.h"	// two-handed long guns: where does the gun actually point
+ #include "two_handed_pose.h"	// two-handed long guns: which way is the gun DRAWN
++
++// The player's body (body_rig.h): torso, arms and legs worked out from the head and the two controllers,
++// drawn by any actor a mod gives a BodyPart. Every measurement is for a 1.75 m player and scales with the
++// height set here; the rest are the knobs most likely to need a turn after the first wear.
++CVAR(Bool, vr_body, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
++CVAR(Float, vr_body_height, 1.75f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)			// the player's height, metres
++CVAR(Float, vr_body_yaw_deadzone, 25.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// a glance this far to the side does not turn the chest
++CVAR(Float, vr_body_yaw_rate, 4.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)		// how fast the chest catches up with the head, per second
++CVAR(Float, vr_body_stride, 0.65f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)		// metres per full step cycle when walking
++CVAR(Float, vr_body_step_height, 0.08f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// how high a swinging foot lifts
++CVAR(Bool, vr_body_mirror, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)			// flip every part left-for-right, if the first wear shows them mirrored
++CVAR(Bool, vr_body_debug, false, 0)												// print the rig's joints to the console, throttled
+ //#include "common/filesystem/filesystem.h"
+ #include "m_joy.h"
+ #include "d_gui.h"
+@@ -1204,6 +1216,102 @@ namespace s3d
+ 		return GetWeaponTransformRaw(out);
+ 	}
+ 
++	// The player's body (2026-10-29). Worked out ONCE per rendered frame, right after this frame's head and
++	// controller poses are read, so every part is drawn against the same poses as the gun and the off hand.
++	// All the maths is in body_rig.h (pure, tested on its own by engine/run_body_rig_test.bat); this only
++	// feeds it and keeps its state between frames.
++	static brg::Basis basisFromPose(const HmdMatrix34_t& m)
++	{
++		brg::Basis b;
++		b.x = brg::vec(m.m[0][0], m.m[1][0], m.m[2][0]);
++		b.y = brg::vec(m.m[0][1], m.m[1][1], m.m[2][1]);
++		b.z = brg::vec(m.m[0][2], m.m[1][2], m.m[2][2]);
++		return b;
++	}
++
++	void OpenVRMode::UpdateBodyRig(const HmdMatrix34_t& hmdPose) const
++	{
++		if (!vr_body)
++		{
++			for (int i = 0; i < brg::kPartCount; ++i) bodyRig.parts[i].valid = false;
++			return;
++		}
++		brg::Input in;
++		in.head_pos = brg::vec(hmdPose.m[0][3], hmdPose.m[1][3], hmdPose.m[2][3]);
++		in.head = basisFromPose(hmdPose);
++		for (int h = 0; h < 2; ++h)
++		{
++			in.hand[h].valid = controllers[h].active;
++			const HmdMatrix34_t& m = controllers[h].pose.mDeviceToAbsoluteTracking;
++			in.hand[h].pos = brg::vec(m.m[0][3], m.m[1][3], m.m[2][3]);
++			in.hand[h].b = basisFromPose(m);
++		}
++		in.floor_y = vr_floor_offset;
++		in.speed = 0;
++		in.move_dir = brg::vec(0, 0, -1);
++
++		// How the player moves through the level, for the legs: the game's own velocity (map units per
++		// tic) in metres per second, and its direction RELATIVE TO THE FACING -- the player's angle and the
++		// headset's yaw are the same facing in two frames, so the relative angle carries over as it is.
++		auto player = (r_viewpoint.camera != nullptr) ? r_viewpoint.camera->player : nullptr;
++		if (player != nullptr && player->mo != nullptr)
++		{
++			const DVector2 v = player->mo->Vel.XY();
++			in.speed = v.Length() * TICRATE / vr_vunits_per_meter;
++			if (in.speed > 0.001)
++			{
++				const double rel = (v.Angle() - player->mo->Angles.Yaw).Degrees();
++				const double head_yaw = brg::yaw_of(brg::horizontal(brg::forward_of(in.head)));
++				in.move_dir = brg::forward_from_yaw(head_yaw + rel);
++			}
++		}
++
++		brg::Params p;
++		p.height = vr_body_height > 1.0f ? vr_body_height : 1.0f;
++		p.yaw_deadzone_deg = vr_body_yaw_deadzone;
++		p.yaw_rate = vr_body_yaw_rate;
++		p.stride = vr_body_stride > 0.1f ? vr_body_stride : 0.1f;
++		p.step_height = vr_body_step_height;
++
++		const uint64_t now = I_msTime();
++		double dt = bodyLastMs ? (now - bodyLastMs) / 1000.0 : 1.0 / 90.0;
++		if (dt > 0.1) dt = 0.1;		// a long pause (menu, load) is not a long step
++		bodyLastMs = now;
++
++		brg::update(in, p, dt, bodyState, bodyRig);
++
++		if (vr_body_debug)
++		{
++			static int bodyLog = 0;
++			if (++bodyLog >= 120)
++			{
++				bodyLog = 0;
++				Printf("body: yaw %.0f  neck (%.2f %.2f %.2f)  hips y %.2f  elbows L (%.2f %.2f %.2f) R (%.2f %.2f %.2f)%s%s  walk %.2f m/s amp %.2f\n",
++					bodyRig.body_yaw, bodyRig.neck.x, bodyRig.neck.y, bodyRig.neck.z, bodyRig.hip_centre.y,
++					bodyRig.elbow[0].x, bodyRig.elbow[0].y, bodyRig.elbow[0].z, bodyRig.elbow[1].x, bodyRig.elbow[1].y, bodyRig.elbow[1].z,
++					bodyRig.arm_straight[0] ? " L-straight" : "", bodyRig.arm_straight[1] ? " R-straight" : "", in.speed, bodyRig.walk_amp);
++			}
++		}
++	}
++
++	bool OpenVRMode::GetBodyPartTransform(int part, VSMatrix* out) const
++	{
++		if (!vr_body || part <= 0 || part >= brg::kPartCount || !bodyRig.parts[part].valid)
++			return false;
++		const brg::Pose& p = bodyRig.parts[part];
++		// The part's frame as a device pose, so it goes through exactly the chain a real controller does.
++		HmdMatrix34_t pose;
++		pose.m[0][0] = (float)p.b.x.x; pose.m[1][0] = (float)p.b.x.y; pose.m[2][0] = (float)p.b.x.z;
++		pose.m[0][1] = (float)p.b.y.x; pose.m[1][1] = (float)p.b.y.y; pose.m[2][1] = (float)p.b.y.z;
++		pose.m[0][2] = (float)p.b.z.x; pose.m[1][2] = (float)p.b.z.y; pose.m[2][2] = (float)p.b.z.z;
++		pose.m[0][3] = (float)p.pos.x; pose.m[1][3] = (float)p.pos.y; pose.m[2][3] = (float)p.pos.z;
++		if (!GetPoseTransform(pose, out))
++			return false;
++		if (vr_body_mirror)
++			out->scale(-1.0f, 1.0f, 1.0f);
++		return true;
++	}
++
+ 	static DVector3 MapAttackDir(AActor* actor, DAngle yaw, DAngle pitch)
+ 	{
+ 		LSMatrix44 mat;
+@@ -1773,6 +1881,9 @@ namespace s3d
+ 				}
+ 			}
+ 
++			// The player's body for this frame, from the head and controller poses just read (body_rig.h).
++			UpdateBodyRig(hmdPose);
++
+ 			LSMatrix44 mat;
+ 			if (player)
+ 			{
+diff --git a/src/rendering/gl/stereo3d/gl_openvr.h b/src/rendering/gl/stereo3d/gl_openvr.h
+index e0b65fe..f0b1e2d 100644
+--- a/src/rendering/gl/stereo3d/gl_openvr.h
++++ b/src/rendering/gl/stereo3d/gl_openvr.h
+@@ -29,6 +29,7 @@
+ 
+ #include "r_utility.h" // viewpitch
+ #include "hwrenderer/data/hw_vrmodes.h"
++#include "body_rig.h"	// the player's body: torso, arms and legs from the head and the two controllers
+ 
+ namespace openvr {
+ 	// forward declarations
+@@ -124,6 +125,7 @@ public:
+ 	virtual bool GetWeaponTransform(VSMatrix* out) const override;
+ 	virtual bool GetWeaponTransformRaw(VSMatrix* out) const override;
+ 	bool TwoHandedWeaponTransform(VSMatrix* out) const;
++	virtual bool GetBodyPartTransform(int part, VSMatrix* out) const override;
+ 	virtual bool RenderPlayerSpritesCrossed() const { return true; }
+ 	virtual bool RenderPlayerSpritesInScene() const { return true; }
+ 	virtual bool IsInitialized() const { return hmdWasFound; }
+@@ -137,6 +139,11 @@ protected:
+ 	OpenVRMode();
+ 	// void updateDoomViewDirection() const;
+ 	void updateHmdPose(FRenderViewpoint& vp, double hmdYawRadians, double hmdPitchRadians, double hmdRollRadians) const;
++	// The body rig, worked out once per rendered frame from this frame's head and controller poses (body_rig.h).
++	void UpdateBodyRig(const openvr::HmdMatrix34_t& hmdPose) const;
++	mutable brg::State bodyState;
++	mutable brg::Rig bodyRig;
++	mutable uint64_t bodyLastMs = 0;
+ 
+ 	OpenVREyePose* leftEyeView;
+ 	OpenVREyePose* rightEyeView;
+diff --git a/src/rendering/hwrenderer/scene/hw_sprites.cpp b/src/rendering/hwrenderer/scene/hw_sprites.cpp
+index 52949d5..eb99efb 100644
+--- a/src/rendering/hwrenderer/scene/hw_sprites.cpp
++++ b/src/rendering/hwrenderer/scene/hw_sprites.cpp
+@@ -814,6 +814,17 @@ void HWSprite::Process(HWDrawInfo *di, AActor* thing, sector_t * sector, area_t
+ 		double hx, hy, hz, hyaw;
+ 		if (VRMode::GetVRMode(true)->GetOffhandRenderPos(&hx, &hy, &hz, &hyaw)) thingpos = DVector3(hx, hy, hz);
+ 	}
++	if (thing->BodyPart > 0)
++	{
++		// VR: a part of the player's body. Its place this frame comes from the body rig (body_rig.h), not from
++		// the actor, so lighting and the sector are looked up where it is actually drawn.
++		VSMatrix bm;
++		if (VRMode::GetVRMode(true)->GetBodyPartTransform(thing->BodyPart, &bm))
++		{
++			auto f = bm.get();
++			thingpos = DVector3(f[12], f[14], f[13]);
++		}
++	}
+ 	if (thruportal == 1) thingpos += di->Level->Displacements.getOffset(thing->Sector->PortalGroup, sector->PortalGroup);
+ 
+ 	AActor *viewmaster = thing;
+diff --git a/src/scripting/vmthunks_actors.cpp b/src/scripting/vmthunks_actors.cpp
+index 1e31532..6ec2218 100644
+--- a/src/scripting/vmthunks_actors.cpp
++++ b/src/scripting/vmthunks_actors.cpp
+@@ -2140,6 +2140,7 @@ DEFINE_FIELD(AActor, AttackPitch)
+ DEFINE_FIELD(AActor, AttackRoll)
+ DEFINE_FIELD(AActor, AttackAngle)
+ DEFINE_FIELD(AActor, FollowOffhand)
++DEFINE_FIELD(AActor, BodyPart)
+ DEFINE_FIELD(AActor, TwoHandedAim)
+ DEFINE_FIELD(AActor, OffhandValid)
+ DEFINE_FIELD(AActor, OffhandPos)
+diff --git a/wadsrc/static/zscript/actors/actor.zs b/wadsrc/static/zscript/actors/actor.zs
+index 0bed3db..f821944 100644
+--- a/wadsrc/static/zscript/actors/actor.zs
++++ b/wadsrc/static/zscript/actors/actor.zs
+@@ -873,6 +873,7 @@ class Actor : Thinker native
+ 	native readonly double AttackAngle;
+ 	native readonly bool OverrideAttackPosDir;
+ 	native bool FollowOffhand;
++	native int BodyPart;	// 1 torso, 2 hips, 3 upper arm L, 4 forearm L, 5 upper arm R, 6 forearm R, 7 thigh L, 8 shin L, 9 thigh R, 10 shin R
+ 	native bool TwoHandedAim;
+ 	native readonly bool OffhandValid;
+ 	native readonly vector3 OffhandPos;
