@@ -5,7 +5,7 @@ the VR engine Ashes 2063 runs on here. Patch file: `gzdoomvr-gvr4.13.2.2-offhand
 
 ## What it adds
 1. **The off hand, for mods.** New read-only ZScript fields on the player actor: `OffhandValid`, `OffhandPos`,
-   `OffhandDir`, `OffhandAngle`, `OffhandPitch`, `OffhandRoll` (same conventions as the existing `AttackPos` etc. for
+   `OffhandDir` (renamed `OffhandForward` in the 2026-10-29 quest-compat step, see QUEST-COMPAT.md), `OffhandAngle`, `OffhandPitch`, `OffhandRoll` (same conventions as the existing `AttackPos` etc. for
    the weapon hand). Before this, mods could not see the off hand at all.
 2. **`FollowOffhand`**, a bool any mod can set on any actor: the engine then draws that actor at the off hand's pose of the
    current rendered frame (position and yaw), exactly like the weapon, instead of at its once-per-tic position. Without it a

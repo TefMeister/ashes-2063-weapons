@@ -1,0 +1,241 @@
+From 3c0df29df7af4576e25d8a568f05f3e468ad7143 Mon Sep 17 00:00:00 2001
+From: Tefa <TefMeister@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 12:50:15 +0200
+Subject: [PATCH] QuestZDoom script compatibility, step 1: OffhandDir(),
+ PlayInVR, off-hand weapon flags
+
+---
+ src/playsim/actor.h                           |  3 +-
+ src/playsim/d_player.h                        | 15 +++++++++
+ src/playsim/p_actionfunctions.cpp             | 15 ++++++++-
+ src/playsim/p_user.cpp                        |  1 +
+ src/rendering/gl/stereo3d/gl_openvr.cpp       | 31 +++++++++++++++++--
+ src/scripting/vmthunks_actors.cpp             |  2 +-
+ wadsrc/static/zscript/actors/actor.zs         |  3 +-
+ wadsrc/static/zscript/actors/player/player.zs |  1 +
+ wadsrc/static/zscript/constants.zs            | 14 +++++++++
+ 9 files changed, 79 insertions(+), 6 deletions(-)
+
+diff --git a/src/playsim/actor.h b/src/playsim/actor.h
+index b124322..8407957 100644
+--- a/src/playsim/actor.h
++++ b/src/playsim/actor.h
+@@ -1661,12 +1661,13 @@ public:
+ 	bool TwoHandedAim;	// set by a mod on the PLAYER: aim shots from the weapon hand THROUGH the off hand
+ 	bool OffhandValid;
+ 	DVector3 OffhandPos;
+-	DVector3 OffhandDir;
++	DVector3 OffhandForward;	// where the off hand points (was OffhandDir; that name is QuestZDoom's function now)
+ 	DAngle   OffhandAngle;
+ 	DAngle   OffhandPitch;
+ 	DAngle   OffhandRoll;
+ 
+ 	DVector3 (*AttackDir)(AActor* actor, DAngle yaw, DAngle pitch);
++	DVector3 (*OffhandDir)(AActor* actor, DAngle yaw, DAngle pitch) = nullptr;	// QuestZDoom compatibility
+ };
+ 
+ class FActorIterator
+diff --git a/src/playsim/d_player.h b/src/playsim/d_player.h
+index a717bb4..56ec75c 100644
+--- a/src/playsim/d_player.h
++++ b/src/playsim/d_player.h
+@@ -147,6 +147,20 @@ enum
+ 	WF_USER2OK			= 1 << 9,
+ 	WF_USER3OK			= 1 << 10,
+ 	WF_USER4OK			= 1 << 11,
++	// QuestZDoom's off-hand weapon states, same values, for mods written for it (2026-10-29, quest-compat)
++	WF_OFFHANDREADY			= 1 << 12,
++	WF_OFFHANDBOBBING		= 1 << 13,
++	WF_OFFHANDREADYALT		= 1 << 14,
++	WF_OFFHANDSWITCHOK		= 1 << 15,
++	WF_OFFHANDDISABLESWITCH	= 1 << 16,
++	WF_OFFHANDRELOADOK		= 1 << 17,
++	WF_OFFHANDZOOMOK		= 1 << 18,
++	WF_OFFHANDREFIRESWITCHOK = 1 << 19,
++	WF_OFFHANDUSER1OK		= 1 << 20,
++	WF_OFFHANDUSER2OK		= 1 << 21,
++	WF_OFFHANDUSER3OK		= 1 << 22,
++	WF_OFFHANDUSER4OK		= 1 << 23,
++	WF_TWOHANDSTABILIZED	= 1 << 24,
+ };
+ 
+ // The VM cannot deal with this as an invalid pointer because it performs a read barrier on every object pointer read.
+@@ -406,6 +420,7 @@ public:
+ 
+ 	bool		settings_controller = false;	// Player can control game settings.
+ 	int8_t		crouching = 0;
++	bool		PlayInVR = false;	// QuestZDoom compatibility: the headset view is on (2026-10-29)
+ 	int8_t		crouchdir = 0;
+ 
+ 	//Added by MC:
+diff --git a/src/playsim/p_actionfunctions.cpp b/src/playsim/p_actionfunctions.cpp
+index cb99d56..bcce8ca 100644
+--- a/src/playsim/p_actionfunctions.cpp
++++ b/src/playsim/p_actionfunctions.cpp
+@@ -5623,4 +5623,17 @@ DEFINE_ACTION_FUNCTION(AActor, AttackDir)
+ 	PARAM_ANGLE(pitch);
+ 	DVector3 dir = self->AttackDir(source, yaw, pitch);
+ 	ACTION_RETURN_VEC3(DVector3(dir.Angle().Degrees(), dir.Pitch().Degrees(), 0.));
+-}
+\ No newline at end of file
++}
++
++// QuestZDoom compatibility (2026-10-29): the off hand's version of AttackDir. Returns angle and pitch, like AttackDir.
++DEFINE_ACTION_FUNCTION(AActor, OffhandDir)
++{
++	PARAM_SELF_STRUCT_PROLOGUE(AActor);
++	PARAM_OBJECT_NOT_NULL(source, AActor);
++	PARAM_ANGLE(yaw);
++	PARAM_ANGLE(pitch);
++	if (self->OffhandDir == nullptr)		// not in VR: the actor's own aim
++		ACTION_RETURN_VEC3(DVector3(yaw.Degrees(), pitch.Degrees(), 0.));
++	DVector3 dir = self->OffhandDir(source, yaw, pitch);
++	ACTION_RETURN_VEC3(DVector3(dir.Angle().Degrees(), dir.Pitch().Degrees(), 0.));
++}
+diff --git a/src/playsim/p_user.cpp b/src/playsim/p_user.cpp
+index a326620..ea29ff1 100644
+--- a/src/playsim/p_user.cpp
++++ b/src/playsim/p_user.cpp
+@@ -1879,6 +1879,7 @@ DEFINE_FIELD_X(PlayerInfo, player_t, MUSINFOactor)
+ DEFINE_FIELD_X(PlayerInfo, player_t, MUSINFOtics)
+ DEFINE_FIELD_X(PlayerInfo, player_t, settings_controller)
+ DEFINE_FIELD_X(PlayerInfo, player_t, crouching)
++DEFINE_FIELD_X(PlayerInfo, player_t, PlayInVR)
+ DEFINE_FIELD_X(PlayerInfo, player_t, crouchdir)
+ DEFINE_FIELD_X(PlayerInfo, player_t, Bot)
+ DEFINE_FIELD_X(PlayerInfo, player_t, BlendR)
+diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
+index 7af05e4..d6a1c53 100644
+--- a/src/rendering/gl/stereo3d/gl_openvr.cpp
++++ b/src/rendering/gl/stereo3d/gl_openvr.cpp
+@@ -1244,6 +1244,31 @@ namespace s3d
+ 		return dir;
+ 	}
+ 
++	// QuestZDoom's OffhandDir() for mods (2026-10-29, quest-compat): MapAttackDir's maths on the off hand's pose, with
++	// the same pointing convention the off-hand fields use. No off hand tracked: the actor's own aim.
++	static DVector3 MapOffhandDir(AActor* actor, DAngle yaw, DAngle pitch)
++	{
++		LSMatrix44 mat;
++		auto vrmode = VRMode::GetVRMode(true);
++		if (!vrmode->GetHandTransform(openvr_rightHanded ? 0 : 1, &mat))
++		{
++			double pc = pitch.Cos();
++			return { pc * yaw.Cos(), pc * yaw.Sin(), -pitch.Sin() };
++		}
++		mat.rotate(openvr_weaponRotate, 1, 0, 0);
++
++		yaw -= actor->Angles.Yaw;
++		pitch -= actor->Angles.Pitch;
++		double pc = pitch.Cos();
++		LSVec3 local = { (float)(pc * yaw.Cos()), (float)(pc * yaw.Sin()), (float)(-pitch.Sin()), 0.0f };
++
++		DVector3 dir;
++		dir.X = local.x * -mat[2][0] + local.y * -mat[0][0] + local.z * -mat[1][0];
++		dir.Y = local.x * -mat[2][2] + local.y * -mat[0][2] + local.z * -mat[1][2];
++		dir.Z = local.x * -mat[2][1] + local.y * -mat[0][1] + local.z * -mat[1][1];
++		dir.MakeUnit();
++		return dir;
++	}
+ 
+ 
+ 	/* virtual */
+@@ -1761,6 +1786,8 @@ namespace s3d
+ 
+ 
+ 					player->mo->AttackDir = MapAttackDir;
++					player->mo->OffhandDir = MapOffhandDir;	// QuestZDoom compatibility
++					player->PlayInVR = true;
+ 
+ 					vec3_t weaponangles;
+ 					int hand = openvr_rightHanded ? 1 : 0;
+@@ -1777,7 +1804,7 @@ namespace s3d
+ 					player->mo->AttackRoll = DAngle::fromDeg(weaponangles[ROLL]);
+ 
+ 				}
+-				// Off hand, for mods (ZScript: OffhandValid, OffhandPos, OffhandDir, OffhandAngle/Pitch/Roll)
++				// Off hand, for mods (ZScript: OffhandValid, OffhandPos, OffhandForward, OffhandAngle/Pitch/Roll; OffhandDir() is QuestZDoom's function)
+ 				{
+ 					LSMatrix44 off;
+ 					int offhand = openvr_rightHanded ? 0 : 1;
+@@ -1788,7 +1815,7 @@ namespace s3d
+ 						player->mo->OffhandPos = DVector3(off[3][0], off[3][2], off[3][1]);
+ 						DVector3 dir(-off[2][0], -off[2][2], -off[2][1]);
+ 						dir.MakeUnit();
+-						player->mo->OffhandDir = dir;
++						player->mo->OffhandForward = dir;
+ 						player->mo->OffhandAngle = dir.Angle();
+ 						player->mo->OffhandPitch = -DAngle::fromRad(asin(clamp(dir.Z, -1.0, 1.0)));
+ 						HmdVector3d_t e = eulerAnglesFromMatrix(controllers[offhand].pose.mDeviceToAbsoluteTracking);
+diff --git a/src/scripting/vmthunks_actors.cpp b/src/scripting/vmthunks_actors.cpp
+index adedd20..1e31532 100644
+--- a/src/scripting/vmthunks_actors.cpp
++++ b/src/scripting/vmthunks_actors.cpp
+@@ -2143,7 +2143,7 @@ DEFINE_FIELD(AActor, FollowOffhand)
+ DEFINE_FIELD(AActor, TwoHandedAim)
+ DEFINE_FIELD(AActor, OffhandValid)
+ DEFINE_FIELD(AActor, OffhandPos)
+-DEFINE_FIELD(AActor, OffhandDir)
++DEFINE_FIELD(AActor, OffhandForward)
+ DEFINE_FIELD(AActor, OffhandAngle)
+ DEFINE_FIELD(AActor, OffhandPitch)
+ DEFINE_FIELD(AActor, OffhandRoll)
+diff --git a/wadsrc/static/zscript/actors/actor.zs b/wadsrc/static/zscript/actors/actor.zs
+index 7576e0e..0bed3db 100644
+--- a/wadsrc/static/zscript/actors/actor.zs
++++ b/wadsrc/static/zscript/actors/actor.zs
+@@ -876,12 +876,13 @@ class Actor : Thinker native
+ 	native bool TwoHandedAim;
+ 	native readonly bool OffhandValid;
+ 	native readonly vector3 OffhandPos;
+-	native readonly vector3 OffhandDir;
++	native readonly vector3 OffhandForward;
+ 	native readonly double OffhandAngle;
+ 	native readonly double OffhandPitch;
+ 	native readonly double OffhandRoll;
+ 
+ 	native vector3 AttackDir(Actor actor, double angle, double pitch);
++	native vector3 OffhandDir(Actor actor, double angle, double pitch);	// QuestZDoom compatibility
+ 
+ 	clearscope double PitchTo(Actor target, double zOfs = 0, double targZOfs = 0, bool absolute = false) const
+ 	{
+diff --git a/wadsrc/static/zscript/actors/player/player.zs b/wadsrc/static/zscript/actors/player/player.zs
+index 2bc06d8..c092bd1 100644
+--- a/wadsrc/static/zscript/actors/player/player.zs
++++ b/wadsrc/static/zscript/actors/player/player.zs
+@@ -2851,6 +2851,7 @@ struct PlayerInfo native play	// self is what internally is known as player_t
+ 	native int8 MUSINFOtics;
+ 	native bool settings_controller;
+ 	native int8 crouching;
++	native readonly bool PlayInVR;	// QuestZDoom compatibility: the headset view is on
+ 	native int8 crouchdir;
+ 	native Bot bot;
+ 	native float BlendR;
+diff --git a/wadsrc/static/zscript/constants.zs b/wadsrc/static/zscript/constants.zs
+index 5fcebf6..f47592a 100644
+--- a/wadsrc/static/zscript/constants.zs
++++ b/wadsrc/static/zscript/constants.zs
+@@ -1204,6 +1204,20 @@ enum EWeaponState
+ 	WF_USER2OK			= 1 << 9,
+ 	WF_USER3OK			= 1 << 10,
+ 	WF_USER4OK			= 1 << 11,
++	// QuestZDoom's off-hand weapon states, same values, for mods written for it (2026-10-29, quest-compat)
++	WF_OFFHANDREADY			= 1 << 12,
++	WF_OFFHANDBOBBING		= 1 << 13,
++	WF_OFFHANDREADYALT		= 1 << 14,
++	WF_OFFHANDSWITCHOK		= 1 << 15,
++	WF_OFFHANDDISABLESWITCH	= 1 << 16,
++	WF_OFFHANDRELOADOK		= 1 << 17,
++	WF_OFFHANDZOOMOK		= 1 << 18,
++	WF_OFFHANDREFIRESWITCHOK = 1 << 19,
++	WF_OFFHANDUSER1OK		= 1 << 20,
++	WF_OFFHANDUSER2OK		= 1 << 21,
++	WF_OFFHANDUSER3OK		= 1 << 22,
++	WF_OFFHANDUSER4OK		= 1 << 23,
++	WF_TWOHANDSTABILIZED	= 1 << 24,
+ };
+ 
+ // these flags are for filtering actor visibility based on certain conditions of the renderer's feature support.
+-- 
+2.55.0.windows.5
+
