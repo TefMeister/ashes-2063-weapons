@@ -20,3 +20,5 @@ there are two honest routes:
 
 ⚠️ **Not checked against a build.** Nobody has compiled GZDoomVR yet, so how big "small" really is remains unknown.
 Related, already in the weapons notes: a left-hand lantern that follows the controller needs exactly this.
+
+Chosen by Tefa: 2026-10-29

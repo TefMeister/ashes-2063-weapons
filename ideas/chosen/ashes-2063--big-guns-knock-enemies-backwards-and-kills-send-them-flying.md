@@ -23,3 +23,5 @@ heavy enemies will want to resist it or the game gets easy.
 
 _Other categories appear here as ideas arrive — gameplay, audio, level design, UI, controls,
 enemies, performance. Nothing is missing; they just haven't been needed yet._
+
+Chosen by Tefa: 2026-10-29

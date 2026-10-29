@@ -19,3 +19,5 @@ how much new artwork you want to sit through, and a cheaper first version could 
 overkill damage using generic chunks.
 
 ⚠️ Verdict unchecked against the real game.
+
+Chosen by Tefa: 2026-10-29

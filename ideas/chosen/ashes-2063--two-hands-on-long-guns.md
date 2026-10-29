@@ -11,3 +11,5 @@ From: mod-ideas `games/ashes-2063.md` (<https://github.com/TefMeister/mod-ideas/
 change that makes the shots follow the line between the hands is in, and the mod now switches it on by
 itself for every long gun, with no button and no conditions. Tracked on the project board
 (`claude-memory/status/ashes-2063-weapons.md`), not here. ⚠️ Nobody has fired it in the headset yet.
+
+Chosen by Tefa: 2026-10-29
