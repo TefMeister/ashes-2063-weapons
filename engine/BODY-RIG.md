@@ -103,6 +103,32 @@ In the headset: look down (torso, hips, legs, boots); hold the hands out (sleeve
 elbows bent down and out); walk with the stick (feet alternate); crouch (knees bend). Say what is wrong one thing
 at a time; the fixes are mostly numbers.
 
+## First runs, 2026-10-29 (dev PC, flat and the OpenXR Simulator, nobody in the headset)
+
+- **Flat** (`body/run_body_test_sim.py <out> flat`): the quest-compat engine with the rig starts, the body pack and the
+  test walker compile with no script errors, MAP01 loads `[verified-live 2026-10-29, n=1, flat]`.
+- **Headset simulator** (same runner without `flat`: OpenComposite's `openvr_api.dll` in `body-test/engine-oc`, the
+  OpenXR Simulator as the runtime, VR Bench playing the hands, a test walker pushing the player): the rig runs every
+  frame and the box body is drawn `[verified-live 2026-10-29, n=4 sim runs]`. Seen with the new look-at-yourself
+  switch (`vr_body_preview 2`, `vr_body_preview_angle 90` for the side), pictures in `body/evidence-2026-10-29/`:
+  torso upright with the straps on the chest; arms bending at the elbow and reaching where the controllers are (held
+  out: level and forward; down: hanging at the side); crouching bends the knees forward with the boots on the floor;
+  walking puts one leg forward and one back. **The red patch is on the LEFT arm: the parts are NOT mirrored**
+  `[verified-live 2026-10-29, n=2 views]`, so `vr_body_mirror` stays off.
+- **Walking speed** first came from the game's velocity, which read 0 on most frames (the player was pinned against a
+  wall, and the push is zeroed when blocked) `[measured 2026-10-29]`. It now comes from how far the player actually
+  moved between drawn frames, smoothed: about 6 m/s on the test walk, the stride opening and the feet lifting
+  `[measured 2026-10-29, n=1]`.
+- **The game crashes when closed** under the simulator route (0xC0000005), with the body switched OFF as well, so it is
+  not the rig: it is OpenComposite/the simulator at shutdown `[measured 2026-10-29, n=2 with / n=1 without the body]`.
+- **Looking down from the head's own view**, the chest fills the bottom of the picture: the simulator turns the head
+  about the lenses, not the neck, which lifts the rig's neck to eye height. A real head turns about the neck
+  `[inferred-static 2026-10-29]`; how close the chest sits is for the first real wear.
+- A 51-second clip of the side view (Tefa asked for it): MEGA transfer `Videos/ashes-2063-weapons/body-test-side-view_2026-10-29_14-39-04.mp4`.
+
+New settings from these runs: `vr_body_preview` (metres ahead, 0 = off) and `vr_body_preview_angle` (180 faces you,
+90 shows the side), both not saved to the config, so they never stay on by accident.
+
 ## Later
 
 - Real-room walking driving the legs (today only the stick does).

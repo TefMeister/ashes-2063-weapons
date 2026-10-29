@@ -426,10 +426,10 @@ index 0000000..a8dd1e4
 +
 +} // namespace brg
 diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
-index d6a1c53..d6f32ed 100644
+index d6a1c53..5b3f36d 100644
 --- a/src/rendering/gl/stereo3d/gl_openvr.cpp
 +++ b/src/rendering/gl/stereo3d/gl_openvr.cpp
-@@ -50,6 +50,18 @@
+@@ -50,6 +50,24 @@
  #include "LSMatrix.h"
  #include "two_handed_aim.h"	// two-handed long guns: where does the gun actually point
  #include "two_handed_pose.h"	// two-handed long guns: which way is the gun DRAWN
@@ -445,10 +445,16 @@ index d6a1c53..d6f32ed 100644
 +CVAR(Float, vr_body_step_height, 0.08f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// how high a swinging foot lifts
 +CVAR(Bool, vr_body_mirror, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)			// flip every part left-for-right, if the first wear shows them mirrored
 +CVAR(Bool, vr_body_debug, false, 0)												// print the rig's joints to the console, throttled
++CVAR(Float, vr_body_preview, 0.f, 0)											// > 0: draw the body this many metres ahead, turned to face you (a look at yourself)
++CVAR(Float, vr_body_preview_angle, 180.f, 0)									// how far the preview body is turned: 180 faces you, 90 shows its side
++// How fast the measured walking speed follows the player (per second); it smooths the frame-to-frame steps of a
++// tic-rate position. A teleport or a level change reads faster than this and is ignored.
++static const double kBodySpeedSmoothing = 8.0;
++static const double kBodyMaxWalkSpeed = 30.0;	// m/s
  //#include "common/filesystem/filesystem.h"
  #include "m_joy.h"
  #include "d_gui.h"
-@@ -1204,6 +1216,102 @@ namespace s3d
+@@ -1204,6 +1222,126 @@ namespace s3d
  		return GetWeaponTransformRaw(out);
  	}
  
@@ -486,20 +492,36 @@ index d6a1c53..d6f32ed 100644
 +		in.speed = 0;
 +		in.move_dir = brg::vec(0, 0, -1);
 +
-+		// How the player moves through the level, for the legs: the game's own velocity (map units per
-+		// tic) in metres per second, and its direction RELATIVE TO THE FACING -- the player's angle and the
-+		// headset's yaw are the same facing in two frames, so the relative angle carries over as it is.
++		const uint64_t now = I_msTime();
++		double dt = bodyLastMs ? (now - bodyLastMs) / 1000.0 : 1.0 / 90.0;
++		if (dt > 0.1) dt = 0.1;		// a long pause (menu, load) is not a long step
++		bodyLastMs = now;
++
++		// How the player moves through the level, for the legs: how far the player actually went since the
++		// last drawn frame (so walking into a wall reads as standing still), smoothed, in metres per second,
++		// and its direction RELATIVE TO THE FACING -- the player's angle and the headset's yaw are the same
++		// facing in two frames, so the relative angle carries over as it is. (2026-10-29: the game's own
++		// velocity was tried first and read 0 most frames in the simulator test, body-vr-4-preview.)
 +		auto player = (r_viewpoint.camera != nullptr) ? r_viewpoint.camera->player : nullptr;
 +		if (player != nullptr && player->mo != nullptr)
 +		{
-+			const DVector2 v = player->mo->Vel.XY();
-+			in.speed = v.Length() * TICRATE / vr_vunits_per_meter;
-+			if (in.speed > 0.001)
++			const DVector3 pos = player->mo->InterpolatedPosition(r_viewpoint.TicFrac);
++			if (bodyHavePos && dt > 0)
 +			{
-+				const double rel = (v.Angle() - player->mo->Angles.Yaw).Degrees();
-+				const double head_yaw = brg::yaw_of(brg::horizontal(brg::forward_of(in.head)));
-+				in.move_dir = brg::forward_from_yaw(head_yaw + rel);
++				const DVector2 step = pos.XY() - bodyLastPos.XY();
++				const double raw = step.Length() / vr_vunits_per_meter / dt;
++				if (raw < kBodyMaxWalkSpeed)
++				{
++					const double k = 1.0 - exp(-kBodySpeedSmoothing * dt);
++					bodySpeed += (raw - bodySpeed) * k;
++					if (step.Length() > 1e-6) bodyMoveRel = (step.Angle() - player->mo->Angles.Yaw).Degrees();
++				}
 +			}
++			bodyLastPos = pos;
++			bodyHavePos = true;
++			in.speed = bodySpeed;
++			const double head_yaw = brg::yaw_of(brg::horizontal(brg::forward_of(in.head)));
++			in.move_dir = brg::forward_from_yaw(head_yaw + bodyMoveRel);
 +		}
 +
 +		brg::Params p;
@@ -509,23 +531,21 @@ index d6a1c53..d6f32ed 100644
 +		p.stride = vr_body_stride > 0.1f ? vr_body_stride : 0.1f;
 +		p.step_height = vr_body_step_height;
 +
-+		const uint64_t now = I_msTime();
-+		double dt = bodyLastMs ? (now - bodyLastMs) / 1000.0 : 1.0 / 90.0;
-+		if (dt > 0.1) dt = 0.1;		// a long pause (menu, load) is not a long step
-+		bodyLastMs = now;
-+
 +		brg::update(in, p, dt, bodyState, bodyRig);
 +
 +		if (vr_body_debug)
 +		{
 +			static int bodyLog = 0;
-+			if (++bodyLog >= 120)
++			if (++bodyLog >= 30)
 +			{
 +				bodyLog = 0;
-+				Printf("body: yaw %.0f  neck (%.2f %.2f %.2f)  hips y %.2f  elbows L (%.2f %.2f %.2f) R (%.2f %.2f %.2f)%s%s  walk %.2f m/s amp %.2f\n",
-+					bodyRig.body_yaw, bodyRig.neck.x, bodyRig.neck.y, bodyRig.neck.z, bodyRig.hip_centre.y,
++				Printf("body: yaw %.0f  head (%.2f %.2f %.2f)  neck (%.2f %.2f %.2f)  hips y %.2f  hands L%s (%.2f %.2f %.2f) R%s (%.2f %.2f %.2f)  elbows L (%.2f %.2f %.2f) R (%.2f %.2f %.2f)%s%s  walk %.2f m/s amp %.2f phase %.2f  feet up L %.3f R %.3f\n",
++					bodyRig.body_yaw, in.head_pos.x, in.head_pos.y, in.head_pos.z, bodyRig.neck.x, bodyRig.neck.y, bodyRig.neck.z, bodyRig.hip_centre.y,
++					in.hand[0].valid ? "" : "(off)", in.hand[0].pos.x, in.hand[0].pos.y, in.hand[0].pos.z,
++					in.hand[1].valid ? "" : "(off)", in.hand[1].pos.x, in.hand[1].pos.y, in.hand[1].pos.z,
 +					bodyRig.elbow[0].x, bodyRig.elbow[0].y, bodyRig.elbow[0].z, bodyRig.elbow[1].x, bodyRig.elbow[1].y, bodyRig.elbow[1].z,
-+					bodyRig.arm_straight[0] ? " L-straight" : "", bodyRig.arm_straight[1] ? " R-straight" : "", in.speed, bodyRig.walk_amp);
++					bodyRig.arm_straight[0] ? " L-straight" : "", bodyRig.arm_straight[1] ? " R-straight" : "", in.speed, bodyRig.walk_amp,
++					bodyRig.walk_phase, bodyRig.foot_lift[0], bodyRig.foot_lift[1]);
 +			}
 +		}
 +	}
@@ -534,7 +554,17 @@ index d6a1c53..d6f32ed 100644
 +	{
 +		if (!vr_body || part <= 0 || part >= brg::kPartCount || !bodyRig.parts[part].valid)
 +			return false;
-+		const brg::Pose& p = bodyRig.parts[part];
++		brg::Pose p = bodyRig.parts[part];
++		if (vr_body_preview > 0)
++		{
++			// Move the whole body `vr_body_preview` metres ahead and turn it about its own neck by
++			// `vr_body_preview_angle` (180: facing you, its left on your right -- a person, not a mirror; 90: its side).
++			const brg::Vec target = bodyRig.neck + bodyRig.body_forward * (double)vr_body_preview;
++			const double a = (double)vr_body_preview_angle * brg::kPi / 180.0, ca = cos(a), sa = sin(a);
++			auto turn = [ca, sa](brg::Vec v) { return brg::vec(ca * v.x + sa * v.z, v.y, -sa * v.x + ca * v.z); };
++			p.pos = target + turn(p.pos - bodyRig.neck);
++			p.b.x = turn(p.b.x); p.b.y = turn(p.b.y); p.b.z = turn(p.b.z);
++		}
 +		// The part's frame as a device pose, so it goes through exactly the chain a real controller does.
 +		HmdMatrix34_t pose;
 +		pose.m[0][0] = (float)p.b.x.x; pose.m[1][0] = (float)p.b.x.y; pose.m[2][0] = (float)p.b.x.z;
@@ -551,7 +581,7 @@ index d6a1c53..d6f32ed 100644
  	static DVector3 MapAttackDir(AActor* actor, DAngle yaw, DAngle pitch)
  	{
  		LSMatrix44 mat;
-@@ -1773,6 +1881,9 @@ namespace s3d
+@@ -1773,6 +1911,9 @@ namespace s3d
  				}
  			}
  
@@ -562,7 +592,7 @@ index d6a1c53..d6f32ed 100644
  			if (player)
  			{
 diff --git a/src/rendering/gl/stereo3d/gl_openvr.h b/src/rendering/gl/stereo3d/gl_openvr.h
-index e0b65fe..f0b1e2d 100644
+index e0b65fe..8972a17 100644
 --- a/src/rendering/gl/stereo3d/gl_openvr.h
 +++ b/src/rendering/gl/stereo3d/gl_openvr.h
 @@ -29,6 +29,7 @@
@@ -581,7 +611,7 @@ index e0b65fe..f0b1e2d 100644
  	virtual bool RenderPlayerSpritesCrossed() const { return true; }
  	virtual bool RenderPlayerSpritesInScene() const { return true; }
  	virtual bool IsInitialized() const { return hmdWasFound; }
-@@ -137,6 +139,11 @@ protected:
+@@ -137,6 +139,15 @@ protected:
  	OpenVRMode();
  	// void updateDoomViewDirection() const;
  	void updateHmdPose(FRenderViewpoint& vp, double hmdYawRadians, double hmdPitchRadians, double hmdRollRadians) const;
@@ -590,6 +620,10 @@ index e0b65fe..f0b1e2d 100644
 +	mutable brg::State bodyState;
 +	mutable brg::Rig bodyRig;
 +	mutable uint64_t bodyLastMs = 0;
++	mutable DVector3 bodyLastPos;		// the player's position at the last drawn frame, for the walking speed
++	mutable bool bodyHavePos = false;
++	mutable double bodySpeed = 0;		// smoothed, m/s
++	mutable double bodyMoveRel = 0;		// direction of travel relative to the facing, degrees
  
  	OpenVREyePose* leftEyeView;
  	OpenVREyePose* rightEyeView;

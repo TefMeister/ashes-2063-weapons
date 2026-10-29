@@ -459,3 +459,15 @@ from the exporter, and turn the baked per-face shade down so real light does the
   `E:/Ashes2063VR-dev/Play Ashes 2063 VR - body test.bat` (`+vr_mode 0` for a flat check). Stamped with deployed.sh.
 - Not run, not worn. The box sizes do not scale with `vr_body_height` yet; real-room steps do not move the legs.
 - Left alone: an uncommitted `vr_debug_hudnormal` test knob in the engine tree's `hw_models.cpp` from 2026-10-18.
+
+## 2026-10-29 — the body rig runs: flat and in the headset simulator (dev PC, /lm, Opus)
+- Flat: the new engine and the body pack load, MAP01, no script errors `[verified-live 2026-10-29, n=1]`.
+- Simulator (`body/run_body_test_sim.py`; OpenComposite + OpenXR Simulator + VR Bench + a test walker that turns to
+  open space and pushes the player): the box body is drawn and follows the head and hands every frame. From the side
+  (new `vr_body_preview` / `vr_body_preview_angle`): elbows reach the controllers, crouching bends the knees, walking
+  steps, red patch on the LEFT arm = not mirrored `[verified-live 2026-10-29, n=4 sim runs]`. Pictures in
+  `body/evidence-2026-10-29/`; a 51 s clip in MEGA `Videos/ashes-2063-weapons/` (Tefa asked for it).
+- Walking speed now comes from how far the player really moved between drawn frames: the game's velocity read 0
+  most frames because the test player was pinned against a wall `[measured 2026-10-29]`.
+- The game crashes on close under the simulator route, with the body off as well: not ours `[measured 2026-10-29, n=3]`.
+- Engine commit 6ad981f on quest-compat; `engine/gzdoomvr-body-rig.patch` refreshed. Write-up: `engine/BODY-RIG.md`.
