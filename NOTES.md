@@ -436,3 +436,26 @@ from the exporter, and turn the baked per-face shade down so real light does the
   `scope/` draws a 3x camera picture on it while the FAL is held (`scope/README.md`). The FAL test pk3 also carries
   its shine. Model checked on the dev PC `[compile-verified 2026-10-29]`; the script is not compiled or run yet.
 - Ashes is on the dev PC after all (`D:/ashes2063vr/`, stock gzdoomvr) `[measured 2026-10-29]`.
+
+## 2026-10-29 — the player's body rig: torso, arms and walking legs (dev PC, /pd, Fable)
+- Tefa: mechanics first, looks later; and the same afternoon, "legs animating with player speed". Full write-up and
+  what each first sighting would mean: `engine/BODY-RIG.md`.
+- Maths in `engine/body_rig.h` (pure, like the two-handed headers): neck 8 cm behind and 12 cm below the HMD along the
+  head's own axes (stays put when nodding); chest yaw follows the head outside a 25° dead zone at 4/s and is pulled
+  half-way toward the hands' midpoint; shoulders ±19 cm; two-bone IK arms to a wrist 6 cm behind and 2 cm below each
+  controller, elbows out/down/back; hips 55 cm under the neck, capped where the legs reach; two-bone legs, knees
+  forward, feet on the floor, bending when crouching; a walk cycle from the player's speed (0.65 m per cycle, 8 cm
+  lift, feet alternate, stride shortens with speed, settles when standing, steps along the travel line so strafing
+  steps sideways). 53 checks pass `[verified-numerically 2026-10-29, n=53]` (`engine/run_body_rig_test.bat`).
+- Engine: `BodyPart` (int, 1..10) on any actor; `OpenVRMode::UpdateBodyRig` runs once per rendered frame right after
+  the controller poses are read; `GetBodyPartTransform` turns a part pose into a model matrix through `GetPoseTransform`
+  (the controller chain, so no `FollowOffhand` mirror expected `[inferred-static 2026-10-29]`); `RenderModel` uses it
+  instead of the actor's position/angles, with one fixed matrix turning md3 axes (X along, Y left, Z up) into the
+  part's frame; `hw_sprites` places the thing there for light and sector. Settings `vr_body*` (8). Builds RelWithDebInfo
+  `[compile-verified 2026-10-29]`; branch quest-compat commit 629b030; `engine/gzdoomvr-body-rig.patch`.
+- `body/build_body_test.py`: ten boxes straight to md3 (kit/gz_md3.py), centimetres with Scale 0.01, jacket / knit /
+  jeans / boot / strap colours, a red patch on the LEFT upper arm as the handedness tell. 6 KB pk3. `--deploy` puts
+  the engine build + the stock DLLs + the pk3 in `E:/Ashes2063VR-dev/body-test/` and writes the launcher
+  `E:/Ashes2063VR-dev/Play Ashes 2063 VR - body test.bat` (`+vr_mode 0` for a flat check). Stamped with deployed.sh.
+- Not run, not worn. The box sizes do not scale with `vr_body_height` yet; real-room steps do not move the legs.
+- Left alone: an uncommitted `vr_debug_hudnormal` test knob in the engine tree's `hw_models.cpp` from 2026-10-18.

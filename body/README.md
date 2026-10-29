@@ -36,8 +36,14 @@ real elbow roughly is.
 - **Fits the rest:** presidentkoopa's holster rig puts guns on the hips and shoulders; with a real body, those holsters
   sit on our jacket. His rig also has a mirror that shows your body, which would show the gas mask and backpack.
 
-## Steps
+## Steps (re-ordered 2026-10-29: Tefa chose mechanics first, looks later)
 
-1. The look: a first set of cube parts from the picture, judged together in Blender.
-2. The engine body rig: IK maths written and tested numerically first (as the two-handed aim was), then drawn.
-3. Arms only in the headset first (the part that matters most), then torso, then legs.
+1. ✅ **The engine body rig** (2026-10-29, dev PC): the maths in `engine/body_rig.h` with 53 numeric checks
+   (`engine/run_body_rig_test.bat`), the engine drawing any actor with `BodyPart = 1..10` at the rig's pose every
+   rendered frame, and the legs stepping with the player's speed (Tefa's ask the same day). Builds; not run. Full
+   write-up: `engine/BODY-RIG.md`.
+2. ✅ **A rough box body** (`build_body_test.py` -> `gzdoom/Ashes2063_body_test.pk3`): ten plain boxes in the jacket /
+   jeans / boot colours, a red patch on the left upper arm to tell left from right. No Blender; the looks come later.
+3. First flat check, then the headset (dev PC launcher `E:/Ashes2063VR-dev/Play Ashes 2063 VR - body test.bat`; home PC
+   needs the patch applied to its engine): arms first, then torso, then legs.
+4. The look: the cube parts from the picture, judged together in Blender, replacing the boxes part by part.
