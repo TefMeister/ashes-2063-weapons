@@ -14,17 +14,19 @@ def _normal_bytes(n):
     return struct.pack("<H", (lat << 8) | lng)
 
 
-def write_md3(path, name, frames, tris_uv, shader):
+def write_md3(path, name, frames, tris_uv, shader, starts=()):
     """frames: list of per-frame lists of (pos xyz, normal xyz), one entry per vertex.
-    tris_uv: (triangles [(a,b,c)], uvs [(s,t)]) over the same vertex indices."""
+    tris_uv: (triangles [(a,b,c)], uvs [(s,t)]) over the same vertex indices.
+    starts: triangle indices that must begin a new surface (a part that gets its own skin, e.g. a scope's glass)."""
     tris, uvs = tris_uv
     nv = len(uvs)
     # split into surfaces of <= MAX_SURFACE_VERTS; triangles never share vertices
     # across the split because every triangle owns its three corners.
     surfaces = []
     cur_t, cur_v = [], []
-    for t in tris:
-        if len(cur_v) + 3 > MAX_SURFACE_VERTS:
+    starts = set(starts)
+    for ti, t in enumerate(tris):
+        if cur_t and (len(cur_v) + 3 > MAX_SURFACE_VERTS or ti in starts):
             surfaces.append((cur_t, cur_v)); cur_t, cur_v = [], []
         base = len(cur_v)
         cur_v += list(t)
