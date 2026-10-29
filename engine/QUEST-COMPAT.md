@@ -54,3 +54,15 @@ own pk3s, as he ships them.
   The engine and its script pack build `[compile-verified 2026-10-29]`; the scripts have not been loaded by a running
   engine yet. ⚠️ The home PC's engine has the 2026-10-25 darkness change that this tree lacks: apply this patch on top
   of the main patch there.
+- **Step 2a, 2026-10-29 (dev PC):** `gzdoomvr-quest-compat-step2a.patch` (apply after step 1). The data side of the
+  off-hand weapon, copied from emawind84/gzdoom (questzdoom, "4.15pre"): `player.OffhandWeapon`,
+  `PremorphWeaponOffhand`, `ohattackdown` (saved with the game and kept by the garbage collector), `WeaponState` widened
+  to 32 bits (step 1's off-hand flags go past 16: without this they were silently cut off), the weapon flags
+  `+WEAPON.OFFHANDWEAPON` / `NOHANDSWITCH` / `TWOHANDED` / `NO_AUTO_REVERSE`, the buttons `BT_OFFHANDATTACK` /
+  `ALTATTACK` / `RELOAD`, and `CHAN_OFFWEAPON`. Nothing uses them yet. Builds `[compile-verified 2026-10-29]`.
+- **Next, step 2b:** `p_pspr.cpp` from emawind: the `PSP_OFFHANDWEAPON` layer (1000000), `GetPSprite`/`P_SetPsprite`
+  with a caller, the off-hand rows of the weapon-button table, `P_CheckWeaponButtons(hand)`, raising and lowering the
+  off-hand weapon. Then the scripts (`weapons.zs`, `stateprovider.zs`, `attacks.zs`, `player.zs`), the attack flags
+  (`LAF_/ALF_/RGF_/FPF_/TRF_ISOFFHAND` in `p_map.cpp` / `p_mobj.cpp`), drawing it at the off hand (`hw_weapon.cpp`), and
+  the left trigger as `BT_OFFHANDATTACK` in `gl_openvr.cpp`. The two engines differ in version (4.13 vs 4.15pre), so
+  each hunk is carried by hand, not merged.

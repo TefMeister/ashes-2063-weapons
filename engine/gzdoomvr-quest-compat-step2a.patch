@@ -1,0 +1,248 @@
+From d99297cc50dd06a9964f5669b3b558bc5be8f0e8 Mon Sep 17 00:00:00 2001
+From: Tefa <TefMeister@users.noreply.github.com>
+Date: Thu, 29 Oct 2026 13:01:01 +0200
+Subject: [PATCH] QuestZDoom compatibility 2a: off-hand weapon data (slot,
+ flags, buttons, channel); 32-bit WeaponState
+
+---
+ src/common/audio/sound/s_soundinternal.h          |  1 +
+ src/d_event.h                                     |  3 +++
+ src/gamedata/a_weapons.h                          |  5 +++++
+ src/playsim/d_player.h                            |  5 ++++-
+ src/playsim/p_user.cpp                            | 10 ++++++++++
+ wadsrc/static/zscript/actors/inventory/weapons.zs |  5 +++++
+ wadsrc/static/zscript/actors/player/player.zs     |  5 ++++-
+ wadsrc/static/zscript/constants.zs                |  3 +++
+ wadsrc/static/zscript/engine/base.zs              |  1 +
+ 9 files changed, 36 insertions(+), 2 deletions(-)
+
+diff --git a/src/common/audio/sound/s_soundinternal.h b/src/common/audio/sound/s_soundinternal.h
+index 1d007fa..654cc81 100644
+--- a/src/common/audio/sound/s_soundinternal.h
++++ b/src/common/audio/sound/s_soundinternal.h
+@@ -150,6 +150,7 @@ enum EChannel
+ 	CHAN_ITEM = 3,
+ 	CHAN_BODY = 4,
+ 	CHAN_5 = 5,
++	CHAN_OFFWEAPON = 5,	// QuestZDoom compatibility: the off-hand weapon's channel
+ 	CHAN_6 = 6,
+ 	CHAN_7 = 7,
+ };
+diff --git a/src/d_event.h b/src/d_event.h
+index 409dcb6..543af79 100644
+--- a/src/d_event.h
++++ b/src/d_event.h
+@@ -68,6 +68,9 @@ typedef enum
+ 	BT_USER2		= 1<<22,
+ 	BT_USER3		= 1<<23,
+ 	BT_USER4		= 1<<24,
++	BT_OFFHANDATTACK	= 1<<26,	// QuestZDoom compatibility (2026-10-29)
++	BT_OFFHANDALTATTACK	= 1<<27,
++	BT_OFFHANDRELOAD	= 1<<28,
+ 
+ 	BT_RUN			= 1<<25,
+ } buttoncode_t;
+diff --git a/src/gamedata/a_weapons.h b/src/gamedata/a_weapons.h
+index 3de18cf..3a6cb79 100644
+--- a/src/gamedata/a_weapons.h
++++ b/src/gamedata/a_weapons.h
+@@ -159,5 +159,10 @@ enum
+ 	WIF_NODEATHINPUT =		0x00020000, // The weapon cannot be fired/reloaded/whatever when the player is dead
+ 	WIF_CHEATNOTWEAPON	=	0x00040000,	// Give cheat considers this not a weapon (used by Sigil)
+ 	WIF_NOAUTOSWITCHTO =	0x00080000, // cannot be switched to when autoswitching weapons.
++	// QuestZDoom compatibility (2026-10-29)
++	WIF_OFFHANDWEAPON =		0x00100000, // weapon is an offhand weapon
++	WIF_NOHANDSWITCH =		0x00200000, // weapon cannot be moved from one hand to another
++	WIF_TWOHANDED =			0x00400000, // two handed weapon
++	WIF_NO_AUTO_REVERSE =	0x00800000, // prevent auto reverse of model and sprite when switching to offhand
+ };
+ 
+diff --git a/src/playsim/d_player.h b/src/playsim/d_player.h
+index 56ec75c..2300d5f 100644
+--- a/src/playsim/d_player.h
++++ b/src/playsim/d_player.h
+@@ -361,6 +361,7 @@ public:
+ 
+ 
+ 	bool		attackdown = false;
++	bool		ohattackdown = false;	// QuestZDoom compatibility: off-hand fire held
+ 	bool		usedown = false;
+ 	uint32_t	oldbuttons = false;
+ 	int			health = 0;					// only used between levels, mo->health
+@@ -374,9 +375,10 @@ public:
+ 	int			lastkilltime = 0;			// [RH] For multikills
+ 	uint8_t		multicount = 0;
+ 	uint8_t		spreecount = 0;				// [RH] Keep track of killing sprees
+-	uint16_t	WeaponState = 0;
++	uint32_t	WeaponState = 0;	// 32 bits: QuestZDoom's off-hand flags go past 16
+ 
+ 	AActor	   *ReadyWeapon = nullptr;
++	AActor	   *OffhandWeapon = nullptr;	// QuestZDoom compatibility: the weapon in the off hand
+ 	AActor	   *PendingWeapon = nullptr;			// WP_NOCHANGE if not changing
+ 	TObjPtr<DPSprite*> psprites = MakeObjPtr<DPSprite*>(nullptr); // view sprites (gun, etc)
+ 
+@@ -403,6 +405,7 @@ public:
+ 	int			MorphStyle = 0;				// which effects to apply for this player instance when morphed
+ 	PClassActor *MorphExitFlash = nullptr;		// flash to apply when demorphing (cache of value given to MorphPlayer)
+ 	TObjPtr<AActor*>	PremorphWeapon = MakeObjPtr<AActor*>(nullptr);		// ready weapon before morphing
++	TObjPtr<AActor*>	PremorphWeaponOffhand = MakeObjPtr<AActor*>(nullptr);	// off-hand weapon before morphing
+ 	int			chickenPeck = 0;			// chicken peck countdown
+ 	int			jumpTics = 0;				// delay the next jump for a moment
+ 	bool		onground = 0;				// Identifies if this player is on the ground or other object
+diff --git a/src/playsim/p_user.cpp b/src/playsim/p_user.cpp
+index ea29ff1..f50b98b 100644
+--- a/src/playsim/p_user.cpp
++++ b/src/playsim/p_user.cpp
+@@ -290,6 +290,7 @@ void player_t::CopyFrom(player_t &p, bool copyPSP)
+ 	centering = p.centering;
+ 	turnticks = p.turnticks;
+ 	attackdown = p.attackdown;
++	ohattackdown = p.ohattackdown;
+ 	usedown = p.usedown;
+ 	oldbuttons = p.oldbuttons;
+ 	health = p.health;
+@@ -302,6 +303,7 @@ void player_t::CopyFrom(player_t &p, bool copyPSP)
+ 	spreecount = p.spreecount;
+ 	WeaponState = p.WeaponState;
+ 	ReadyWeapon = p.ReadyWeapon;
++	OffhandWeapon = p.OffhandWeapon;
+ 	PendingWeapon = p.PendingWeapon;
+ 	cheats = p.cheats;
+ 	timefreezer = p.timefreezer;
+@@ -329,6 +331,7 @@ void player_t::CopyFrom(player_t &p, bool copyPSP)
+ 	MorphStyle = p.MorphStyle;
+ 	MorphExitFlash = p.MorphExitFlash;
+ 	PremorphWeapon = p.PremorphWeapon;
++	PremorphWeaponOffhand = p.PremorphWeaponOffhand;
+ 	chickenPeck = p.chickenPeck;
+ 	jumpTics = p.jumpTics;
+ 	onground = p.onground;
+@@ -375,10 +378,12 @@ size_t player_t::PropagateMark()
+ 	GC::Mark(camera);
+ 	GC::Mark(Bot);
+ 	GC::Mark(ReadyWeapon);
++	GC::Mark(OffhandWeapon);
+ 	GC::Mark(ConversationNPC);
+ 	GC::Mark(ConversationPC);
+ 	GC::Mark(MUSINFOactor);
+ 	GC::Mark(PremorphWeapon);
++	GC::Mark(PremorphWeaponOffhand);
+ 	GC::Mark(psprites);
+ 	if (PendingWeapon != WP_NOCHANGE)
+ 	{
+@@ -1723,6 +1728,7 @@ void player_t::Serialize(FSerializer &arc)
+ 		("multicount", multicount)
+ 		("lastkilltime", lastkilltime)
+ 		("readyweapon", ReadyWeapon)
++		("offhandweapon", OffhandWeapon)
+ 		("pendingweapon", PendingWeapon)
+ 		("cheats", cheats)
+ 		("refire", refire)
+@@ -1744,6 +1750,7 @@ void player_t::Serialize(FSerializer &arc)
+ 		("morphstyle", MorphStyle)
+ 		("morphexitflash", MorphExitFlash)
+ 		("premorphweapon", PremorphWeapon)
++		("premorphweaponoffhand", PremorphWeaponOffhand)
+ 		("chickenpeck", chickenPeck)
+ 		("jumptics", jumpTics)
+ 		("respawntime", respawn_time)
+@@ -1828,6 +1835,7 @@ DEFINE_FIELD_X(PlayerInfo, player_t, Vel)
+ DEFINE_FIELD_X(PlayerInfo, player_t, centering)
+ DEFINE_FIELD_X(PlayerInfo, player_t, turnticks)
+ DEFINE_FIELD_X(PlayerInfo, player_t, attackdown)
++DEFINE_FIELD_X(PlayerInfo, player_t, ohattackdown)
+ DEFINE_FIELD_X(PlayerInfo, player_t, usedown)
+ DEFINE_FIELD_X(PlayerInfo, player_t, oldbuttons)
+ DEFINE_FIELD_X(PlayerInfo, player_t, health)
+@@ -1840,6 +1848,7 @@ DEFINE_FIELD_X(PlayerInfo, player_t, multicount)
+ DEFINE_FIELD_X(PlayerInfo, player_t, spreecount)
+ DEFINE_FIELD_X(PlayerInfo, player_t, WeaponState)
+ DEFINE_FIELD_X(PlayerInfo, player_t, ReadyWeapon)
++DEFINE_FIELD_X(PlayerInfo, player_t, OffhandWeapon)
+ DEFINE_FIELD_X(PlayerInfo, player_t, PendingWeapon)
+ DEFINE_FIELD_X(PlayerInfo, player_t, psprites)
+ DEFINE_FIELD_X(PlayerInfo, player_t, cheats)
+@@ -1868,6 +1877,7 @@ DEFINE_FIELD_X(PlayerInfo, player_t, MorphedPlayerClass)
+ DEFINE_FIELD_X(PlayerInfo, player_t, MorphStyle)
+ DEFINE_FIELD_X(PlayerInfo, player_t, MorphExitFlash)
+ DEFINE_FIELD_X(PlayerInfo, player_t, PremorphWeapon)
++DEFINE_FIELD_X(PlayerInfo, player_t, PremorphWeaponOffhand)
+ DEFINE_FIELD_X(PlayerInfo, player_t, chickenPeck)
+ DEFINE_FIELD_X(PlayerInfo, player_t, jumpTics)
+ DEFINE_FIELD_X(PlayerInfo, player_t, onground)
+diff --git a/wadsrc/static/zscript/actors/inventory/weapons.zs b/wadsrc/static/zscript/actors/inventory/weapons.zs
+index 66a7f89..1812d27 100644
+--- a/wadsrc/static/zscript/actors/inventory/weapons.zs
++++ b/wadsrc/static/zscript/actors/inventory/weapons.zs
+@@ -93,6 +93,11 @@ class Weapon : StateProvider
+ 	flagdef NoDeathInput: WeaponFlags, 17;		// The weapon cannot be fired/reloaded/whatever when the player is dead
+ 	flagdef CheatNotWeapon: WeaponFlags, 18;	// Give cheat considers this not a weapon (used by Sigil)
+ 	flagdef NoAutoSwitchTo : WeaponFlags, 19;	// do not auto switch to this weapon ever!
++	// QuestZDoom compatibility (2026-10-29)
++	flagdef OffhandWeapon: WeaponFlags, 20;		// weapon is an offhand weapon
++	flagdef NoHandSwitch: WeaponFlags, 21;		// weapon cannot be moved from one hand to another
++	flagdef TwoHanded: WeaponFlags, 22;			// two handed weapon
++	flagdef No_Auto_Reverse: WeaponFlags, 23;	// no auto reverse of model and sprite in the offhand
+ 
+ 	// no-op flags
+ 	flagdef NoLMS: none, 0;
+diff --git a/wadsrc/static/zscript/actors/player/player.zs b/wadsrc/static/zscript/actors/player/player.zs
+index c092bd1..b151673 100644
+--- a/wadsrc/static/zscript/actors/player/player.zs
++++ b/wadsrc/static/zscript/actors/player/player.zs
+@@ -2800,6 +2800,7 @@ struct PlayerInfo native play	// self is what internally is known as player_t
+ 	native bool centering;
+ 	native uint8 turnticks;
+ 	native bool attackdown;
++	native bool ohattackdown;	// QuestZDoom compatibility
+ 	native bool usedown;
+ 	native uint oldbuttons;
+ 	native int health;
+@@ -2810,8 +2811,9 @@ struct PlayerInfo native play	// self is what internally is known as player_t
+ 	native int lastkilltime;
+ 	native uint8 multicount;
+ 	native uint8 spreecount;
+-	native uint16 WeaponState;
++	native uint WeaponState;
+ 	native Weapon ReadyWeapon;
++	native Weapon OffhandWeapon;	// QuestZDoom compatibility
+ 	native Weapon PendingWeapon;
+ 	native PSprite psprites;
+ 	native int cheats;
+@@ -2840,6 +2842,7 @@ struct PlayerInfo native play	// self is what internally is known as player_t
+ 	native int MorphStyle;
+ 	native Class<Actor> MorphExitFlash;
+ 	native Weapon PremorphWeapon;
++	native Weapon PremorphWeaponOffhand;	// QuestZDoom compatibility
+ 	native int chickenPeck;
+ 	native int jumpTics;
+ 	native bool onground;
+diff --git a/wadsrc/static/zscript/constants.zs b/wadsrc/static/zscript/constants.zs
+index f47592a..56b4a1b 100644
+--- a/wadsrc/static/zscript/constants.zs
++++ b/wadsrc/static/zscript/constants.zs
+@@ -853,6 +853,9 @@ enum EButtons
+ 	BT_USER2		= 1<<22,
+ 	BT_USER3		= 1<<23,
+ 	BT_USER4		= 1<<24,
++	BT_OFFHANDATTACK	= 1<<26,	// QuestZDoom compatibility (2026-10-29)
++	BT_OFFHANDALTATTACK	= 1<<27,
++	BT_OFFHANDRELOAD	= 1<<28,
+ 
+ 	BT_RUN			= 1<<25,
+ };
+diff --git a/wadsrc/static/zscript/engine/base.zs b/wadsrc/static/zscript/engine/base.zs
+index 18fe1b3..a164c67 100644
+--- a/wadsrc/static/zscript/engine/base.zs
++++ b/wadsrc/static/zscript/engine/base.zs
+@@ -9,6 +9,7 @@ enum ESoundFlags
+ 	CHAN_ITEM = 3,
+ 	CHAN_BODY = 4,
+ 	CHAN_5 = 5,
++	CHAN_OFFWEAPON = 5,	// QuestZDoom compatibility: the off-hand weapon's channel
+ 	CHAN_6 = 6,
+ 	CHAN_7 = 7,
+ 	
+-- 
+2.55.0.windows.5
+
