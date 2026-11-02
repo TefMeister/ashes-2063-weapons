@@ -139,6 +139,33 @@ def crisscross(m, bounds, along, period=5.0, width=1.0, col=(105, 22, 20), seed=
     return grow_layer(m, bounds, paint, region, 1, skip_axis=None, part=part, gaps=0.05, seed=seed)
 
 
+LEATHER_RED = (112, 30, 24)
+
+
+def strap(m, axis, a0, a1, bounds, col=LEATHER_RED, seed=61, part=None):
+    """A leather strap bound round a part along `axis` from a0 to a1 (2026-11-02, Tefa on the sawed-off: "red
+    leather straps, onto the metal part as well, binding through the trigger guard"). One quarter thick, the grain
+    in soft blotches, scuffed lighter in places, a row of stitches just inside each edge. It wraps whatever lies in
+    `bounds` at that stretch, so a strap across a finger hole runs through it."""
+    ax = AXIS[axis]
+
+    def region(x, y, z):
+        t = (x, y, z)[ax]
+        return a0 <= t <= a1
+
+    def paint(x, y, z, layer):
+        t = (x, y, z)[ax]
+        g = hash01(_q(x) // 2, _q(y) // 2, _q(z) // 2, seed)
+        c = mul(col, 0.85 + 0.25 * g)                             # the grain
+        if hash01(_q(x), _q(y), _q(z), seed + 3) < 0.08:
+            c = mix(c, (176, 120, 96), 0.35)                       # scuffed
+        if (abs(t - (a0 + 0.5)) < 0.13 or abs(t - (a1 - 0.5)) < 0.13) and int((x + y + z) * 4) % 3 == 0:
+            c = mix(c, (190, 170, 140), 0.55)                      # the stitching: sparse and worn
+        return c
+
+    return grow_layer(m, bounds, paint, region, 1, skip_axis=axis, part=part, gaps=0.0, seed=seed)   # one quarter thick: the face budget
+
+
 def cloth(m, axis, a0, a1, bounds, col=CLOTH_KHAKI, seed=21, part=None, layers=2, tail=None):
     """A rag wound round a part, two quarters thick, woven (two tones in a fine checker), torn at the edges.
     tail = (x, y, z, length, dz): a loose end hanging from that point."""

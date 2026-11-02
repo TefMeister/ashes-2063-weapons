@@ -117,6 +117,10 @@ def build():
                   part='tape')
 
     # ---------------------------------------------------------------- the wasteland layer
+    # (Tefa: "extend some of that red tape, no red leather straps, onto the metal part as well, binding through the
+    # trigger guard"): two straps round the wrist and down through the finger hole, behind and in front of the triggers
+    for a0, a1, sd in ((18.5, 21.0, 513), (34.5, 37.0, 514)):
+        wl.strap(m, 'x', a0, a1, (a0 - 0.5, a1 + 0.5, -9, 9, -16, 18), seed=sd, part='strap')
     # (Tefa: "make the rust patches randomly placed and shaped")
     wl.rust_patches(m, (BX0, BX1 + 1, -8, 8, Z_BORE - 5, Z_BORE + 5), count=9, seed=504, rmin=1.5, rmax=6.5, pits=0.05)
     wl.rust_patches(m, (AX0, AX1, -AW, AW, AZ0, AZ1 + 1), count=5, seed=505, rmin=1.5, rmax=4.5)
