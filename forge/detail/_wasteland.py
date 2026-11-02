@@ -208,6 +208,48 @@ def rust(m, bounds, amount=0.3, seed=31, region=None, pits=0.04, scale=2.5):
                     m.put_q(*b, RUST_DK, w[1], w[2])
 
 
+def rust_patches(m, bounds, count=6, seed=31, rmin=2.0, rmax=6.0, region=None, pits=0.04):
+    """Rust in patches placed and shaped at random (2026-11-02, Tefa: "make the rust patches randomly placed and
+    shaped"; rust() is a repeating wave pattern). Each patch: a random centre on the part's surface box, a random size,
+    a ragged outline (its radius wobbles with direction), darker in the middle, flaky orange bits, the odd pit."""
+    x0, x1, y0, y1, z0, z1 = bounds
+    blobs = []
+    for i in range(count):
+        c = (x0 + (x1 - x0) * hash01(i, seed, 1), y0 + (y1 - y0) * hash01(i, seed, 2), z0 + (z1 - z0) * hash01(i, seed, 3))
+        r = rmin + (rmax - rmin) * hash01(i, seed, 4)
+        stretch = 0.6 + 0.9 * hash01(i, seed, 5)                 # long or round
+        ph = [hash01(i, seed, 6 + k) * math.tau for k in range(3)]
+        blobs.append((c, r, stretch, ph))
+
+    for q, v, open_d in surface_cells(m, bounds, region):
+        x, y, z = _centre(q)
+        best = 0.0
+        for (cx, cy, cz), r, stretch, ph in blobs:
+            dx, dy, dz = (x - cx) / stretch, y - cy, z - cz
+            d = math.sqrt(dx * dx + dy * dy + dz * dz)
+            if d > r * 1.6:
+                continue
+            a, b = math.atan2(dz, dx), math.atan2(dy, dx)
+            edge = r * (1.0 + 0.30 * math.sin(3 * a + ph[0]) + 0.20 * math.sin(5 * b + ph[1]) + 0.15 * math.sin(7 * a + ph[2]))
+            edge *= 0.85 + 0.3 * hash01(math.floor(x * 2), math.floor(y * 2), math.floor(z * 2), seed + 11)
+            if d < edge:
+                best = max(best, 1.0 - d / edge)
+        if best <= 0.0:
+            continue
+        t = min(1.0, best * 1.8)
+        c = mix(v[0], RUST if t < 0.75 else RUST_DK, min(1.0, 0.35 + t))
+        if hash01(q[0], q[1], q[2], seed + 9) < 0.15:
+            c = mix(c, RUST_HI, 0.5)                              # flaky orange bits
+        m.put_q(*q, c, v[1], v[2])
+        if pits and best > 0.5 and hash01(q[0], q[1], q[2], seed + 4) < pits and len(open_d) == 1:
+            d = open_d[0]
+            m.clear_q(*q)
+            b = (q[0] - d[0], q[1] - d[1], q[2] - d[2])
+            w = m.get_q(*b)
+            if w is not None:
+                m.put_q(*b, RUST_DK, w[1], w[2])
+
+
 def soot(m, bounds, amount=0.6, seed=41, region=None):
     """Burnt powder: darken the outside cells inside bounds, strongest at the middle of bounds."""
     x0, x1, y0, y1, z0, z1 = bounds

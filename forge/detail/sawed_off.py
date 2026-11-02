@@ -25,7 +25,9 @@ AX0, AX1, AZ0, AZ1, AW = 6.0, 52.0, -5.0, 15.5, 15.0
 # 2026-11-02 (Tefa: "more like doom super shotgun - the part where the barrels come apart when reloading - that has to
 # neatly blend into the build and blend into the handle"): the action is a full-width front (the barrels and the hinge
 # they break open on) whose top slopes down into a narrower wrist that runs into the grip
-ACTION_FRONT = [(30, -5), (30, 15.5), (52, 15.5), (52, 1), (48, -2), (42, -5)]
+ACTION_FRONT = [(30, -5), (30, 15.5), (47, 15.5), (50.5, 14.5), (52, 12.5), (52, 1), (48, -2), (42, -5)]
+# (Tefa, the same evening: "roud the guard and the receiver as well to match the curve of the barrels going into it")
+GUARD = [(12, -3), (11, -7), (14, -11), (19, -13.5), (37, -13.5), (42, -11), (44, -6), (43, -2)]
 ACTION_WRIST = [(2, 1), (8, 5), (20, 11), (34, 15.5), (34, -5), (16, -5), (8, -3)]
 FOREND = [(52, 0), (52, 7), (90, 7.5), (94, 5), (92, 0), (56, -1)]
 GRIP = [(20, 2), (8, 4), (-4, -2), (-14, -12), (-20, -22), (-8, -26), (2, -14), (14, -4), (24, -1)]
@@ -61,8 +63,8 @@ def build():
 
     # ---------------------------------------------------------------- the action
     m.part = 'action'
-    m.cprism(ACTION_FRONT, AW, fp.metal(mul(STEEL, 0.95)), bevel=3.0, edge=0.25)
-    m.cprism(ACTION_WRIST, AW - 4, fp.metal(mul(STEEL, 0.95)), bevel=3.0, edge=0.25)
+    m.cprism(ACTION_FRONT, AW, fp.metal(mul(STEEL, 0.95)), bevel=5.5, edge=0.25)      # round like the barrels
+    m.cprism(ACTION_WRIST, AW - 4, fp.metal(mul(STEEL, 0.95)), bevel=4.0, edge=0.25)
     m.cyl(-AW / 2 + 0.5, AW / 2 - 0.5, AX1 - 2.0, 0.5, 2.6, fp.metal(STEEL), axis='y', size=0.25,
           edge=0.25)                                                                    # hinge knuckle
     for side in ('+y', '-y'):                                                          # scroll engraving
@@ -101,22 +103,23 @@ def build():
     for k in range(3):                                                                  # dents in the cap
         m.ball(-17 + k * 3, 4.3 if k % 2 else -4.3, -24 + k, 0.8, None, size=0.25, edge=0.25, carve=True)
     m.part = 'guard'   # 2026-11-02: part of the action, the finger hole cut up into it
-    m.cbox(14, 42, AW - 3, -13, AZ0 + 3, fp.metal(BLUED), bevel=2.5, edge=0.25)
+    m.cprism(GUARD, AW - 3, fp.metal(BLUED), bevel=3.5, edge=0.25)
     m.cbox(18, 37, AW + 2, -10.5, -2.0, None, size=0.25, carve=True)
     for side in ('+y', '-y'):
-        m.groove([(14.5, -12.5), (41.5, -12.5)], side, depth=1, dark=0.45)
+        m.groove([(19.5, -13.0), (36.5, -13.0)], side, depth=1, dark=0.45)
     m.part = 'triggers'
     fp.trigger(m, 24, -2, fp.metal(STEEL_HI), length=7, curve=3)
     fp.trigger(m, 30, -2, fp.metal(STEEL_HI), length=7, curve=3)
-    m.screw(15.5, 0.0, '-z', mul(STEEL, 0.7), kind='slot')                              # guard tang screws
-    m.screw(40.5, 0.0, '-z', mul(STEEL, 0.7), kind='slot')
+    m.screw(22.0, 0.0, '-z', mul(STEEL, 0.7), kind='slot')                              # guard tang screws
+    m.screw(34.0, 0.0, '-z', mul(STEEL, 0.7), kind='slot')
     # (Tefa: "please make the tape on the handle narrower and criss cross and color dark red")
     wl.crisscross(m, (-19, 6, -6, 6, -22, 0), along=(-40, -24), period=4.5, width=1.0, col=(105, 22, 20), seed=503,
                   part='tape')
 
     # ---------------------------------------------------------------- the wasteland layer
-    wl.rust(m, (BX0, BX1 + 1, -8, 8, Z_BORE - 5, Z_BORE + 5), amount=0.32, seed=504, pits=0.04)
-    wl.rust(m, (AX0, AX1, -AW, AW, AZ0, AZ1 + 1), amount=0.15, seed=505)
+    # (Tefa: "make the rust patches randomly placed and shaped")
+    wl.rust_patches(m, (BX0, BX1 + 1, -8, 8, Z_BORE - 5, Z_BORE + 5), count=9, seed=504, rmin=1.5, rmax=6.5, pits=0.05)
+    wl.rust_patches(m, (AX0, AX1, -AW, AW, AZ0, AZ1 + 1), count=5, seed=505, rmin=1.5, rmax=4.5)
     wl.soot(m, (BX1 - 2, BX1 + 0.5, -7, 7, Z_BORE - 4, Z_BORE + 4), amount=0.5, seed=506)
     for side in ('+y', '-y'):
         wl.chips(m, side, (BX0, BX1 - 4, Z_BORE - 2, Z_BORE + 2), 8, 507 if side == '+y' else 508, under=mul(STEEL, 1.2))
