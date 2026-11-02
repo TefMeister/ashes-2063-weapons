@@ -21,7 +21,12 @@ ENGRAVE = (150, 150, 146)
 Z_BORE = 11.0
 BX0, BX1, BR, BORE = 50.0, 130.0, 3.6, 2.4
 GAP = 3.6
-AX0, AX1, AZ0, AZ1, AW = 6.0, 52.0, -5.0, 17.0, 15.0
+AX0, AX1, AZ0, AZ1, AW = 6.0, 52.0, -5.0, 15.5, 15.0
+# 2026-11-02 (Tefa: "more like doom super shotgun - the part where the barrels come apart when reloading - that has to
+# neatly blend into the build and blend into the handle"): the action is a full-width front (the barrels and the hinge
+# they break open on) whose top slopes down into a narrower wrist that runs into the grip
+ACTION_FRONT = [(30, -5), (30, 15.5), (52, 15.5), (52, 1), (48, -2), (42, -5)]
+ACTION_WRIST = [(2, 1), (8, 5), (20, 11), (34, 15.5), (34, -5), (16, -5), (8, -3)]
 FOREND = [(52, 0), (52, 7), (90, 7.5), (94, 5), (92, 0), (56, -1)]
 GRIP = [(20, 2), (8, 4), (-4, -2), (-14, -12), (-20, -22), (-8, -26), (2, -14), (14, -4), (24, -1)]
 
@@ -56,13 +61,14 @@ def build():
 
     # ---------------------------------------------------------------- the action
     m.part = 'action'
-    m.cbox(AX0, AX1, AW, AZ0, AZ1, fp.metal(mul(STEEL, 0.95)), bevel=3.5, bevel_x=2.0, edge=0.25)
-    m.cyl(-AW / 2 + 0.5, AW / 2 - 0.5, AX1 - 1.5, AZ0 + 2.5, 2.25, fp.metal(STEEL), axis='y', size=0.25,
+    m.cprism(ACTION_FRONT, AW, fp.metal(mul(STEEL, 0.95)), bevel=3.0, edge=0.25)
+    m.cprism(ACTION_WRIST, AW - 4, fp.metal(mul(STEEL, 0.95)), bevel=3.0, edge=0.25)
+    m.cyl(-AW / 2 + 0.5, AW / 2 - 0.5, AX1 - 2.0, 0.5, 2.6, fp.metal(STEEL), axis='y', size=0.25,
           edge=0.25)                                                                    # hinge knuckle
     for side in ('+y', '-y'):                                                          # scroll engraving
         for k in range(26):
             t = k / 25
-            a, b = AX0 + 6 + t * 32, 8.0 + 5.0 * math.sin(t * math.tau * 1.5)
+            a, b = 33 + t * 15, 7.0 + 4.0 * math.sin(t * math.tau * 1.5)
             m.paint_line([(a, b), (a + 0.6, b + 0.4 * math.cos(t * 9))], side, lambda c: mix(c, ENGRAVE, 0.6))
             if k % 4 == 0:
                 for r in range(6):
@@ -70,16 +76,16 @@ def build():
                     m.paint_line([(a + math.cos(ang) * 1.1, b + math.sin(ang) * 1.1),
                                   (a + math.cos(ang + 1.1) * 1.1, b + math.sin(ang + 1.1) * 1.1)], side,
                                  lambda c: mix(c, ENGRAVE, 0.5))
-        m.groove([(AX0 + 2, AZ1 - 3), (AX1 - 2, AZ1 - 3)], side, depth=1, dark=0.5)
+        m.groove([(32, AZ1 - 3), (AX1 - 2, AZ1 - 3)], side, depth=1, dark=0.5)
         m.screw(20, 0, side, mul(STEEL, 0.75), kind='slot')
         m.screw(44, -1.5, side, mul(STEEL, 0.75), kind='cross')
     m.part = 'top_lever'
-    m.box(24, 34, -3.5, 1.0, AZ1, AZ1 + 1.0, fp.metal(STEEL_HI), size=0.25, edge=0.25, bevel_x=0.5)
+    m.box(36, 46, -3.5, 1.0, AZ1, AZ1 + 1.0, fp.metal(STEEL_HI), size=0.25, edge=0.25, bevel_x=0.5)
     for k in range(5):
-        m.box(24.5 + k * 0.6, 24.75 + k * 0.6, -3.25, -1.0, AZ1 + 0.75, AZ1 + 1.0, mul(STEEL_HI, 0.6), size=0.25)
+        m.box(36.5 + k * 0.6, 36.75 + k * 0.6, -3.25, -1.0, AZ1 + 0.75, AZ1 + 1.0, mul(STEEL_HI, 0.6), size=0.25)
     m.part = 'safety'
-    m.box(17.0, 21.0, -1.0, 1.0, AZ1 - 0.5, AZ1 + 0.5, fp.metal(STEEL_HI), size=0.25)
-    m.box(21.5, 22.5, -0.5, 0.5, AZ1, AZ1 + 0.25, (230, 220, 200), size=0.25)            # the S, a white dot
+    m.box(30.0, 34.0, -1.0, 1.0, AZ1 - 0.75, AZ1 + 0.25, fp.metal(STEEL_HI), size=0.25)
+    m.box(34.5, 35.5, -0.5, 0.5, AZ1 - 0.25, AZ1, (230, 220, 200), size=0.25)            # the S, a white dot
 
     # ---------------------------------------------------------------- fore-end, grip, guard, triggers
     m.part = 'foreend'
@@ -104,8 +110,9 @@ def build():
     fp.trigger(m, 30, -2, fp.metal(STEEL_HI), length=7, curve=3)
     m.screw(15.5, 0.0, '-z', mul(STEEL, 0.7), kind='slot')                              # guard tang screws
     m.screw(40.5, 0.0, '-z', mul(STEEL, 0.7), kind='slot')
-    wl.cloth(m, 'z', -16.0, -3.0, (-18, 18, -5, 5, -16.5, -2.5), col=TAPE_BLUE, seed=503, part='cloth', layers=2,
-             tail=(-6.0, -4.75, -9.0, 6.0, 1.0))
+    # (Tefa: "please make the tape on the handle narrower and criss cross and color dark red")
+    wl.crisscross(m, (-19, 6, -6, 6, -22, 0), along=(-40, -24), period=4.5, width=1.0, col=(105, 22, 20), seed=503,
+                  part='tape')
 
     # ---------------------------------------------------------------- the wasteland layer
     wl.rust(m, (BX0, BX1 + 1, -8, 8, Z_BORE - 5, Z_BORE + 5), amount=0.32, seed=504, pits=0.04)

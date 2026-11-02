@@ -117,6 +117,28 @@ def tape(m, axis, a0, a1, bounds, col=DUCT, seed=11, part=None, frayed=0.08, cre
     return grow_layer(m, bounds, paint, region, 1, skip_axis=axis, part=part, gaps=frayed, seed=seed)
 
 
+def crisscross(m, bounds, along, period=5.0, width=1.0, col=(105, 22, 20), seed=31, part=None):
+    """Narrow tape strips wound criss-cross round a part (2026-11-02, Tefa on the sawed-off: "please make the tape on
+    the handle narrower and criss cross and color dark red"). along = the part's own long direction in x-z (the grip's
+    slant); the strips run at 45 degrees either way to it, `width` wide every `period`."""
+    n = math.hypot(along[0], along[1]) or 1.0
+    ax, az = along[0] / n, along[1] / n
+    px, pz = -az, ax
+
+    def region(x, y, z):
+        u, v = x * ax + z * az, x * px + z * pz + y
+        return (u + v) % period < width or (u - v) % period < width
+
+    def paint(x, y, z, layer):
+        k = 1.0 + 0.07 * (hash01(_q(x), _q(y), _q(z), seed) - 0.5) * 2
+        c = mul(col, k)
+        if hash01(_q(x) // 2, _q(y) // 2, _q(z) // 2, seed + 5) < 0.12:
+            c = mix(c, (70, 60, 48), 0.4)                        # dirt ground into it
+        return c
+
+    return grow_layer(m, bounds, paint, region, 1, skip_axis=None, part=part, gaps=0.05, seed=seed)
+
+
 def cloth(m, axis, a0, a1, bounds, col=CLOTH_KHAKI, seed=21, part=None, layers=2, tail=None):
     """A rag wound round a part, two quarters thick, woven (two tones in a fine checker), torn at the edges.
     tail = (x, y, z, length, dz): a loose end hanging from that point."""
