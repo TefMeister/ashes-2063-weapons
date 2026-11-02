@@ -11,7 +11,8 @@ BD = os.path.normpath(os.path.join(HERE, "..", "..", "brutal-doom-3d-guns"))
 BLENDER = os.environ.get("BLENDER", r"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe")
 MEGA = os.path.join("D:" + os.sep, "MEGA transfer", "Game Files", "ashes-2063-weapons", "3D blender",
                     "forge-2026-11-02", "gzdoom")
-SHINE_LEVEL = "1.2"                # 3.0 / 2.5
+SHINE_LEVEL = "0.8"                # 2026-11-02 (Tefa: "glassy ... worse than having no shine at all"): 1.2 -> 0.8,
+SHINE_STYLE = ["--vary", "--bumpy", "0.18"]   # and uneven: grime shines less, every cube a little tilted (make_shine.py)
 
 
 def main():
@@ -32,7 +33,7 @@ def main():
             raise SystemExit(f"export failed: {gun}")
         shutil.move(os.path.join(gdir, f"modeldef.{j['name']}.txt"), os.path.join(stage, f"modeldef.{j['name']}"))
         skins.append(f"{j['model_path']}/{j['name']}.png={os.path.join(gdir, j['name'] + '.png')}")
-    subprocess.run([sys.executable, os.path.join(BD, "lights", "make_shine.py"), stage, "--level", SHINE_LEVEL] + skins,
+    subprocess.run([sys.executable, os.path.join(BD, "lights", "make_shine.py"), stage, "--level", SHINE_LEVEL] + SHINE_STYLE + skins,
                    check=True)
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
