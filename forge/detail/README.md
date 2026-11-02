@@ -31,10 +31,22 @@ costs nothing inside, and a hollow shell would actually draw a second skin on it
 purpose. The load to watch is the skin: aim for 80 000 to 170 000 faces a gun (the heaviest first-pass gun already in
 the game, the Master Blaster, is 120 000).
 
-## Status
+## Status (2026-11-02)
 
-| Gun | Design | Faces | In the test pk3 |
-| --- | --- | --- | --- |
-| Revolver | `revolver.py` | 78 000 | yes (2026-11-02) |
-| Master Blaster | `master_blaster.py` | 164 000 | yes (2026-11-02) |
-| the other nine of Episode 1 | to do after Tefa's look at these two | | |
+All eleven Episode 1 weapons are built and in the test pk3 (loads flat with no errors). Still models: no animations.
+
+| Gun | Design | Faces |
+| --- | --- | --- |
+| Revolver | `revolver.py` | 78 000 |
+| 9mm Autoloader | `handgun.py` | 67 000 |
+| Pump-action shotgun | `pump_shotgun.py` | 104 000 |
+| Sawed-off | `sawed_off.py` | 125 000 |
+| Machine Pistol (Ingram) | `machine_pistol.py` | 65 000 |
+| Battle Rifle (FAL) | `battle_rifle.py` | 133 000 (scope glass = part `glass`) |
+| Master Blaster | `master_blaster.py` | 160 000 (hoses along the right side to a taped Y splitter, Tefa 2026-11-02) |
+| Junker Musket | `junker_musket.py` | 159 000 (scope glass = part `glass`, not wired yet) |
+| JackHammer | `jackhammer.py` | 165 000 |
+| Crow-bar | `crowbar.py` | 46 000 |
+| Pipe bomb | `pipe_bomb.py` | 52 000 |
+
+Notes and photo credits: `refs/revolver.md`, `refs/master_blaster.md`, `refs/episode1-rest.md`.

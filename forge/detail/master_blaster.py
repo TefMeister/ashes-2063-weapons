@@ -117,13 +117,7 @@ def build():
               part='bottle')
     wl.tape(m, 'x', BOTTLE_X0 + 15.0, BOTTLE_X0 + 19.0,
             (BOTTLE_X0 + 14, BOTTLE_X0 + 20, -10.5, 10.5, Z - 18, Z - 7.5), col=wl.DUCT, seed=208, part='tape')
-    m.part = 'bottle_hose'
-    for i in range(40):                                        # braided hose from the bottle's cap up into the body
-        t = i / 39
-        x = cap_end + 0.5 + t * 6.0
-        z = Z - 12.5 + math.sin(t * math.pi * 0.5) * 9.0
-        m.ball(x, TANK_Y[1], z, 1.3, fp.metal(mix(STEEL, (60, 60, 64), (i % 2) * 0.6)), size=0.25, edge=0.25)
-    wl.hose_clamp(m, cap_end - 1.5, TANK_Y[1], Z - 12.5, 1.6, part='bottle_hose')
+    wl.hose_clamp(m, cap_end - 1.5, TANK_Y[1], Z - 12.5, 1.6, part='bottle')
     m.part = 'valve'
     for k in range(28):                                         # the red valve wheel, on a brass stem
         a = k * math.tau / 28
@@ -137,13 +131,31 @@ def build():
                   Z - 3.5 + math.sin(a) * rr, mul(VALVE_RED, 0.85), size=0.25)
     m.box(61.5, 63.0, -12.25, -8.5, Z - 4.5, Z - 3.0, fp.metal(BRASS), size=0.25)
     m.box(61.75, 62.75, -13.25, -12.75, Z - 4.25, Z - 3.25, fp.metal(BRASS), size=0.25)      # nut in the middle
+    # ---------------------------------------------------------------- the fuel lines (Tefa, 2026-11-02): from both
+    # tanks, along the RIGHT side of the gun, joined by a duct-taped Y splitter into one hose that runs into the barrel
     m.part = 'hose'
-    for i in range(50):                                         # braided steel hose from the tank to the barrel
-        t = i / 49
-        x, z = 84 + t * 20, Z - 10 + math.sin(t * math.pi) * 6 + t * 10
-        m.ball(x, -7.5, z, 1.5, fp.metal(mix(STEEL, (60, 60, 64), (i % 2) * 0.6)), size=0.25, edge=0.25)
-    for x, z in ((84.5, Z - 10), (103.5, Z)):                                               # brass fittings
-        m.cyl(x - 1, x + 1, -7.5, z, 1.9, fp.metal(BRASS), size=0.25, edge=0.25)
+    ty, by = TANK_Y
+    tank_out = (89.6, ty, Z - 12.5)                                 # the copper tank's front outlet
+    m.cyl(88.4, 90.4, ty, Z - 12.5, 1.6, fp.metal(BRASS), size=0.25, edge=0.25)
+    m.cyl(89.2, 90.0, ty, Z - 12.5, 2.0, fp.metal(mul(BRASS, 0.8)), size=0.25, edge=0.25)
+    split = (95.0, -10.5, Z - 11.0)
+    # from the bottle's cap: down under the front of the body and across to the right side
+    wl.hose(m, [(cap_end + 0.6, by, Z - 12.5), (cap_end + 3.5, by - 1.0, Z - 16.0), (82.0, -2.0, Z - 18.0),
+                (88.0, -9.5, Z - 15.5), (split[0] - 3.2, split[1], split[2] - 1.2)], 1.3, STEEL, braided=True)
+    # from the copper tank: out to the right and forward (red rubber, as the game's red hose)
+    wl.hose(m, [tank_out, (91.5, -8.0, Z - 12.0), (split[0] - 3.2, split[1], split[2] + 1.2)], 1.4, HOSE_RED,
+            braided=False, seed=221)
+    wl.y_splitter(m, split[0], split[1], split[2], 1.5, col=fp.metal(BRASS)(0, 0, 0), part='hose')
+    wl.tape(m, 'x', split[0] - 3.5, split[0] + 1.0,
+            (split[0] - 4.5, split[0] + 2.0, split[1] - 3.5, split[1] + 3.5, split[2] - 4.0, split[2] + 4.0),
+            col=wl.DUCT, seed=222, part='tape')
+    # the one hose, up along the right side into a fitting on the barrel's underside
+    entry = (102.5, -3.0, Z - 0.5)          # just in front of the red ring, before the rag
+    wl.hose(m, [(split[0] + 3.5, split[1], split[2]), (100.0, -10.0, Z - 7.5), (101.0, -7.0, Z - 3.5),
+                (entry[0] - 1.5, entry[1] - 1.0, entry[2] - 0.5)], 1.7, STEEL, braided=True, seed=223)
+    m.cyl(entry[0] - 1.5, entry[0] + 1.0, entry[1], entry[2], 2.0, fp.metal(BRASS), size=0.25, edge=0.25)
+    m.box(entry[0] - 1.0, entry[0] + 0.5, -3.0, -1.5, Z - 1.0, Z + 1.0, fp.metal(BRASS), size=0.25)   # into the barrel
+    wl.hose_clamp(m, split[0] + 4.0, split[1], split[2], 1.7, part='hose')
 
     # ---------------------------------------------------------------- grips, trigger lever
     m.part = 'grip'
@@ -186,11 +198,6 @@ def build():
               (20, 20, 22), size=0.25)
     m.box(17.5, 17.75, -0.5, 0.5, gz - 0.5, gz + 0.5, (180, 30, 26), size=0.25)               # needle hub
     m.box(17.75, 18.0, 1.0, 3.5, gz - 3.5, gz - 2.5, (30, 30, 32), size=0.25)                 # "bar" printed small
-    m.part = 'red_hose'
-    for i in range(70):                                         # the red hose looping round the back to the gauge
-        a = math.pi * 0.5 + i / 69 * math.pi
-        m.ball(26 + math.cos(a) * 14, -6.5, Z - 6 + math.sin(a) * 12, 1.5, HOSE_RED, size=0.25, edge=0.25)
-    wl.tape(m, 'x', 17.0, 21.0, (16, 22, -9.5, -3.5, Z - 20, Z - 14), col=wl.DUCT, seed=211, part='tape')
 
     # ---------------------------------------------------------------- the wasteland layer
     wl.soot(m, (n0 - 2, n1 + 1, -5, 5, Z - 5, Z + 7), amount=0.75, seed=212)

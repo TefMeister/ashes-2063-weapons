@@ -398,3 +398,41 @@ def simplify(m, step=10, block=1.0, parts=None):
             if key not in ids:
                 ids[key] = 10_000_000 + len(ids)
             v[0], v[1] = c, ids[key]
+
+
+def _spline(pts, n):
+    """Catmull-Rom through pts, n samples per span."""
+    P = [pts[0]] + list(pts) + [pts[-1]]
+    out = []
+    for i in range(1, len(P) - 2):
+        p0, p1, p2, p3 = P[i - 1], P[i], P[i + 1], P[i + 2]
+        for s in range(n):
+            t = s / n
+            out.append(tuple(0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t * t
+                                    + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t * t * t) for k in range(3)))
+    out.append(tuple(pts[-1]))
+    return out
+
+
+def hose(m, pts, r, col, part=None, braided=True, seed=81):
+    """A flexible hose through the points (main units), radius r, smooth curve. braided=True: steel braid (two tones
+    spiralling); else rubber (col with a faint seam)."""
+    path = _spline(pts, 24)
+    for i, (x, y, z) in enumerate(path):
+        if braided:
+            c = mix(col, mul(col, 0.55), ((i // 2) % 2) * 0.7)
+        else:
+            c = mul(col, 0.95 + 0.1 * hash01(i // 6, seed))
+        m.ball(x, y, z, r, c, size=0.25, edge=0.25, part=part or m.part)
+    return path
+
+
+def y_splitter(m, x, y, z, r, col=(176, 136, 60), part=None):
+    """A brass Y hose splitter at (x, y, z) pointing +x: a body with two inlets at the back and one outlet at the front."""
+    m.cyl(x - 1.0, x + 2.5, y, z, r + 0.5, col, size=0.25, edge=0.25, part=part)
+    for k in range(6):                                           # hex nut on the outlet
+        a = k * math.tau / 6
+        m.box(x + 2.5, x + 3.5, y + math.cos(a) * (r + 0.6) - 0.3, y + math.cos(a) * (r + 0.6) + 0.3,
+              z + math.sin(a) * (r + 0.6) - 0.3, z + math.sin(a) * (r + 0.6) + 0.3, mul(col, 0.8), size=0.25, part=part)
+    for dz in (-1.0, 1.0):                                       # the two inlet stubs at the back, splayed
+        m.cyl(x - 3.0, x - 0.5, y, z + dz * 1.2, r * 0.8, mul(col, 0.92), size=0.25, edge=0.25, part=part)
