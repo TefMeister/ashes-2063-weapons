@@ -13,7 +13,7 @@ import forge_jobs as fj  # noqa: E402
 CLASSES = ("pumpaction", "pumpaction2")     # the shotgun and its upgrade
 # 2026-11-03, Tefa after wearing it at 1.5x: "1.5 was way over doing it, maybe 1.1x the original size". This gun only;
 # the other Ashes guns keep forge_jobs.ASHES_GUN_SCALE.
-SPRITE_GUN_SCALE = 1.1
+SPRITE_GUN_SCALE = 1.0                      # then, after 1.1x: "still looked too big ... 1.0"
 
 # The pump stroke (2026-11-03, Tefa: "can you also already animate it to the games animations?"). Only the pump moves:
 # in VR the player's own hand holds the gun, so the whole-gun kick and the reload tip-over of the flat game stay out
@@ -41,6 +41,14 @@ def main(out):
     shown = {f"{s} {L}" for f in classes.values() for s, L in f}
     missing = [k for k in job["sprite_pump"]["frame_pose"] if k not in shown]
     assert not missing, f"pump frames the classes never show: {missing}"
+    json.dump(job, open(out, "w"), indent=1)
+    # the cube version (sprite_cube_pump.py): two models drawn together, the still body (one frame) and the pump alone
+    # (its poses), so the heavy body is not stored once per pump position
+    base = {"scale": SPRITE_GUN_SCALE, "no_hands": True, "classes": classes,
+            "model_path": "models/ashes2063/sprite3d/cubepump"}
+    job["cube_body"] = dict(base, name="as_cube_pump_body", skip_parts=["pump"])
+    job["cube_pump"] = dict(base, name="as_cube_pump_pump", parts=["pump"], poses=job["sprite_pump"]["poses"],
+                            frame_pose=job["sprite_pump"]["frame_pose"])
     json.dump(job, open(out, "w"), indent=1)
     for c, f in classes.items():
         print(c, len(f), "frames")

@@ -39,7 +39,7 @@ def write_md3(path, name, frames, tris_uv, shader, starts=()):
     FRAME = 56
     ofs_frames = HDR
     ofs_surf = ofs_frames + nf * FRAME
-    body = b""
+    bodies = []
     for si, (st, sv) in enumerate(surfaces):
         n = len(sv)
         SURF_HDR = 108
@@ -53,13 +53,18 @@ def write_md3(path, name, frames, tris_uv, shader, starts=()):
         s += struct.pack("<64si", shader.encode(), 0)
         s += b"".join(struct.pack("<3i", *t) for t in st)
         s += b"".join(struct.pack("<2f", uvs[v][0], 1.0 - uvs[v][1]) for v in sv)
+        # collected in a list and joined once: adding to one growing bytes object copied it every vertex, which took
+        # many minutes once a model had several frames (the cube sprite shotgun's pump, 2026-11-03); same bytes out
+        chunks = [s]
         for fr in frames:
             for v in sv:
                 p, nrm = fr[v]
                 q = [max(-32768, min(32767, int(round(c * 64.0)))) for c in p]
-                s += struct.pack("<3h", *q) + _normal_bytes(nrm)
+                chunks.append(struct.pack("<3h", *q) + _normal_bytes(nrm))
+        s = b"".join(chunks)
         assert len(s) == ofs_end
-        body += s
+        bodies.append(s)
+    body = b"".join(bodies)
     head_frames = b""
     for i, fr in enumerate(frames):
         pts = [p for p, _ in fr]
