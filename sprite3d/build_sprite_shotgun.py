@@ -21,9 +21,12 @@ SIDE_SPRITE = "Sprites/Weapons/GRZPA0.png"
 HELD_SPRITE = "Graphics/Shotgun/GRIZA.png"
 GUN = "sprite_pump"
 GUN_LENGTH_M = 1.0                     # the 60-pixel side picture spans about one metre
+# 2026-11-03, Tefa after wearing it: "too blocky ... pixels must be a lot finer". The side picture is cut on a grid this
+# many times finer than the game's 60 x 21 pickup sprite (sharp bicubic), about the pixel size of the held pictures.
+FINE = 3
 SOLID_ALPHA = 0.5
 ROUND_PARTS = ("barrel", "tube")       # step 2: these get rounded edges
-ROUND_WIDTH_PX = 0.45                  # how far the rounding reaches in, in side-picture pixels
+ROUND_WIDTH_PX = 0.45                  # how far the rounding reaches in, in (original) side-picture pixels
 ROUND_SEGMENTS = 2
 
 # Each part: (name, which side-picture pixels belong to it, thickness in side-picture pixels). First match wins.
@@ -72,6 +75,50 @@ def sprite_material(name, img):
     return mat
 
 
+def _cubic(t):
+    """Catmull-Rom weights for the four neighbours at fraction t: sharp, so the finer pixels still look drawn."""
+    return (((-t + 2) * t - 1) * t / 2, ((3 * t - 5) * t * t + 2) / 2, ((-3 * t + 4) * t + 1) * t / 2, (t - 1) * t * t / 2)
+
+
+def finer(img, k):
+    """A k-times finer copy of a small picture (alpha-weighted bicubic), as a new packed Blender image."""
+    W, H = img.size
+    src = list(img.pixels)
+
+    def at(x, y):
+        x, y = min(max(x, 0), W - 1), min(max(y, 0), H - 1)
+        i = (y * W + x) * 4
+        a = src[i + 3]
+        return src[i] * a, src[i + 1] * a, src[i + 2] * a, a
+
+    FW, FH = W * k, H * k
+    out = [0.0] * (FW * FH * 4)
+    for fy in range(FH):
+        sy = (fy + 0.5) / k - 0.5
+        y0 = math.floor(sy)
+        wy = _cubic(sy - y0)
+        for fx in range(FW):
+            sx = (fx + 0.5) / k - 0.5
+            x0 = math.floor(sx)
+            wx = _cubic(sx - x0)
+            acc = [0.0] * 4
+            for j in range(4):
+                for i in range(4):
+                    w = wx[i] * wy[j]
+                    c = at(x0 - 1 + i, y0 - 1 + j)
+                    for n in range(4):
+                        acc[n] += w * c[n]
+            a = min(max(acc[3], 0.0), 1.0)
+            o = (fy * FW + fx) * 4
+            if a > 1e-4:
+                out[o:o + 3] = [min(max(acc[n] / acc[3], 0.0), 1.0) for n in range(3)]
+            out[o + 3] = a
+    fine = bpy.data.images.new(img.name + f"_x{k}", FW, FH, alpha=True)
+    fine.pixels = out
+    fine.pack()
+    return fine
+
+
 def ridge_at(col):
     """Where the top ridge of side-picture column `col` sits in the held picture, its direction and half-width."""
     col = min(max(col, RIDGE[-1][0]), RIDGE[0][0])     # the grip end and the muzzle keep the nearest ridge point
@@ -85,7 +132,7 @@ def ridge_at(col):
 
 
 def build():
-    side, held = picture(SIDE_SPRITE), picture(HELD_SPRITE)
+    side, held = finer(picture(SIDE_SPRITE), FINE), picture(HELD_SPRITE)
     W, H = side.size
     HW, HH = held.size
     spx, hpx = list(side.pixels), list(held.pixels)
@@ -104,11 +151,11 @@ def build():
     owner = {}
     for c in solid:
         for name, test, _ in PARTS:
-            if test(*c):
+            if test(c[0] // FINE, c[1] // FINE):
                 owner[c] = name
                 break
     thick = {n: t for n, _, t in PARTS}
-    width = {c: thick[owner[c]] for c in solid}
+    width = {c: thick[owner[c]] * FINE for c in solid}
     m_side, m_top = sprite_material("sprite_side", side), sprite_material("sprite_top", held)
 
     def uv_side(x, y, full=True):
@@ -120,7 +167,7 @@ def build():
     def uv_top(x, s):
         """The held-picture pixel for the top of side column x, across-offset s (-1 gun's right .. +1 gun's left);
         None where it is skin, empty, or off the picture."""
-        (px, py), (dx, dy), half = ridge_at(x + 0.5)
+        (px, py), (dx, dy), half = ridge_at((x + 0.5) / FINE)
         right = (-dy, dx)                               # screen direction of the gun's right side
         hx, hy = px - s * half * right[0], py - s * half * right[1]
         c = held_rgba(hx, hy)
@@ -180,7 +227,7 @@ def build():
         bpy.context.scene.collection.objects.link(ob)
         if name in ROUND_PARTS:
             bv = ob.modifiers.new("round", "BEVEL")
-            bv.width, bv.segments, bv.limit_method = ROUND_WIDTH_PX * PX, ROUND_SEGMENTS, "ANGLE"
+            bv.width, bv.segments, bv.limit_method = ROUND_WIDTH_PX * FINE * PX, ROUND_SEGMENTS, "ANGLE"
     print(f"{GUN}: {len(solid)} side pixels in {len(PARTS)} parts, {painted} top faces painted from the held picture")
     return root
 
