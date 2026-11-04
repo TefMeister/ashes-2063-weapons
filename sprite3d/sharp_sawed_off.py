@@ -16,7 +16,7 @@ import math
 
 from forge import hash01, mix, mul
 from sharp_kit import (BLUED, BORE, BRASS, BRIGHT_METAL, GUNMETAL, PUMP_WOOD, STOCK_WOOD, SURF, Picture, Profile,
-                       darken, finish, flashes, grooved, shell, start, toned)
+                       blade, darken, finish, flashes, grooved, guard, shell, start, toned)
 from sharp_settings import (SAWN_BARREL_R, SAWN_BARREL_Y, SAWN_BREECH_PX, SAWN_HINGE_PX, SAWN_LENGTH_M,
                             SAWN_MUZZLE_PX, SAWN_TOP_PX, park_z)
 
@@ -142,26 +142,11 @@ def build():
                 m.box(X(12.8) + i * 0.5 + 0.5, X(12.8) + i * 0.5 + 1.0, -2.5 + j, -2.0 + j, lz0 + 1.5, lz0 + 2.0,
                       None, size=SURF, carve=True)
 
-    # --- trigger guard: a loop with a real finger hole; two triggers (move)
-    m.part = "guard"
-    gx0, gx1, gbot = X(15.4), X(21.2), Z(13.9)
-    gout = Profile([(gx0, A_BOT + 0.5), (gx1, A_BOT + 0.5), (gx1, gbot + 3.0), (gx1 - 3.0, gbot), (gx0 + 3.0, gbot),
-                    (gx0, gbot + 3.0)])
-    hole = Profile([(gx0 + GUARD_BAR, A_BOT + 1), (gx1 - GUARD_BAR, A_BOT + 1), (gx1 - GUARD_BAR, gbot + GUARD_BAR + 1.5),
-                    (gx1 - GUARD_BAR - 1.5, gbot + GUARD_BAR), (gx0 + GUARD_BAR + 1.5, gbot + GUARD_BAR),
-                    (gx0 + GUARD_BAR, gbot + GUARD_BAR + 1.5)])
-    gsolid = gout.solid(lambda x: GUARD_W / 2, 1.0)
-    m.fill(lambda x, y, z: gsolid(x, y, z) and hole.sd(x, z) <= 0, gout.bounds(GUARD_W / 2),
-           toned(pic, GUNMETAL, (0.2, 0.3), 61, rust=0.1), size=1.0, edge=SURF, keep=True)
-    m.part = "trigger"
-    for tx in (X(17.4), X(19.0)):
-        def trig(x, y, z, tx=tx):
-            if not (gbot + GUARD_BAR + 0.5 <= z < A_BOT) or abs(y) >= 1.0:
-                return False
-            lean = (A_BOT - z) * 0.3
-            return tx + lean - 0.75 <= x < tx + lean + 0.75
-        m.fill(trig, (tx - 2, tx + 5, -1.5, 1.5, gbot, A_BOT), mix(GUNMETAL[2], BRIGHT_METAL, 0.4), size=SURF,
-               keep=True)
+    # --- trigger guard, its finger hole carried up into the action (2026-11-05); two triggers (move) hang from there
+    gx0, gx1, gbot = X(15.0), X(21.4), Z(14.4)
+    guard(m, gx0, gx1, A_BOT, gbot, toned(pic, GUNMETAL, (0.2, 0.3), 61, rust=0.1), w=GUARD_W, bar=GUARD_BAR)
+    for tx in (X(16.8), X(18.6)):
+        blade(m, tx, A_BOT, gbot + GUARD_BAR + 0.5, mix(GUNMETAL[2], BRIGHT_METAL, 0.4), lean=0.3)
 
     # --- grip: wood from the picture's outline, the wrist wrapped in blue cloth with a loose tail, a dented butt cap
     m.part = "grip"

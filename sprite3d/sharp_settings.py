@@ -64,25 +64,25 @@ GLK_MAG_AXIS = (-0.216, -0.976)        # the magazine slides out along the (stre
 # (sharp_ingram.py + sharp_ingram1/2/3.py, make_job_ingram.py) Side pictures MPIPA0 / MP2PA0 / MP3PA0, 46 pixels wide =
 # 0.40 m: the bare gun spans 31 of them (0.27 m), the silenced builds with the folded stock 44 (0.38 m).
 ING_PIC_W = 46
-ING_LENGTH_M = 0.40
+ING_LENGTH_M = 0.56                    # 2026-11-05, Tefa: "machine guns number 4 were both too small": 1.4x (was 0.40)
 ING_S = ING_LENGTH_M / ING_PIC_W / CUBE_M      # main cubes per picture pixel (2.6)
-ING_BOLT_STROKE = 6.0                  # main cubes the cocking knob runs back
+ING_BOLT_STROKE = 8.4                  # main cubes the cocking knob runs back
 
 # ---------------------------------------------------------------------------------------------- the FAL
 # (sharp_fal.py, make_job_fal.py) Side picture FWEPA0, 88 pixels wide; the rifle spans 72 of them, about 1.05 m.
 FAL_PIC_W = 88
-FAL_LENGTH_M = 1.28
+FAL_LENGTH_M = 1.60                    # 2026-11-05, Tefa: "so were the number 7 weapons": 1.25x (was 1.28)
 FAL_S = FAL_LENGTH_M / FAL_PIC_W / CUBE_M      # main cubes per picture pixel (4.3)
-FAL_HANDLE_STROKE = 18.0               # main cubes the charging handle runs back
+FAL_HANDLE_STROKE = 22.5              # main cubes the charging handle runs back
 
 # ---------------------------------------------------------------------------------------------- the Junker Musket
 # (sharp_musket.py, make_job_musket.py) Side picture MKTPA0, 69 pixels wide; the rifle spans 64 of them, about 1.10 m.
 MSK_PIC_W = 69
-MSK_LENGTH_M = 1.19
+MSK_LENGTH_M = 1.50                    # 2026-11-05, the same: 1.26x (was 1.19)
 MSK_S = MSK_LENGTH_M / MSK_PIC_W / CUBE_M      # main cubes per picture pixel (5.1)
 MSK_BOLT_ROW = 9.2                     # picture row of the bolt's axis (it turns on it)
 MSK_BOLT_LIFT_DEG = -70.0              # the handle lifted up, round the bolt's axis
-MSK_BOLT_STROKE = 16.0                 # main cubes the bolt runs back
+MSK_BOLT_STROKE = 20.0                 # main cubes the bolt runs back
 
 # ---------------------------------------------------------------------------------------------- the Master Blaster
 # (sharp_blaster.py, make_job_blaster.py) Side picture LAUPA0, 56 pixels wide; the flamethrower spans 43, about 0.9 m.

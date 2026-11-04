@@ -30,7 +30,8 @@ def build():
     m = start(NAME)
     steel = toned(pic, GUNMETAL, pic.thresholds(20, 35, 8, 13), 21, rust=0.18)
     BZ, BR = Z(9.8), 3.6
-    MZ = X(66.6)
+    MZ = X(51.0)                     # (2026-11-05, Tefa: "the junker rifle has quite a large glass on the scope and is
+                                     # with a short barrel": was X(66.6))
     BOLT_Z = Z(MSK_BOLT_ROW)
 
     # --- stock: long, orange-brown, a dark butt plate
@@ -59,20 +60,20 @@ def build():
            (X(25.7) - 3, X(25.7) + 3, -REC_W / 2 - 6, -REC_W / 2, BOLT_Z - 8, BOLT_Z - 1), bcol, size=SURF)
 
     # --- fore-end under the barrel, the barrel, wire wound on it, the pipe muzzle with holes
-    body(m, "forend", [(X(35.5), Z(9.4)), (X(52.0), Z(9.6)), (X(52.0), Z(12.0)), (X(50.5), Z(13.0)),
+    body(m, "forend", [(X(35.5), Z(9.4)), (X(44.0), Z(9.6)), (X(44.0), Z(12.0)), (X(42.5), Z(13.0)),
                        (X(35.5), Z(13.0))], 5.0, 2.5, toned(pic, PUMP_WOOD, pic.thresholds(36, 51, 10, 12), 81),
          exclude=lambda x, y, z: math.hypot(y, z - BZ) < BR)
-    barrel(m, "barrel", X(35.0), X(58.0), 0.0, BZ, BR, 1.6, toned(pic, GUNMETAL, pic.thresholds(40, 58, 7, 11), 31,
+    barrel(m, "barrel", X(35.0), X(46.0), 0.0, BZ, BR, 1.6, toned(pic, GUNMETAL, pic.thresholds(40, 58, 7, 11), 31,
                                                                     rust=0.25))
     m.part = "barrel"
-    for x0 in (X(41.0), X(53.5), X(55.6)):
+    for x0 in (X(44.2), X(45.0)):
         m.fill(lambda x, y, z, x0=x0: x0 <= x < x0 + 2.0 and BR - 0.25 <= math.hypot(y, z - BZ) < BR + 0.75,
                (x0, x0 + 2, -BR - 1, BR + 1, BZ - BR - 1, BZ + BR + 1),
                lambda x, y, z: WIRE if int(math.floor(x * 2)) % 2 else mix(WIRE, (60, 58, 54), 0.5), size=SURF)
-    barrel(m, "barrel", X(58.0), MZ, 0.0, BZ, 4.6, 2.2, toned(pic, GUNMETAL, pic.thresholds(58, 66, 7, 11), 33,
+    barrel(m, "barrel", X(46.0), MZ, 0.0, BZ, 4.6, 2.2, toned(pic, GUNMETAL, pic.thresholds(58, 66, 7, 11), 33,
                                                                 rust=0.2))
     for k in range(3):
-        x = X(59.5) + k * 2.5
+        x = X(46.8) + k * 2.5
         for yc in (-4.6, 4.6):
             m.box(x, x + 1.0, yc - 1, yc + 1, BZ - 0.5, BZ + 0.5, None, size=SURF, carve=True)
 
@@ -95,9 +96,11 @@ def build():
     m.part = "scope"
     m.cyl(X(30.0), X(44.0), 0.0, SZ, 4.6, scol, edge=SURF)
     m.cyl(X(27.0), X(30.0), 0.0, SZ, 5.6, scol, edge=SURF)
-    m.cyl(X(44.0), X(47.6), 0.0, SZ, 6.2, scol, edge=SURF)
-    m.cyl(X(27.0) - 0.5, X(27.0) + 0.5, 0.0, SZ, 4.2, GLASS, edge=SURF)
-    m.cyl(X(47.6) - 0.5, X(47.6) + 0.5, 0.0, SZ, 4.8, GLASS, edge=SURF)
+    m.cyl(X(44.0), X(46.0), 0.0, SZ, 7.0, scol, edge=SURF)
+    m.cyl(X(46.0), X(48.6), 0.0, SZ, 8.8, scol, hollow=7.6, edge=SURF)                      # a big objective bell
+    m.cyl(X(27.0) - 0.5, X(27.0) + 0.5, 0.0, SZ, 4.8, GLASS, edge=SURF)
+    m.cyl(X(48.6) - 2.0, X(48.6) - 1.0, 0.0, SZ, 7.6, lambda x, y, z: (150, 190, 220) if (y - 2.5) ** 2 + (z - SZ - 2.5) ** 2 < 4.0
+          else GLASS, edge=SURF)                                                           # the big glass, a glint on it
     for xc in (X(32.5), X(38.6)):
         m.fill(lambda x, y, z, xc=xc: math.hypot(x - xc, y) < 2.0 and SZ + 4.0 <= z < SZ + 6.5,
                (xc - 3, xc + 3, -3, 3, SZ + 3, SZ + 7), mix(SCOPE_TAN[1], BRASS, 0.3), size=SURF)

@@ -4,8 +4,9 @@ Tefa, after the sharp sawn-off: "please carry on with all the rest in this style
 follows the game's side pickup picture (JHAMA0, 40 x 23, read at run time) and the first cube pass's reading of it:
 a red ribbed engine at the back with a silver vented cover, a rope-wrapped hoop handle over it, a black base with
 yellow hazard stripes, a black front housing with a D-handle on top (where the right hand holds it), a pipe under
-it, and the chisel sticking out of a collar at the front.
-Moving parts (make_job_jackhammer.py): the chisel hammers out and back, the throttle lever in the D-handle.
+it, and a thick blunt iron rod out of a collar at the front (Tefa, 2026-11-05: a chainsaw-bulky body, a blunt rod
+to repel enemies).
+Moving parts (make_job_jackhammer.py): the rod hammers out and back, the throttle lever in the D-handle.
 """
 import math
 
@@ -21,7 +22,10 @@ BLACK = [(20, 20, 22), (30, 30, 33), (46, 46, 50)]
 SILVER = [(96, 98, 104), (132, 134, 140), (170, 172, 176)]
 YELLOW = (204, 168, 40)
 ROPE = [(112, 88, 54), (150, 120, 76), (184, 154, 100)]
-ENG_W, HOUSE_W = 18.0, 12.0
+# 2026-11-05, Tefa: "jachammer needs to be with a thick and bulky body like a chainsaw and the tip needs to be a thick
+# iron blunt rod to repel enemies, not a sharp one"
+ENG_W, HOUSE_W = 22.0, 20.0
+ROD_R = 4.5
 
 
 def build():
@@ -70,17 +74,29 @@ def build():
                size=SURF, keep=True)
 
     # --- front housing: black, seams and rivets; the collar the chisel comes out of
-    body(m, "housing", [(X(12.0), Z(11.6)), (X(37.0), Z(11.6)), (X(37.6), Z(12.6)), (X(37.6), Z(16.2)),
-                        (X(37.0), Z(17.2)), (X(12.0), Z(17.2))], HOUSE_W / 2, 3.0, black, keep=True)
-    seam(m, X(13.0), X(36.5), Z(15.6), HOUSE_W / 2)
-    screws(m, [(X(14.0 + 4 * k), Z(12.6)) for k in range(6)], HOUSE_W / 2, mix(BLACK[2], BRIGHT_METAL, 0.3))
+    body(m, "housing", [(X(12.0), Z(9.6)), (X(35.0), Z(9.6)), (X(37.6), Z(11.4)), (X(37.6), Z(17.4)),
+                        (X(36.0), Z(18.8)), (X(12.0), Z(18.8))], HOUSE_W / 2, 4.5, black, keep=True)
+    # a round starter cover standing out of the right side, as on a chainsaw, and vents in the left
     m.part = "housing"
-    m.cyl(X(37.6), X(38.6), 0.0, HZ, 4.2, toned(pic, SILVER, (0.3, 0.5), 27), edge=SURF)
+    scx, scz, sr = X(28.0), Z(14.2), 8.0
+    m.fill(lambda x, y, z: (x - scx) ** 2 + (z - scz) ** 2 < sr * sr and -HOUSE_W / 2 - 1.5 <= y < -HOUSE_W / 2 + 1.0,
+           (scx - sr - 1, scx + sr + 1, -HOUSE_W / 2 - 2, -HOUSE_W / 2 + 1, scz - sr - 1, scz + sr + 1),
+           toned(pic, SILVER, (0.3, 0.5), 29), size=1.0, edge=SURF)
+    for k in range(5):
+        x = scx - 6.0 + k * 3.0
+        m.box(x, x + 1.0, -HOUSE_W / 2 - 2, -HOUSE_W / 2 - 0.5, scz - 5.0, scz + 5.0, None, size=SURF, carve=True)
+    for k in range(6):
+        x = X(29.0) + k * 2.5
+        m.box(x, x + 1.0, HOUSE_W / 2 - 1.0, HOUSE_W / 2 + 1, Z(16.8), Z(11.6), None, size=SURF, carve=True)
+    seam(m, X(13.0), X(36.5), Z(17.4), HOUSE_W / 2)
+    screws(m, [(X(14.0 + 4 * k), Z(10.8)) for k in range(5)], HOUSE_W / 2, mix(BLACK[2], BRIGHT_METAL, 0.3))
+    m.part = "housing"
+    m.cyl(X(37.6), X(38.8), 0.0, HZ, ROD_R + 2.0, toned(pic, SILVER, (0.3, 0.5), 27), edge=SURF)
     # the pipe under it, on two brackets
     m.part = "pipe"
-    m.cyl(X(13.0), X(37.0), 0.0, Z(19.2), 3.0, black, edge=SURF)
+    m.cyl(X(13.0), X(37.0), 0.0, Z(20.4), 3.0, black, edge=SURF)
     for x in (X(16.0), X(33.0)):
-        m.box(x, x + 2.0, -2.0, 2.0, Z(19.2), Z(17.2), black, size=SURF)
+        m.box(x, x + 2.0, -2.0, 2.0, Z(20.4), Z(18.8), black, size=SURF)
 
     # --- D-handle on top (the right hand holds it: part "grip"), rubber on its bar; the throttle lever inside
     m.part = "grip"
@@ -96,18 +112,19 @@ def build():
     m.part = "trigger"
     m.box(X(24.6), X(25.6), -1.0, 1.0, Z(9.4), Z(6.6), mix(BLACK[2], BRIGHT_METAL, 0.3), size=SURF)
 
-    # --- chisel (moves): a steel shaft out of the collar, flattened to a wedge
+    # --- the rod (moves): a thick blunt iron bar out of the collar, a rounded, mushroomed striking face
     m.part = "chisel"
-    steel = lambda x, y, z: mix(GUNMETAL[2], BRIGHT_METAL, 0.3 + 0.3 * hash01(int(x * 2), int(y * 2), int(z * 2), 9))  # noqa: E731
-    m.cyl(X(36.0), X(41.0), 0.0, HZ, 2.0, steel, edge=SURF)
+    iron = toned(pic, [(54, 54, 58), (78, 78, 82), (108, 108, 112)], (0.3, 0.5), 33, rust=0.2)
+    m.cyl(X(35.0), X(41.4), 0.0, HZ, ROD_R, iron, edge=SURF)
 
-    def wedge(x, y, z):
-        if not (X(41.0) <= x < X(43.0)):
+    def head(x, y, z):
+        if not (X(41.4) <= x < X(41.4) + 4.0):
             return False
-        t = (x - X(41.0)) / (X(43.0) - X(41.0))
-        return abs(y) < 2.0 and abs(z - HZ) < 2.0 * (1.0 - t) + 0.3
-    m.fill(wedge, (X(41.0), X(43.0), -2.5, 2.5, HZ - 3, HZ + 3), lambda x, y, z: mix(steel(x, y, z), BRIGHT_METAL, 0.3),
-           size=SURF)
+        t = (x - X(41.4)) / 4.0
+        r = ROD_R + 1.2 - 2.2 * max(0.0, t - 0.5) ** 2 * 4                  # swells, then rounds over at the face
+        return math.hypot(y, z - HZ) < r
+    m.fill(head, (X(41.4), X(41.4) + 4.5, -ROD_R - 2, ROD_R + 2, HZ - ROD_R - 2, HZ + ROD_R + 2),
+           lambda x, y, z: mix(iron(x, y, z), BRIGHT_METAL, 0.35 if x > X(41.4) + 3.0 else 0.1), size=SURF)
 
     finish(m, ["engine", "housing", "pipe", "chisel"], ["handle"])
     return m

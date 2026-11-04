@@ -16,8 +16,12 @@ from sharp_settings import GLK_LENGTH_M
 
 NAME = "sharp_handgun"
 SIDE_SPRITE = "Sprites/Weapons/GLPPA0.png"
-POLYMER = [(26, 26, 28), (36, 36, 39), (50, 50, 54)]
-SLIDE_STEEL = [(40, 42, 48), (62, 64, 71), (96, 98, 106)]
+# 2026-11-05, Tefa: "automatic pistol nr2 is needs to be more black, have rust on it and look like a glock 19 a lot
+# more": a near-black polymer frame, a black slide with rust coming through, the Glock 19's flat-topped slide with the
+# bevelled nose
+POLYMER = [(14, 14, 15), (21, 21, 23), (32, 32, 35)]
+SLIDE_STEEL = [(18, 18, 20), (27, 27, 30), (40, 40, 44)]
+RUSTY = [(84, 46, 26), (112, 62, 34)]
 SLIDE_W, FRAME_W, GRIP_W, MAG_W = 10.0, 9.0, 9.5, 6.0
 GRIP_STRETCH = 1.7
 
@@ -40,7 +44,7 @@ def build():
           else bcol(x, y, z), hollow=BORE, edge=SURF)
 
     # --- slide (moves): steel, hollow round the barrel, serrations, port, sights
-    scol = toned(pic, SLIDE_STEEL, pic.thresholds(6, 28, 2, 6), 21, rust=0.08)
+    scol = toned(pic, SLIDE_STEEL, pic.thresholds(6, 28, 2, 6), 21, rust=0.22, rust_cols=RUSTY)
     body(m, "slide", [(X(6.2), Z(2.1)), (MZ, Z(2.1)), (MZ, Z(7.2)), (X(6.2), Z(7.2))], SLIDE_W / 2, 1.5, scol,
          exclude=in_barrel)
     for k in range(6):                                                      # rear serrations, both sides
@@ -58,6 +62,12 @@ def build():
 
     # --- frame: polymer, a rail under the front with cut slots
     pcol = toned(pic, POLYMER, pic.thresholds(6, 21, 6, 9), 31)
+    # the slide's nose bevelled all round, as on a Glock
+    for side in (-1, 1):
+        m.fill(lambda x, y, z, side=side: x > MZ - 3.0 and side * y > SLIDE_W / 2 - (x - (MZ - 3.0)) * 0.6,
+               (MZ - 3.5, MZ + 1, -SLIDE_W, SLIDE_W, Z(7.2), Z(2.1) + 1), None, size=SURF, carve=True)
+    m.fill(lambda x, y, z: x > MZ - 3.0 and z > Z(2.1) - (x - (MZ - 3.0)) * 0.6,
+           (MZ - 3.5, MZ + 1, -SLIDE_W, SLIDE_W, Z(4.0), Z(2.1) + 1), None, size=SURF, carve=True)
     body(m, "frame", [(X(6.2), Z(7.2)), (X(21.5), Z(7.2)), (X(21.5), Z(8.6)), (X(10.4), Z(8.6)), (X(6.2), Z(8.6))],
          FRAME_W / 2, 1.0, pcol)
     for k in range(3):
@@ -66,14 +76,14 @@ def build():
 
     # --- trigger guard (square at the front, polymer) and trigger
     guard(m, X(10.2), X(19.8), Z(8.6), Z(10.4), toned(pic, POLYMER, (0.15, 0.25), 33), w=3.5, bar=1.6)
-    blade(m, X(12.4), Z(8.6), Z(10.0), mix(POLYMER[2], BRIGHT_METAL, 0.2), lean=0.25)
+    blade(m, X(12.4), Z(8.6), Z(9.9), mix(POLYMER[2], BRIGHT_METAL, 0.2), w=1.25, lean=0.25)
 
     # --- magazine (moves) inside the grip, its floorplate showing under it; a brass round on top
     mpoly = [(X(9.8), G(7.6)), (X(8.6), G(10.6)), (X(7.7), G(13.0)), (X(4.8), G(13.0)), (X(5.9), G(10.4)),
              (X(7.0), G(7.6))]
     mp = Profile(mpoly)
     in_mag = mp.solid(lambda x: MAG_W / 2, 0.5)
-    body(m, "mag", mpoly, MAG_W / 2, 0.5, toned(pic, GUNMETAL, (0.2, 0.35), 41))
+    body(m, "mag", mpoly, MAG_W / 2, 0.5, toned(pic, SLIDE_STEEL, (0.2, 0.35), 41, rust=0.3, rust_cols=RUSTY))
     body(m, "mag", [(X(8.2), G(13.0)), (X(8.0), G(13.9)), (X(3.4), G(13.9)), (X(3.8), G(13.0))], GRIP_W / 2 + 0.25,
          1.0, toned(pic, POLYMER, (0.2, 0.3), 43))
     m.part = "mag"

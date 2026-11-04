@@ -2,7 +2,7 @@
 
 Tefa, after the sharp sawn-off: "please carry on with all the rest in this style". Same look (sharp_kit.py). The
 rifle follows the game's side pickup picture (FWEPA0, 88 x 26, read at run time): a wooden stock with a rubber butt
-pad, a steel receiver with the ejection port on the right, a folded-up carry handle, the charging handle on the left,
+pad, a steel receiver with the ejection port on the right, a red-dot sight on a rail, the charging handle on the left,
 a black pistol grip, a curved magazine with ribs, a vented wooden handguard, the barrel with its front sight post and
 a slotted flash hider.
 Moving parts (make_job_fal.py): the magazine drops out and a new one goes in, the charging handle is pulled back
@@ -61,14 +61,23 @@ def build():
     m.part = "receiver"
     m.box(X(37.0), X(44.0), -3.0, 3.0, Z(8.2), Z(8.2) + 1.0, mix(GUNMETAL[2], BRIGHT_METAL, 0.35), size=SURF)
 
-    # --- carry handle, folded up: a loop with a real hole
-    m.part = "handle"
-    hout = Profile([(X(29.6), Z(8.2)), (X(35.0), Z(8.2)), (X(35.0), Z(3.0)), (X(33.6), Z(2.8)), (X(31.5), Z(4.2)),
-                    (X(29.6), Z(5.6))])
-    hole = Profile([(X(30.8), Z(8.0)), (X(33.8), Z(8.0)), (X(33.8), Z(4.6)), (X(32.0), Z(5.4)), (X(30.8), Z(6.2))])
-    hs = hout.solid(lambda x: 1.75, 0.75)
-    m.fill(lambda x, y, z: hs(x, y, z) and hole.sd(x, z) <= 0, hout.bounds(2.0), toned(pic, POLYMER, (0.2, 0.3), 23),
-           size=1.0, edge=SURF, keep=True)
+    # --- red-dot sight on a rail (2026-11-05, Tefa: "the tactical rifle has a dot scope"; it replaces the carry handle)
+    m.part = "scope"
+    dark = toned(pic, POLYMER, (0.2, 0.3), 23)
+    rail_top = Z(8.2) + 2.0
+    m.box(X(28.0), X(43.5), -2.5, 2.5, Z(8.2), rail_top, dark, size=SURF, keep=True)
+    for k in range(int((X(43.5) - X(28.0)) / 2.0)):                         # the rail's cross slots
+        x = X(28.0) + 0.75 + k * 2.0
+        m.box(x, x + 1.0, -3, 3, rail_top - 0.75, rail_top + 0.5, None, size=SURF, carve=True)
+    DZ, DR = rail_top + 7.0, 5.0
+    m.box(X(31.0), X(37.0), -3.5, 3.5, rail_top, DZ - DR + 1.0, dark, size=1.0, edge=SURF)          # the mount
+    m.cyl(X(30.0), X(38.4), 0.0, DZ, DR, dark, hollow=DR - 1.0, edge=SURF)                        # the tube
+    m.cyl(X(30.0) - 0.5, X(30.0) + 0.5, 0.0, DZ, DR - 1.0, (60, 22, 26), edge=SURF)              # rear lens, tinted
+    m.cyl(X(38.4) - 1.0, X(38.4), 0.0, DZ, DR - 1.0, (110, 30, 30), edge=SURF)                   # front lens
+    m.box(X(30.0) + 0.5, X(30.0) + 1.0, -0.5, 0.5, DZ - 0.5, DZ + 0.5, (255, 40, 30), size=SURF)  # the dot
+    m.cyl(X(33.4), X(34.6), 0.0, DZ + DR, 1.6, dark, edge=SURF)                                   # a dial on top
+    m.fill(lambda x, y, z: abs(x - X(34.0)) < 1.6 and y < -DR + 0.5 and y > -DR - 1.5 and abs(z - DZ) < 1.6,
+           (X(34.0) - 2, X(34.0) + 2, -DR - 2, -DR + 1, DZ - 2, DZ + 2), dark, size=SURF)            # and on the side
 
     # --- charging handle (moves): a knob out of the left side
     m.part = "bolt"
@@ -125,5 +134,5 @@ def build():
         m.box(X(77.4), MZ - 0.5, yc - 0.5, yc + 0.5, zc - 0.5, zc + 0.5, None, size=SURF, carve=True)
 
     flashes(m, MZ + 0.5, BZ, scale=0.9)
-    finish(m, ["receiver", "barrel", "bolt", "mag", "guard", "handle"], ["stock", "handguard"])
+    finish(m, ["receiver", "barrel", "bolt", "mag", "guard", "scope"], ["stock", "handguard"])
     return m

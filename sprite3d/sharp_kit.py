@@ -28,6 +28,11 @@ GAME_PK3S = (r"C:/NonSteam/Ashes 2063 VR/Resources/Ashes2063Enriched2_23.pk3",
 SURF = 0.5                             # surface cube: the half cube (Tefa: "one measure bigger")
 FLASH = 0.25                           # the smallest cube, for the flash only
 CUBE_NOISE = 0.03                      # each cube's brightness wobble (forge default 0.06: busy, reads as noise in VR)
+# 2026-11-05, Tefa after wearing all eleven: "still need to go up one notch in the cube size ... combine the looks with
+# the game's own original sprite weapon looks, they need to look a little blurrier still, so can you use a mixture of
+# even bigger cubes for more chunky parts of the gun, to make round edges and slopes use smaller cubes"
+PIC_MIX = 0.45                         # how much of the game picture's own colour goes into each cube's colour
+CHUNK = 2.0                            # the biggest cube, for the inside and the flat faces of chunky parts
 
 # ---------------------------------------------------------------------------------------------- shared palettes (sRGB)
 GUNMETAL = [(40, 42, 48), (58, 60, 67), (82, 84, 91)]
@@ -86,6 +91,16 @@ class Picture:
         r, g, b, a = self.rows[v][u]
         return None if a < 0.5 else (r + g + b) / 3
 
+    def rgb(self, x, z):
+        """The nearest picture pixel's own colour (0-255), or None off the picture or on a clear pixel."""
+        u, v = int(math.floor(x / self.s)), int(math.floor(-z / self.s))
+        if not (0 <= u < self.W and 0 <= v < self.H):
+            return None
+        r, g, b, a = self.rows[v][u]
+        if a < 0.5:
+            return None
+        return (255.0 * r, 255.0 * g, 255.0 * b)          # an 8-bit picture's pixels come through as stored (sRGB)
+
     def thresholds(self, x0, x1, r0, r1):
         ls = sorted(l for v in range(r0, r1 + 1) for u in range(x0, x1 + 1)
                     for (r, g, b, a) in [self.rows[v][u]] if a >= 0.5 for l in [(r + g + b) / 3])
@@ -121,7 +136,8 @@ def toned(pic, pal, th, seed, rust=0.0, rust_cols=RUST):
             t = min(2, t + 1)
         if rust and noise(x, y, z, seed + 7, RUST_SCALE) > 1.0 - rust:
             return rust_cols[0 if t < 2 else 1]
-        return pal[t]
+        c = pic.rgb(x, z)
+        return pal[t] if c is None else mix(pal[t], c, PIC_MIX)
     return col
 
 
@@ -317,10 +333,70 @@ def finish(m, metal, wood):
             v[0] = mul(v[0], DARKEN)
 
 
+def chunky(m, inside, bounds, col, part=None, keep=False):
+    """Fill a shape in mixed cubes (2026-11-05): CHUNK cubes wherever they fit, whole cubes where the surface is flat
+    (the cube's corners split cleanly along one axis), half cubes only where it slopes or curves."""
+    part = part or m.part
+
+    def place(cx, cy, cz, s):
+        if keep and m.at(cx, cy, cz) is not None:
+            return
+        m.put(cx - s / 2, cy - s / 2, cz - s / 2, col(cx, cy, cz) if callable(col) else col, s, part)
+
+    def visit(cx, cy, cz, s):
+        h = s / 2 * 0.98
+        ins = [inside(cx + a * h, cy + b * h, cz + c * h) for a in (-1, 1) for b in (-1, 1) for c in (-1, 1)]
+        n = sum(ins)
+        mid = inside(cx, cy, cz)
+        if n == 8:
+            place(cx, cy, cz, s)
+            return
+        if n == 0 and not mid:
+            return
+        if s <= SURF + 1e-9:
+            if mid:
+                place(cx, cy, cz, s)
+            return
+        if s <= 1.0 + 1e-9 and n == 4:
+            # corners ordered (a, b, c) over x, y, z: a flat face splits them into two halves along one axis
+            halves = ([ins[i] for i in (0, 1, 2, 3)], [ins[i] for i in (0, 1, 4, 5)], [ins[i] for i in (0, 2, 4, 6)])
+            if any(all(hv) or not any(hv) for hv in halves):
+                if mid:
+                    place(cx, cy, cz, s)
+                return
+        q = s / 4
+        for a in (-1, 1):
+            for b in (-1, 1):
+                for c in (-1, 1):
+                    visit(cx + a * q, cy + b * q, cz + c * q, s / 2)
+
+    x0, x1, y0, y1, z0, z1 = bounds
+    s = CHUNK
+    xs = math.floor(x0 / s) * s
+    while xs < x1:
+        ys = math.floor(y0 / s) * s
+        while ys < y1:
+            zs = math.floor(z0 / s) * s
+            while zs < z1:
+                visit(xs + s / 2, ys + s / 2, zs + s / 2, s)
+                zs += s
+            ys += s
+        xs += s
+
+
 def start(name):
-    """A new model with the sharp look's settings."""
+    """A new model with the sharp look's settings. Every solid fill the designs make in whole cubes with half-cube
+    edges goes through chunky() instead (2026-11-05), so the whole set changed size in one place."""
     forge.NOISE = CUBE_NOISE
-    return forge.Model(name)
+    m = forge.Model(name)
+    plain = m.fill
+
+    def fill(inside, bounds, col, size=1.0, edge=None, part=None, carve=False, keep=False):
+        if not carve and col is not None and size == 1.0 and edge == SURF:
+            return chunky(m, inside, bounds, col, part, keep)
+        return plain(inside, bounds, col, size, edge, part, carve, keep)
+    m.fill = fill
+    return m
 
 
 # ---------------------------------------------------------------------------------------------- building pieces
@@ -351,8 +427,17 @@ def barrel(m, part, x0, x1, yc, zc, r, bore, col, keep=True):
     m.cyl(x0, x1, yc, zc, r, c, hollow=bore, edge=SURF, keep=keep)
 
 
-def guard(m, x0, x1, top, bot, col, w=4.0, bar=2.2, part="guard"):
-    """A trigger guard: a loop under the gun from x0 to x1, from `top` down to `bot`, with a real finger hole."""
+GUARD_UP = 3.5                         # main cubes the finger hole runs up into the gun (Tefa, 2026-11-05)
+
+
+def guard(m, x0, x1, top, bot, col, w=4.0, bar=2.2, part="guard", up=GUARD_UP):
+    """A trigger guard: a loop under the gun from x0 to x1, from `top` down to `bot`, with a real finger hole, and the
+    hole carried `up` into the gun above it as a dark recess the trigger hangs from (2026-11-05, Tefa: "the trigger
+    guards have to expand upwards"). blade() triggers should hang from top + up."""
+    if up:
+        m.box(x0 + bar, x1 - bar, -2.5, 2.5, top - 0.5, top + up, None, size=SURF, carve=True)
+        darken(m, lambda x, y, z: x0 + bar - 0.5 <= x < x1 - bar + 0.5 and abs(y) < 3.0 and top - 1 <= z < top + up + 0.5,
+               0.55)
     m.part = part
     out = Profile([(x0, top + 0.5), (x1, top + 0.5), (x1, bot + 3.0), (x1 - 3.0, bot), (x0 + 3.0, bot),
                    (x0, bot + 3.0)])
@@ -363,9 +448,12 @@ def guard(m, x0, x1, top, bot, col, w=4.0, bar=2.2, part="guard"):
            keep=True)
 
 
-def blade(m, tx, top, bot, col, w=0.75, lean=0.3, part="trigger"):
-    """A trigger blade hanging from `top` down to `bot` at x = tx, leaning forward at the bottom."""
+def blade(m, tx, top, bot, col, w=0.75, lean=0.3, part="trigger", up=GUARD_UP):
+    """A trigger blade hanging from `top` (+ `up`, into the guard's recess) down to `bot` at x = tx, leaning forward
+    at the bottom."""
     m.part = part
+    top = top + up
+    w = max(w, 1.0)                                   # whole-cube wide since the cubes went up a notch (2026-11-05)
 
     def inside(x, y, z):
         if not (bot <= z < top) or abs(y) >= 1.0:

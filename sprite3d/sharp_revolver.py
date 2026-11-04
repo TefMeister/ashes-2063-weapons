@@ -88,30 +88,32 @@ def build():
     guard(m, X(12.4), X(18.4), Z(10.0), Z(12.2), toned(pic, GUNMETAL, (0.2, 0.3), 61, rust=0.1), w=3.5, bar=1.8)
     blade(m, X(14.6), Z(10.0), Z(11.6), mix(GUNMETAL[2], BRIGHT_METAL, 0.4), lean=0.4)
 
+    # (2026-11-05, Tefa: "revolver needs the grip handle to be longer downwards": 1.5x below row 7)
+    G = lambda row: Z(7.0) + (Z(row) - Z(7.0)) * 1.5  # noqa: E731
     # --- grip: wood panels on a metal grip frame (front and back straps), checkered, a screw, a metal butt
     # slanted down and back from under the frame, as a revolver grip (the picture's 4-pixel blob, given its shape)
-    gpoly = [(X(11.4), Z(7.0)), (X(10.0), Z(10.0)), (X(8.2), Z(12.7)), (X(4.0), Z(12.7)), (X(3.4), Z(11.6)),
-             (X(5.4), Z(8.0)), (X(7.6), Z(5.4)), (X(10.6), Z(5.2))]
+    gpoly = [(X(11.4), Z(7.0)), (X(10.0), G(10.0)), (X(8.2), G(12.7)), (X(4.0), G(12.7)), (X(3.4), G(11.6)),
+             (X(5.4), G(8.0)), (X(7.6), Z(5.4)), (X(10.6), Z(5.2))]
     gp = Profile(gpoly)
     wood = toned(pic, GRIP_WOOD, pic.thresholds(4, 10, 6, 11), 71)
     strap = toned(pic, GUNMETAL, (0.2, 0.3), 73, rust=0.1)
 
     def grip_col(x, y, z):
-        if z < Z(12.2) or (abs(y) < 2.0 and gp.sd(x, z) < 1.5):
+        if z < G(12.2) or (abs(y) < 2.0 and gp.sd(x, z) < 1.5):
             return strap(x, y, z)
         return wood(x, y, z)
     m.part = "grip"
     sol = gp.solid(lambda x: 5.5, 3.5)
     m.fill(sol, gp.bounds(5.5), grip_col, size=1.0, edge=SURF, keep=True)
     for i in range(int((X(9.0) - X(5.0)) / 1.0)):
-        for j in range(int((Z(8.0) - Z(11.5)) / 1.0)):
+        for j in range(int((G(8.0) - G(11.5)) / 1.0)):
             if (i + j) % 2:
-                x, z = X(5.0) + i, Z(11.5) + j
+                x, z = X(5.0) + i, G(11.5) + j
                 if sol(x + 0.25, 5.0, z + 0.25):
                     m.box(x, x + 0.5, 5.0, 6.5, z, z + 0.5, None, size=SURF, carve=True)
                 if sol(x + 0.25, -5.0, z + 0.25):
                     m.box(x, x + 0.5, -6.5, -5.0, z, z + 0.5, None, size=SURF, carve=True)
-    screws(m, [(X(7.0), Z(9.6))], 5.0)
+    screws(m, [(X(7.0), G(9.6))], 5.0)
 
     # --- rounds (move; shown with the cylinder swung out), built parked above the cylinder
     m.part = "rounds"

@@ -3,7 +3,9 @@
 Tefa, after the sharp sawn-off: "please carry on with all the rest in this style". Same look (sharp_kit.py), but the
 crowbar has no side pickup picture (it is the weapon you start with); it follows the game's in-hand picture
 (Graphics/crowbar/PUNGA.png): a red-painted octagonal bar worn to bare steel in patches, a gooseneck hook with a forked
-claw at the front, a flattened chisel end at the back, and (ours) black tape wound where the hand holds it.
+claw at the front, a flattened chisel end at the back. 2026-11-05, Tefa: "the crowbar needs to look and bend more like
+the one from half life series, also the bend needs to bend outwards away from the player": the classic red crowbar's
+open J-hook and slightly bent chisel end (our own build of that common shape), the hook curling down, away.
 No moving parts: its swings move the whole crowbar, which in VR is the player's own hand (Tefa, 2026-11-04: "all the
 rest has to stay still"). Built straight in main cubes, x forward, z up.
 """
@@ -14,11 +16,13 @@ from sharp_kit import BRIGHT_METAL, GUNMETAL, SURF, finish, noise, start
 
 NAME = "sharp_crowbar"
 RED = [(110, 22, 18), (152, 32, 24), (186, 50, 36)]
-TAPE = [(16, 16, 18), (28, 28, 31), (42, 42, 46)]
 R = 3.0                     # the bar's half thickness (main cubes)
-L = 170.0                   # straight bar, from the chisel end to where the hook starts
-HOOK_R = 15.0               # the gooseneck's radius, to the bar's middle
-GRIP_X = (22.0, 58.0)       # where the hand holds it, taped
+L = 176.0                   # straight bar, from the chisel end to where the hook starts
+HOOK_R = 11.0               # the hook's bend radius, to the bar's middle
+HOOK_DEG = 130              # how far it turns
+CLAW = 16.0                 # the straight claw after the bend
+GRIP_X = (22.0, 58.0)       # where the hand holds it (the paint worn most there)
+BEND = -1                   # the hook curls down: away from the player (Tefa, 2026-11-05), not up and back
 
 
 def octagon(dy, dz, r=R):
@@ -26,62 +30,57 @@ def octagon(dy, dz, r=R):
 
 
 def paint(x, y, z):
-    """Red paint, worn to bare steel in patches and on the corners, a little grime."""
-    # small patches (a bar this thin turned big patches into rings: a candy cane), only where an edge or a knock
-    # would wear it: the noise is read on a finer grid across the bar than along it
-    if noise(x, y * 2.5, z * 2.5, 31, 3.0) > 0.74:
+    """Red paint, worn to bare steel in small patches, most where the hand holds it, a little grime."""
+    worn = 0.62 if GRIP_X[0] <= x < GRIP_X[1] else 0.74
+    if noise(x, y * 2.5, z * 2.5, 31, 3.0) > worn:
         return mix(GUNMETAL[2], BRIGHT_METAL, 0.3 + 0.2 * hash01(int(x * 2), int(y * 2), int(z * 2), 3))
     t = hash01(int(x * 2), int(y * 2), int(z * 2), 5)
     return RED[0] if t < 0.08 else RED[1] if t < 0.92 else RED[2]
 
 
+def sweep(m, part, path, col, radius):
+    """A bar along a list of (x, z, r) points: an octagon `r` thick round each, in half and whole cubes."""
+    m.part = part
+    for (ax, az, ar), (bx, bz, br) in zip(path, path[1:]):
+        n = max(1, int(math.hypot(bx - ax, bz - az) / 0.5))
+        for k in range(n + 1):
+            t = k / n
+            cx, cz, r = ax + (bx - ax) * t, az + (bz - az) * t, ar + (br - ar) * t
+            w = radius(cx, cz, r)
+            m.fill(lambda x, y, z, cx=cx, cz=cz, r=r, w=w: abs(y) < w and octagon(0.0, math.hypot(x - cx, z - cz), r),
+                   (cx - r - 1, cx + r + 1, -w - 1, w + 1, cz - r - 1, cz + r + 1), col, size=SURF, keep=True)
+
+
 def build():
     m = start(NAME)
 
-    # --- the straight bar, the taped grip on it
+    # --- the straight bar; "grip" is the stretch the hand holds (the exporter centres the hand on it)
     m.part = "shaft"
-    m.fill(lambda x, y, z: 10.0 <= x < L and octagon(y, z) and not GRIP_X[0] <= x < GRIP_X[1],
-           (10, L, -R - 1, R + 1, -R - 1, R + 1), paint, size=1.0, edge=SURF)
+    m.fill(lambda x, y, z: 12.0 <= x < L and octagon(y, z) and not GRIP_X[0] <= x < GRIP_X[1],
+           (12, L, -R - 1, R + 1, -R - 1, R + 1), paint, size=1.0, edge=SURF)
     m.part = "grip"
+    m.fill(lambda x, y, z: GRIP_X[0] <= x < GRIP_X[1] and octagon(y, z),
+           (GRIP_X[0], GRIP_X[1], -R - 1, R + 1, -R - 1, R + 1), paint, size=1.0, edge=SURF)
 
-    def tape(x, y, z):
-        if int(math.floor((x - GRIP_X[0]) * 2)) % 6 == 0:
-            return TAPE[0]                                                  # where each turn overlaps the last
-        return TAPE[1 if hash01(int(x * 2), int(y * 2), int(z * 2), 7) < 0.8 else 2]
-    m.fill(lambda x, y, z: GRIP_X[0] <= x < GRIP_X[1] and octagon(y, z, R + 0.5),
-           (GRIP_X[0], GRIP_X[1], -R - 2, R + 2, -R - 2, R + 2), tape, size=1.0, edge=SURF)
-
-    # --- the chisel end at the back: flattened and widened, bent up a little
-    m.part = "chisel"
-
-    def chisel(x, y, z):
-        if not (0.0 <= x < 10.0):
-            return False
-        t = (10.0 - x) / 10.0                                               # 0 at the bar, 1 at the tip
-        zc = t * 2.5                                                        # bent up
-        return abs(y) < R + t * 1.5 and abs(z - zc) < R * (1.0 - 0.75 * t) + 0.25
-    m.fill(chisel, (-1, 11, -R - 3, R + 3, -R - 1, R + 4), paint, size=SURF)
-    m.box(-0.5, 2.0, -R - 2, R + 2, 1.5, 3.5, mix(GUNMETAL[2], BRIGHT_METAL, 0.5), size=SURF, keep=False)
-
-    # --- the gooseneck: the bar bends up and back over itself, ending in a forked claw
-    m.part = "hook"
-    cx, cz = L, HOOK_R
-    for d in range(-90, 151, 2):
+    # --- the hook: an open bend, then a straight claw that flattens and widens, split down the middle at the tip
+    path = []
+    for d in range(0, HOOK_DEG + 1, 4):
         a = math.radians(d)
-        px_, pz_ = cx + HOOK_R * math.cos(a), cz + HOOK_R * math.sin(a)
-        m.fill(lambda x, y, z, px_=px_, pz_=pz_: octagon(y, math.hypot(x - px_, z - pz_)),
-               (px_ - R - 1, px_ + R + 1, -R - 1, R + 1, pz_ - R - 1, pz_ + R + 1), paint, size=SURF, keep=True)
-    # the claw: the last stretch flattened, with a V cut down its middle
-    a = math.radians(150)
-    tip = (cx + HOOK_R * math.cos(a), cz + HOOK_R * math.sin(a))
-    back = (math.cos(a + math.pi / 2), math.sin(a + math.pi / 2))
-    for k in range(10):
-        px_, pz_ = tip[0] + back[0] * k * 0.6, tip[1] + back[1] * k * 0.6
-        w = R + 0.5 * k / 9
-        m.fill(lambda x, y, z, px_=px_, pz_=pz_, w=w: abs(y) < w and math.hypot(x - px_, z - pz_) < R * (1 - k / 14),
-               (px_ - R - 1, px_ + R + 1, -w - 1, w + 1, pz_ - R - 1, pz_ + R + 1), paint, size=SURF, keep=True)
-    m.fill(lambda x, y, z: abs(y) < 1.0 and math.hypot(x - tip[0] - back[0] * 5, z - tip[1] - back[1] * 5) < 3.5,
-           (tip[0] - 8, tip[0] + 8, -1.5, 1.5, tip[1] - 8, tip[1] + 8), None, size=SURF, carve=True)
+        path.append((L + HOOK_R * math.sin(a), BEND * HOOK_R * (1 - math.cos(a)), R))
+    a = math.radians(HOOK_DEG)
+    ex, ez = path[-1][0], path[-1][1]
+    dx, dz = math.cos(a), BEND * math.sin(a)                              # the direction the bend ends in
+    for k in range(1, 9):
+        t = k / 8
+        path.append((ex + dx * CLAW * t, ez + dz * CLAW * t, R * (1.0 - 0.55 * t)))
+    sweep(m, "hook", path, paint, lambda cx, cz, r: R + (R - r) * 0.9)
+    tx, tz = ex + dx * CLAW, ez + dz * CLAW
+    m.fill(lambda x, y, z: abs(y) < 0.75 and math.hypot(x - (tx - dx * 3), z - (tz - dz * 3)) < 3.5,
+           (tx - 8, tx + 8, -1.5, 1.5, tz - 8, tz + 8), None, size=SURF, carve=True)
 
-    finish(m, ["shaft", "hook", "chisel"], [])
+    # --- the chisel end at the back: bent the other way a little, flattened and widened, its edge worn bright
+    cpath = [(12.0 - k * 1.5, -BEND * (k * 1.5) ** 2 * 0.035, R * (1.0 - 0.6 * k / 8)) for k in range(9)]
+    sweep(m, "chisel", cpath, paint, lambda cx, cz, r: R + (R - r) * 1.2)
+
+    finish(m, ["shaft", "hook", "chisel", "grip"], [])
     return m

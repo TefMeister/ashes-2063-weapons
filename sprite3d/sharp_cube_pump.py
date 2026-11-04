@@ -23,7 +23,8 @@ import math
 
 from forge import hash01, mix, mul
 from sharp_kit import (BLUED, BORE, BRASS, BRIGHT_METAL, GUNMETAL, LEATHER, LEATHER_DK, PUMP_WOOD, RUBBER, STITCH,
-                       STOCK_WOOD, SURF, Picture, Profile, darken, finish, flashes, grooved, shell, start, toned)
+                       STOCK_WOOD, SURF, Picture, Profile, blade, darken, finish, flashes, grooved, guard,
+                       shell, start, toned)
 from sharp_settings import CUBE_M, PORT_CLEAR, PORT_LEN
 
 SIDE_SPRITE = "Sprites/Weapons/GRZPA0.png"
@@ -63,7 +64,7 @@ PUMP_GROOVE_W, PUMP_GROOVE_STEP, PUMP_GROOVE_DEPTH, PUMP_GROOVE_MARGIN = 2.0, 6.
 STOCK_W_WRIST, STOCK_W_BUTT, STOCK_ROUND = 11.0, 13.5, 4.0
 PAD_LEN = 2.5                          # rubber butt pad
 STRAPS, STRAP_W, STRAP_GAP, STRAP_SLANT, STRAP_RAISE = 3, 4.0, 3.0, 0.35, 0.5
-GUARD_X0, GUARD_X1, GUARD_BOT, GUARD_W, GUARD_BAR = X(14.6), X(21.4), Z(13.6), 4.0, 2.5
+GUARD_X0, GUARD_X1, GUARD_BOT, GUARD_W, GUARD_BAR = X(12.6), X(22.0), Z(15.0), 4.5, 2.5
 
 # ---------------------------------------------------------------------------------------------- the gun
 def build():
@@ -151,31 +152,13 @@ def build():
             m.box(X(px_) - 1.0, X(px_) + 1.0, yc - 0.75, yc + 0.75, Z(8.0) - 1.0, Z(8.0) + 1.0,
                   mix(GUNMETAL[2], BRIGHT_METAL, 0.3), size=SURF, keep=True)
 
-    # --- trigger guard: a loop with a real finger hole
-    m.part = "guard"
-    gpoly = [(GUARD_X0, REC_BOT + 0.5), (GUARD_X1, REC_BOT + 0.5), (GUARD_X1, GUARD_BOT + 3.5),
-             (GUARD_X1 - 3.5, GUARD_BOT), (GUARD_X0 + 3.5, GUARD_BOT), (GUARD_X0, GUARD_BOT + 3.5)]
-    gout = Profile(gpoly)
-    hole = Profile([(GUARD_X0 + GUARD_BAR, REC_BOT + 1), (GUARD_X1 - GUARD_BAR, REC_BOT + 1),
-                    (GUARD_X1 - GUARD_BAR, GUARD_BOT + GUARD_BAR + 2.0),
-                    (GUARD_X1 - GUARD_BAR - 2.0, GUARD_BOT + GUARD_BAR),
-                    (GUARD_X0 + GUARD_BAR + 2.0, GUARD_BOT + GUARD_BAR),
-                    (GUARD_X0 + GUARD_BAR, GUARD_BOT + GUARD_BAR + 2.0)])
-    gsolid = gout.solid(lambda x: GUARD_W / 2, 1.0)
-    m.fill(lambda x, y, z: gsolid(x, y, z) and hole.sd(x, z) <= 0, gout.bounds(GUARD_W / 2),
-           toned(pic, GUNMETAL, (0.2, 0.3), 61, rust=0.1), size=1.0, edge=SURF, keep=True)
-
-    # --- trigger (moves): a blade leaning forward at the bottom
-    m.part = "trigger"
-    tx = X(18.4)
-
-    def trig(x, y, z):
-        if not (GUARD_BOT + GUARD_BAR + 1.0 <= z < REC_BOT) or abs(y) >= 1.0:
-            return False
-        lean = (REC_BOT - z) * 0.35
-        return tx + lean - 1.0 <= x < tx + lean + 1.0
-    m.fill(trig, (tx - 2, tx + 6, -1.5, 1.5, GUARD_BOT, REC_BOT), mix(GUNMETAL[2], BRIGHT_METAL, 0.4),
-           size=SURF, keep=True)
+    # --- trigger guard and trigger (2026-11-05, Tefa: "the pump handle shotgun again needs a bigger trigger guard and
+    # a trigger more built in to the grip and the receiver"): a bigger loop running back into the stock's wrist, the
+    # finger hole carried up into the receiver, the trigger hanging out of that slot
+    guard(m, GUARD_X0, GUARD_X1, REC_BOT, GUARD_BOT, toned(pic, GUNMETAL, (0.2, 0.3), 61, rust=0.1), w=GUARD_W,
+          bar=GUARD_BAR)
+    blade(m, X(17.4), REC_BOT, GUARD_BOT + GUARD_BAR + 1.0, mix(GUNMETAL[2], BRIGHT_METAL, 0.4), w=1.0,
+          lean=0.35)
 
     # --- stock: wood from the picture's outline, rounded, wider at the butt; rubber pad with cut grooves; straps
     m.part = "grip"
