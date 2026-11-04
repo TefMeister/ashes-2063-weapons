@@ -15,14 +15,11 @@ the flat game's whole-gun motion (the kick, tipping the gun over to load it, the
 on the cube sprite shotgun.
 """
 import json
-import os
 import sys
-import zipfile
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "brutal-doom-3d-guns", "tools"))
-import forge_jobs as fj  # noqa: E402
-from make_job import CLASSES, PUMP_BACK, SPRITE_GUN_SCALE  # noqa: E402
-from sharp_settings import KICK, PUMP_STROKE_M  # noqa: E402
+from make_job import CLASSES, PUMP_BACK, SPRITE_GUN_SCALE
+from sharp_job import bl, build_job, frames_of
+from sharp_settings import CUBE_M, KICK, PUMP_STROKE_M, park_z
 
 MODEL_PATH = "models/ashes2063/sprite3d/sharppump"
 MOVING = ["pump", "bolt", "trigger", "flash_a", "flash_b", "flash_c", "shell", "shell2"]
@@ -47,16 +44,13 @@ def kick(spr, L):
     return KICK.get((spr[3], L), (0.0, 0.0))
 
 
-def bl(fx, fy, fz):
-    """Forge axes (x muzzle-ward, y the gun's left, z up) to the blend's (forge_bl.to_bl): (-y, x, z)."""
-    return [-fy, fx, fz]
-
-
 def state(spr, L):
     """What the moving parts do in one game frame: (pump share, {bit part: forge offset in metres})."""
     kind = spr[3]
     if kind == "F" and L in FLASH:                      # the shot: flash and trigger
-        return 0.0, {FLASH[L]: (0.0, 0.0, 0.0), "trigger": (-TRIGGER_BACK_M, 0.0, 0.0)}
+        # each flash is built parked above the muzzle (sharp_kit.flashes): moved down into place
+        k = "ABC".index(L)
+        return 0.0, {FLASH[L]: (0.0, 0.0, -park_z(k) * CUBE_M), "trigger": (-TRIGGER_BACK_M, 0.0, 0.0)}
     if kind == "P":                                     # the pump stroke
         return PUMP_BACK.get(L, 0.0), {}
     if kind == "R":                                     # the reload
@@ -68,44 +62,24 @@ def state(spr, L):
     return 0.0, {}                                      # ready, select, bash, knife: at rest
 
 
+def pose(spr, L):
+    """{part: blend offset} in one game frame: the bits from state(), the pump and bolt back by their share."""
+    share, bits = state(spr, L)
+    offs = {p: bl(*o) for p, o in bits.items()}
+    if share:
+        offs.update({p: bl(-share * PUMP_STROKE_M, 0.0, 0.0) for p in ("pump", "bolt")})
+    return offs
+
+
 def main(out):
-    src = zipfile.ZipFile(fj.ASHES_SOURCE).read("Actors/Weapons/Shotgun.txt").decode("latin-1")
-    classes = {c: fj.hand_frames(src, c, fj.ASHES_FOREIGN) for c in CLASSES}
-    frames = [f for fs in classes.values() for f in fs]
-    # one model per entry; each gets a frame per distinct (its parts' offsets, the kick) and the frames point at them.
+    # the body is everything that never moves on its own; the bolt rides the pump, so the pump opens the port.
     # The kick moves every model round the hand (gz_forge_export.py: the pose key "*" = [metres back, degrees up]).
     models = {"sharp_body": [], "sharp_pump": ["pump", "bolt"], **GROUPS}
-    poses = {k: [((), (0.0, 0.0))] for k in models}
-    pose_of = {k: {} for k in models}
-    for spr, L in frames:
-        share, bits = state(spr, L)
-        offs = {p: tuple(bl(*o)) for p, o in bits.items()}
-        if share:
-            offs.update({p: tuple(bl(-share * PUMP_STROKE_M, 0.0, 0.0)) for p in ("pump", "bolt")})
-        for k, parts in models.items():
-            key = (tuple(sorted((p, o) for p, o in offs.items() if p in parts)), kick(spr, L))
-            if key not in poses[k]:
-                poses[k].append(key)
-            pose_of[k][f"{spr} {L}"] = poses[k].index(key)
-
-    def pose_dict(key):
-        d = {p: list(o) for p, o in key[0]}
-        if key[1] != (0.0, 0.0):
-            d["*"] = list(key[1])
-        return d
-
-    base = {"scale": SPRITE_GUN_SCALE, "no_hands": True, "classes": classes, "model_path": MODEL_PATH}
     names = {"sharp_body": "as_sharp_pump_body", "sharp_pump": "as_sharp_pump_pump",
              "sharp_flash": "as_sharp_pump_flash", "sharp_bits": "as_sharp_pump_bits"}
-    job = {}
-    for k, parts in models.items():
-        # the body is everything that never moves on its own; the bolt rides the pump, so the pump opens the port
-        sel = {"skip_parts": MOVING} if not parts else {"parts": parts}
-        job[k] = dict(base, name=names[k], **sel, hidden_parts=[p for p in parts if p in HIDDEN],
-                      poses=[pose_dict(key) for key in poses[k]],
-                      frame_pose={f: v for f, v in pose_of[k].items() if v})
+    job = build_job(frames_of("Shotgun.txt", CLASSES), models, HIDDEN, MOVING, pose, kick, MODEL_PATH, names,
+                    SPRITE_GUN_SCALE)
     json.dump(job, open(out, "w"), indent=1)
-    print(len(frames), "frames;", "; ".join(f"{k} {len(v)} poses" for k, v in poses.items()))
 
 
 if __name__ == "__main__":

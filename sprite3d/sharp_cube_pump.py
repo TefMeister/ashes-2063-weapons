@@ -20,24 +20,15 @@ What changed against the cube sprite shotgun:
 Shape and size follow the game's side pickup picture (GRZPA0, 60 x 21), read at run time and never stored here.
 """
 import math
-import os
-import sys
-import zipfile
 
-import bpy
+from forge import hash01, mix, mul
+from sharp_kit import (BLUED, BORE, BRASS, BRIGHT_METAL, GUNMETAL, LEATHER, LEATHER_DK, PUMP_WOOD, RUBBER, STITCH,
+                       STOCK_WOOD, SURF, Picture, Profile, darken, finish, flashes, grooved, shell, start, toned)
+from sharp_settings import CUBE_M, PORT_CLEAR, PORT_LEN
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "blender-cubekit")))
-import forge  # noqa: E402
-from forge import FINE, Model, hash01, mix, mul  # noqa: E402
-from sharp_settings import CUBE_M, DARKEN, PORT_CLEAR, PORT_LEN  # noqa: E402
-
-GAME_PK3S = (r"C:/NonSteam/Ashes 2063 VR/Resources/Ashes2063Enriched2_23.pk3",
-             r"D:/ashes2063vr/Ashes 2063 VR/Resources/Ashes2063Enriched2_23.pk3")
 SIDE_SPRITE = "Sprites/Weapons/GRZPA0.png"
 NAME = "sharp_cube_pump"
 GUN_LENGTH_M = 1.0                     # as before: the 60-pixel picture spans one metre (Tefa settled the size at 1.0)
-SURF = 0.5                             # surface cube: the half cube (Tefa: "one measure bigger")
-FLASH = 0.25                           # the smallest cube, for the flash only
 S = GUN_LENGTH_M / 60 / CUBE_M         # main cubes per picture pixel (4.9)
 
 
@@ -74,210 +65,10 @@ PAD_LEN = 2.5                          # rubber butt pad
 STRAPS, STRAP_W, STRAP_GAP, STRAP_SLANT, STRAP_RAISE = 3, 4.0, 3.0, 0.35, 0.5
 GUARD_X0, GUARD_X1, GUARD_BOT, GUARD_W, GUARD_BAR = X(14.6), X(21.4), Z(13.6), 4.0, 2.5
 
-# ---------------------------------------------------------------------------------------------- palettes (sRGB)
-GUNMETAL = [(40, 42, 48), (58, 60, 67), (82, 84, 91)]
-BLUED = [(36, 38, 46), (52, 55, 64), (76, 79, 88)]
-BRIGHT_METAL = (142, 142, 146)
-BORE = (14, 14, 16)
-RUST = [(78, 52, 34), (102, 66, 40)]
-RUST_SCALE = 10.0                      # main cubes: rust in a few big patches, not specks
-CUBE_NOISE = 0.03                      # each cube's brightness wobble (forge default 0.06: busy, reads as noise in VR)
-PUMP_WOOD = [(84, 46, 22), (122, 72, 34), (156, 96, 46)]
-STOCK_WOOD = [(70, 40, 20), (102, 60, 30), (134, 82, 42)]
-RUBBER = (34, 30, 28)
-LEATHER, LEATHER_DK, STITCH = (78, 46, 24), (48, 28, 14), (150, 122, 84)
-BRASS = (196, 160, 78)
-HULL = [(132, 26, 22), (170, 38, 30)]
-FLASH_COLS = [(255, 252, 226), (255, 222, 104), (250, 150, 44), (222, 86, 26)]
-
-
-# ---------------------------------------------------------------------------------------------- the game picture
-def load_side():
-    data = None
-    for pk3 in GAME_PK3S:
-        if os.path.exists(pk3):
-            data = zipfile.ZipFile(pk3).read(SIDE_SPRITE)
-            break
-    assert data, "the game's pk3 was not found"
-    path = os.path.join(bpy.app.tempdir, "GRZPA0.png")
-    open(path, "wb").write(data)
-    img = bpy.data.images.load(path)
-    W, H = img.size
-    px = list(img.pixels)
-    bpy.data.images.remove(img)
-    return W, H, [[(px[((H - 1 - y) * W + x) * 4], px[((H - 1 - y) * W + x) * 4 + 1],
-                    px[((H - 1 - y) * W + x) * 4 + 2], px[((H - 1 - y) * W + x) * 4 + 3]) for x in range(W)]
-                  for y in range(H)]
-
-
-class Picture:
-    """Nearest-pixel brightness of the game picture, and per-part thresholds that split a part's pixels in three."""
-
-    def __init__(self):
-        self.W, self.H, self.rows = load_side()
-
-    def lum(self, x, z):
-        u, v = int(math.floor(x / S)), int(math.floor(-z / S))
-        if not (0 <= u < self.W and 0 <= v < self.H):
-            return None
-        r, g, b, a = self.rows[v][u]
-        return None if a < 0.5 else (r + g + b) / 3
-
-    def thresholds(self, x0, x1, r0, r1):
-        ls = sorted(l for v in range(r0, r1 + 1) for u in range(x0, x1 + 1)
-                    for (r, g, b, a) in [self.rows[v][u]] if a >= 0.5 for l in [(r + g + b) / 3])
-        if not ls:
-            return (0.33, 0.66)
-        return ls[len(ls) // 3], ls[2 * len(ls) // 3]
-
-
-def noise(x, y, z, seed, scale):
-    fx, fy, fz = x / scale, y / scale, z / scale
-    ix, iy, iz = math.floor(fx), math.floor(fy), math.floor(fz)
-    s = lambda t: t * t * (3 - 2 * t)  # noqa: E731
-    tx, ty, tz = s(fx - ix), s(fy - iy), s(fz - iz)
-    acc = 0.0
-    for dx in (0, 1):
-        for dy in (0, 1):
-            for dz in (0, 1):
-                w = (tx if dx else 1 - tx) * (ty if dy else 1 - ty) * (tz if dz else 1 - tz)
-                acc += w * hash01(ix + dx, iy + dy, iz + dz, seed)
-    return acc
-
-
-def toned(pic, pal, th, seed, rust=0.0, rust_cols=RUST):
-    """A colour function: the part's dark / mid / light colour picked by the nearest picture pixel (flat, no blend),
-    one cube in eight nudged to the neighbouring tone (the pixel look), rust in patches on metal."""
-    def col(x, y, z):
-        l = pic.lum(x, z)
-        t = 1 if l is None else (0 if l < th[0] else 1 if l < th[1] else 2)
-        h = hash01(math.floor(x * 2), math.floor(y * 2), math.floor(z * 2), seed)
-        if h < 0.06:
-            t = max(0, t - 1)
-        elif h > 0.94:
-            t = min(2, t + 1)
-        if rust and noise(x, y, z, seed + 7, RUST_SCALE) > 1.0 - rust:
-            return rust_cols[0 if t < 2 else 1]
-        return pal[t]
-    return col
-
-
-# ---------------------------------------------------------------------------------------------- side outlines
-class Profile:
-    """A side outline [(x, z)] in main cubes on a quarter-cube grid, with the signed distance to its edge (+ inside)."""
-
-    def __init__(self, poly):
-        xs, zs = [p[0] for p in poly], [p[1] for p in poly]
-        self.x0, self.z0 = math.floor(min(xs)) - 3, math.floor(min(zs)) - 3
-        self.nx, self.nz = int((max(xs) - self.x0 + 3) * FINE) + 1, int((max(zs) - self.z0 + 3) * FINE) + 1
-        self.xr, self.zr = (min(xs), max(xs)), (min(zs), max(zs))
-        inside = [[False] * self.nx for _ in range(self.nz)]
-        for gz in range(self.nz):
-            zc = self.z0 + (gz + 0.5) / FINE
-            cross = []
-            for (ax, az), (bx, bz) in zip(poly, poly[1:] + poly[:1]):
-                if (az > zc) != (bz > zc):
-                    cross.append(ax + (bx - ax) * (zc - az) / (bz - az))
-            cross.sort()
-            for a, b in zip(cross[0::2], cross[1::2]):
-                for gx in range(max(0, int((a - self.x0) * FINE)), min(self.nx, int((b - self.x0) * FINE) + 1)):
-                    if a <= self.x0 + (gx + 0.5) / FINE < b:
-                        inside[gz][gx] = True
-        din = self._chamfer(inside, True)
-        dout = self._chamfer(inside, False)
-        self.d = [[(din[z][x] - 0.5 if inside[z][x] else 0.5 - dout[z][x]) / FINE for x in range(self.nx)]
-                  for z in range(self.nz)]
-
-    def _chamfer(self, inside, want):
-        INF = 1e9
-        nz, nx = self.nz, self.nx
-        d = [[INF if inside[z][x] == want else 0.0 for x in range(nx)] for z in range(nz)]
-        A, B = 1.0, math.sqrt(2.0)
-        for z in range(nz):
-            for x in range(nx):
-                if d[z][x]:
-                    for dz, dx, c in ((-1, -1, B), (-1, 0, A), (-1, 1, B), (0, -1, A)):
-                        if 0 <= z + dz < nz and 0 <= x + dx < nx and d[z + dz][x + dx] + c < d[z][x]:
-                            d[z][x] = d[z + dz][x + dx] + c
-        for z in range(nz - 1, -1, -1):
-            for x in range(nx - 1, -1, -1):
-                if d[z][x]:
-                    for dz, dx, c in ((1, 1, B), (1, 0, A), (1, -1, B), (0, 1, A)):
-                        if 0 <= z + dz < nz and 0 <= x + dx < nx and d[z + dz][x + dx] + c < d[z][x]:
-                            d[z][x] = d[z + dz][x + dx] + c
-        return d
-
-    def sd(self, x, z):
-        gx, gz = int(math.floor((x - self.x0) * FINE)), int(math.floor((z - self.z0) * FINE))
-        if 0 <= gx < self.nx and 0 <= gz < self.nz:
-            return self.d[gz][gx]
-        return -99.0
-
-    def solid(self, half_w, rnd, grow=0.0):
-        """inside(x, y, z): the outline pushed out across y, `half_w(x)` half wide, its edges rounded over `rnd`;
-        grow > 0 swells it (a layer on top), grow < 0 shrinks it (the floor of a groove)."""
-        def inside(x, y, z):
-            s = self.sd(x, z) + grow
-            if s <= 0:
-                return False
-            t = min(s / rnd, 1.0)
-            return abs(y) < (half_w(x) + grow) * math.sqrt(max(0.0, 1.0 - (1.0 - t) ** 2))
-        return inside
-
-    def bounds(self, half_w_max, pad=1.0):
-        return (self.xr[0] - pad, self.xr[1] + pad, -half_w_max - pad, half_w_max + pad, self.zr[0] - pad,
-                self.zr[1] + pad)
-
-
-def grooved(outer, inner, bands):
-    """outer minus the shell between outer and inner wherever x falls in one of the bands: cut grooves."""
-    def inside(x, y, z):
-        if not outer(x, y, z):
-            return False
-        return not (any(a <= x < b for a, b in bands) and not inner(x, y, z))
-    return inside
-
-
-def darken(m, inside, k):
-    """Shade the cubes inside a region (the floor and walls of a cut, as shadow, not as a painted gap)."""
-    for cell, v in m.full.items():
-        if inside(cell[0] + 0.5, cell[1] + 0.5, cell[2] + 0.5):
-            v[0] = mul(v[0], k)
-    done = set()
-    for cell, sub in m.fine.items():
-        for (i, j, k2), v in sub.items():
-            if id(v) in done:
-                continue
-            if inside(cell[0] + (i + 0.5) / FINE, cell[1] + (j + 0.5) / FINE, cell[2] + (k2 + 0.5) / FINE):
-                v[0] = mul(v[0], k)
-                done.add(id(v))
-
-
-def wear_half(m, parts, amount, toward, seed):
-    """Lighten surface half cubes on outside edges (open on two sides at right angles): handled, chipped edges."""
-    for cell, sub in m.fine.items():
-        for (i, j, k), v in list(sub.items()):
-            if i % 2 or j % 2 or k % 2 or v[2] not in parts:
-                continue
-            q = (cell[0] * FINE + i, cell[1] * FINE + j, cell[2] * FINE + k)
-            open_ax = [m.get_q(q[0] - 1, q[1], q[2]) is None or m.get_q(q[0] + 2, q[1], q[2]) is None,
-                       m.get_q(q[0], q[1] - 1, q[2]) is None or m.get_q(q[0], q[1] + 2, q[2]) is None,
-                       m.get_q(q[0], q[1], q[2] - 1) is None or m.get_q(q[0], q[1], q[2] + 2) is None]
-            if sum(open_ax) >= 2 and hash01(*q, seed) < 0.6:
-                c = mix(v[0], toward, amount * (0.6 + 0.4 * hash01(*q, seed + 1)))
-                for a in (0, 1):
-                    for b in (0, 1):
-                        for e in (0, 1):
-                            w = m.get_q(q[0] + a, q[1] + b, q[2] + e)
-                            if w is not None and w[1] == v[1]:
-                                w[0] = c
-
-
 # ---------------------------------------------------------------------------------------------- the gun
 def build():
-    pic = Picture()
-    forge.NOISE = CUBE_NOISE
-    m = Model(NAME)
+    pic = Picture(SIDE_SPRITE, GUN_LENGTH_M)
+    m = start(NAME)
 
     # --- receiver: a rounded box from the picture's outline, with cuts and added trim
     rec_poly = [(REC_X0, Z(5.0)), (X(13.0), REC_TOP), (REC_X1, REC_TOP), (REC_X1, REC_BOT), (REC_X0, REC_BOT)]
@@ -464,80 +255,14 @@ def build():
               GUNMETAL[0], size=SURF, keep=True)
 
     # --- shells (move; hidden unless a reload frame shows them): one under the loading port, one at the ejection port
-    def shell(part, x0, yc, zc, keep):
-        m.part = part
-        hull = lambda x, y, z: HULL[0 if hash01(math.floor(x * 2), math.floor(y * 2), math.floor(z * 2), 9) < 0.3  # noqa: E731
-                                    else 1]
-        m.cyl(x0, x0 + 4.0, yc, zc, 2.95, BRASS, edge=SURF, keep=keep)
-        m.cyl(x0 - 0.5, x0, yc, zc, 3.3, mul(BRASS, 0.85), edge=SURF, keep=keep)
-        m.cyl(x0 + 4.0, x0 + 20.0, yc, zc, 2.85, hull, edge=SURF, keep=keep)
-        m.cyl(x0 + 19.5, x0 + 20.5, yc, zc, 1.0, None, carve=True, edge=None, size=0.5)
-
-    shell("shell", loadport[0] + 2.0, 0.0, REC_BOT - 3.5, False)
+    shell(m, "shell", loadport[0] + 2.0, 0.0, REC_BOT - 3.5, False)
     # built clear of the gun, beside the open port (SHELL2_OUT), lined up with it (it is one shell long), so no cube
     # of it is lost to the receiver; the reload frames move it in (make_job_sharp.SHELL2)
-    shell("shell2", port[0] + PORT_CLEAR / 2 + 0.5, -REC_W / 2 - SHELL2_OUT, (port[4] + port[5]) / 2, False)
+    shell(m, "shell2", port[0] + PORT_CLEAR / 2 + 0.5, -REC_W / 2 - SHELL2_OUT, (port[4] + port[5]) / 2, False)
 
     # --- muzzle flashes (move; hidden unless a firing frame shows them), all in the smallest cubes
-    mx, mz = MUZZLE_X + 0.5, BARREL_ZC
+    flashes(m, MUZZLE_X + 0.5, BARREL_ZC)
 
-    def flash(part, size, spin, seed, embers):
-        m.part = part
-        core = 5.0 * size
-        spikes = [((1, 0, 0), 18.0 * size, 3.6 * size)]
-        for k in range(4):
-            a = spin + k * math.pi / 2
-            spikes.append(((0.7, math.cos(a) * 0.7, math.sin(a) * 0.7), 11.0 * size, 2.2 * size))
-            b = a + math.pi / 4
-            spikes.append(((0.5, math.cos(b) * 0.85, math.sin(b) * 0.85), 7.0 * size, 1.4 * size))
-
-        def heat(x, y, z):
-            """0 at the hot centre, 1 at the edge of the flame; None outside it."""
-            dx, dy, dz = x - mx, y, z - mz
-            if dx < 0:
-                return None
-            best = None
-            r = math.sqrt((dx / 1.2) ** 2 + dy * dy + dz * dz) / core
-            if r < 1.0:
-                best = r * 0.45                                               # the ball: white inside, yellow skin
-            for (ux, uy, uz), L, R in spikes:
-                n = math.sqrt(ux * ux + uy * uy + uz * uz)
-                ux, uy, uz = ux / n, uy / n, uz / n
-                t = dx * ux + dy * uy + dz * uz
-                if 0 <= t <= L:
-                    px_, py_, pz_ = dx - t * ux, dy - t * uy, dz - t * uz
-                    rr = math.sqrt(px_ * px_ + py_ * py_ + pz_ * pz_)
-                    lim = R * (1.0 - t / L) + 0.3
-                    if rr < lim:
-                        h = 0.15 + 0.85 * (t / L)                             # white at the root, red at the tip
-                        best = h if best is None else min(best, h)
-            if best is not None and best > 0.8 and hash01(math.floor(x * 4), math.floor(y * 4), math.floor(z * 4),
-                                                          seed) < 0.2:
-                return None                                                   # ragged pixel edge
-            return best
-
-        def col(x, y, z):
-            h = heat(x, y, z) or 0.0
-            return FLASH_COLS[0 if h < 0.25 else 1 if h < 0.5 else 2 if h < 0.78 else 3]
-        reach, side = 19.0 * size + 1, 13.0 * size + 1
-        m.fill(lambda x, y, z: heat(x, y, z) is not None, (mx, mx + reach, -side, side, mz - side, mz + side),
-               col, size=FLASH)
-        for k in range(embers):
-            r = lambda j: hash01(seed, k, j)  # noqa: E731
-            ex, ey, ez = mx + 4 + r(1) * 14 * size, (r(2) - 0.5) * 16 * size, mz + (r(3) - 0.5) * 16 * size
-            m.put(ex, ey, ez, FLASH_COLS[2 if r(4) < 0.6 else 3], size=FLASH)
-
-    flash("flash_a", 1.6, 0.0, 101, 14)
-    flash("flash_b", 1.1, math.pi / 4, 102, 10)
-    flash("flash_c", 0.55, 0.3, 103, 16)
-
-    # --- wear: lighter outside edges on metal and wood (whole cubes and half cubes alike)
-    m.wear_edges(0.3, (150, 150, 150))
-    wear_half(m, {"receiver", "barrel", "tube", "band", "guard"}, 0.35, (150, 150, 152), 5)
-    wear_half(m, {"grip", "pump"}, 0.25, (176, 130, 84), 6)
-
-    # a little darker all over (Tefa, 2026-11-04); the flash keeps its own colours
-    for v in list(m.full.values()) + [w for sub in m.fine.values() for w in sub.values()]:
-        if not v[2].startswith("flash"):
-            v[0] = mul(v[0], DARKEN)
+    # --- wear on the edges, then a little darker all over
+    finish(m, ["receiver", "barrel", "tube", "band", "guard"], ["grip", "pump"])
     return m
