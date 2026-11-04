@@ -21,7 +21,8 @@ import zipfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "brutal-doom-3d-guns", "tools"))
 import forge_jobs as fj  # noqa: E402
-from make_job import CLASSES, PUMP_BACK, PUMP_STROKE_M, SPRITE_GUN_SCALE  # noqa: E402
+from make_job import CLASSES, PUMP_BACK, SPRITE_GUN_SCALE  # noqa: E402
+from sharp_settings import KICK, PUMP_STROKE_M  # noqa: E402
 
 MODEL_PATH = "models/ashes2063/sprite3d/sharppump"
 MOVING = ["pump", "bolt", "trigger", "flash_a", "flash_b", "flash_c", "shell", "shell2"]
@@ -41,6 +42,9 @@ PUMP_RELOAD = {"J": 1.0, "K": 1.0, "L": 1.0, "M": 1.0, "N": 0.5, "O": 0.15}
 SHELL = {"P": (0.0, 0.0, -0.075), "Q": (0.0, 0.0, -0.05), "R": (0.0, 0.0, -0.03), "S": (0.0, 0.0, -0.012),
          "T": (0.0, 0.0, 0.004), "U": (0.004, 0.0, 0.012), "V": (0.02, 0.0, 0.016)}
 FLASH = {"A": "flash_a", "B": "flash_b", "C": "flash_c"}
+def kick(spr, L):
+    """(metres back, degrees nose up) of the whole gun in one game frame: sharp_settings.KICK, else still."""
+    return KICK.get((spr[3], L), (0.0, 0.0))
 
 
 def bl(fx, fy, fz):
@@ -68,36 +72,40 @@ def main(out):
     src = zipfile.ZipFile(fj.ASHES_SOURCE).read("Actors/Weapons/Shotgun.txt").decode("latin-1")
     classes = {c: fj.hand_frames(src, c, fj.ASHES_FOREIGN) for c in CLASSES}
     frames = [f for fs in classes.values() for f in fs]
-    pump_poses, pump_of = [0.0], {}
-    group_poses = {k: [()] for k in GROUPS}
-    group_of = {k: {} for k in GROUPS}
+    # one model per entry; each gets a frame per distinct (its parts' offsets, the kick) and the frames point at them.
+    # The kick moves every model round the hand (gz_forge_export.py: the pose key "*" = [metres back, degrees up]).
+    models = {"sharp_body": [], "sharp_pump": ["pump", "bolt"], **GROUPS}
+    poses = {k: [((), (0.0, 0.0))] for k in models}
+    pose_of = {k: {} for k in models}
     for spr, L in frames:
         share, bits = state(spr, L)
-        if share not in pump_poses:
-            pump_poses.append(share)
-        pump_of[f"{spr} {L}"] = pump_poses.index(share)
-        for g, parts in GROUPS.items():
-            key = tuple(sorted((p, tuple(bl(*o))) for p, o in bits.items() if p in parts))
-            if key not in group_poses[g]:
-                group_poses[g].append(key)
-            group_of[g][f"{spr} {L}"] = group_poses[g].index(key)
+        offs = {p: tuple(bl(*o)) for p, o in bits.items()}
+        if share:
+            offs.update({p: tuple(bl(-share * PUMP_STROKE_M, 0.0, 0.0)) for p in ("pump", "bolt")})
+        for k, parts in models.items():
+            key = (tuple(sorted((p, o) for p, o in offs.items() if p in parts)), kick(spr, L))
+            if key not in poses[k]:
+                poses[k].append(key)
+            pose_of[k][f"{spr} {L}"] = poses[k].index(key)
+
+    def pose_dict(key):
+        d = {p: list(o) for p, o in key[0]}
+        if key[1] != (0.0, 0.0):
+            d["*"] = list(key[1])
+        return d
+
     base = {"scale": SPRITE_GUN_SCALE, "no_hands": True, "classes": classes, "model_path": MODEL_PATH}
-    job = {
-        "sharp_body": dict(base, name="as_sharp_pump_body", skip_parts=MOVING),
-        # the bolt rides the pump, so pulling the pump opens the ejection port
-        "sharp_pump": dict(base, name="as_sharp_pump_pump", parts=["pump", "bolt"],
-                           poses=[{p: bl(-s * PUMP_STROKE_M, 0.0, 0.0) for p in ("pump", "bolt")} if s else {}
-                                  for s in pump_poses],
-                           frame_pose={k: v for k, v in pump_of.items() if v}),
-    }
-    for g, parts in GROUPS.items():
-        job[g] = dict(base, name="as_" + g.replace("sharp_", "sharp_pump_"), parts=parts,
-                      hidden_parts=[p for p in parts if p in HIDDEN],
-                      poses=[{p: list(o) for p, o in k} for k in group_poses[g]],
-                      frame_pose={k: v for k, v in group_of[g].items() if v})
+    names = {"sharp_body": "as_sharp_pump_body", "sharp_pump": "as_sharp_pump_pump",
+             "sharp_flash": "as_sharp_pump_flash", "sharp_bits": "as_sharp_pump_bits"}
+    job = {}
+    for k, parts in models.items():
+        # the body is everything that never moves on its own; the bolt rides the pump, so the pump opens the port
+        sel = {"skip_parts": MOVING} if not parts else {"parts": parts}
+        job[k] = dict(base, name=names[k], **sel, hidden_parts=[p for p in parts if p in HIDDEN],
+                      poses=[pose_dict(key) for key in poses[k]],
+                      frame_pose={f: v for f, v in pose_of[k].items() if v})
     json.dump(job, open(out, "w"), indent=1)
-    print(len(frames), "frames;", len(pump_poses), "pump poses;",
-          "; ".join(f"{len(group_poses[g])} {g} poses" for g in GROUPS))
+    print(len(frames), "frames;", "; ".join(f"{k} {len(v)} poses" for k, v in poses.items()))
 
 
 if __name__ == "__main__":

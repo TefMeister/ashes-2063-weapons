@@ -29,13 +29,13 @@ import bpy
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "blender-cubekit")))
 import forge  # noqa: E402
 from forge import FINE, Model, hash01, mix, mul  # noqa: E402
+from sharp_settings import CUBE_M, DARKEN, PORT_CLEAR, PORT_LEN  # noqa: E402
 
 GAME_PK3S = (r"C:/NonSteam/Ashes 2063 VR/Resources/Ashes2063Enriched2_23.pk3",
              r"D:/ashes2063vr/Ashes 2063 VR/Resources/Ashes2063Enriched2_23.pk3")
 SIDE_SPRITE = "Sprites/Weapons/GRZPA0.png"
 NAME = "sharp_cube_pump"
 GUN_LENGTH_M = 1.0                     # as before: the 60-pixel picture spans one metre (Tefa settled the size at 1.0)
-CUBE_M = 0.0034                        # cube_size.VOXEL_M: one main cube
 SURF = 0.5                             # surface cube: the half cube (Tefa: "one measure bigger")
 FLASH = 0.25                           # the smallest cube, for the flash only
 S = GUN_LENGTH_M / 60 / CUBE_M         # main cubes per picture pixel (4.9)
@@ -61,9 +61,11 @@ CAP_R, CAP_LEN = 4.3, 2.5
 REC_X0, REC_X1 = X(12.0), X(31.0)
 REC_TOP, REC_BOT = Z(4.0), Z(11.9)
 REC_W, REC_ROUND = 14.0, 2.0
-PORT_X0, PORT_LEN, PORT_DEPTH = X(25.0), 3 * S, 4.0   # as long as the pump stroke (make_job.PUMP_STROKE_PX = 3)
+PORT_X0, PORT_DEPTH = X(25.0), 4.0     # the port is one shell long (sharp_settings.PORT_LEN)
 SHELL2_OUT = 6.0                       # main cubes from the receiver's right side to the ejection-port shell's axis
-PUMP_X0, PUMP_X1 = X(33.6), X(51.4)
+# the pump's back end sits one stroke ahead of the receiver: pulled all the way, it meets the receiver and the port is
+# fully open (Tefa: "handle needs to travel the whole length")
+PUMP_X0, PUMP_X1 = REC_X1 + PORT_LEN, X(51.4)
 PUMP_TOP, PUMP_BOT = Z(6.9), Z(11.6)
 PUMP_W, PUMP_ROUND = 16.0, 6.5
 PUMP_GROOVE_W, PUMP_GROOVE_STEP, PUMP_GROOVE_DEPTH, PUMP_GROOVE_MARGIN = 2.0, 6.0, 1.0, 7.0
@@ -436,7 +438,7 @@ def build():
     # --- pump (moves): wood sleeve round the tube with cut ring grooves, and the two action bars to the receiver
     m.part = "pump"
     ppoly = [(PUMP_X0, PUMP_TOP), (PUMP_X1, PUMP_TOP), (PUMP_X1, Z(10.2)), (X(48.5), PUMP_BOT + 1.0),
-             (X(44.5), PUMP_BOT), (X(35.0), PUMP_BOT), (PUMP_X0, Z(10.6))]
+             (X(44.5), PUMP_BOT), (PUMP_X0 + 1.5, PUMP_BOT), (PUMP_X0, Z(10.6))]
     pp = Profile(ppoly)
     bands = []
     x = PUMP_X0 + PUMP_GROOVE_MARGIN
@@ -472,9 +474,9 @@ def build():
         m.cyl(x0 + 19.5, x0 + 20.5, yc, zc, 1.0, None, carve=True, edge=None, size=0.5)
 
     shell("shell", loadport[0] + 2.0, 0.0, REC_BOT - 3.5, False)
-    # built clear of the gun, beside the open port (SHELL2_OUT), so no cube of it is lost to the receiver; the reload
-    # frames move it in (make_job_sharp.SHELL2)
-    shell("shell2", port[0] - 5.0, -REC_W / 2 - SHELL2_OUT, (port[4] + port[5]) / 2, False)
+    # built clear of the gun, beside the open port (SHELL2_OUT), lined up with it (it is one shell long), so no cube
+    # of it is lost to the receiver; the reload frames move it in (make_job_sharp.SHELL2)
+    shell("shell2", port[0] + PORT_CLEAR / 2 + 0.5, -REC_W / 2 - SHELL2_OUT, (port[4] + port[5]) / 2, False)
 
     # --- muzzle flashes (move; hidden unless a firing frame shows them), all in the smallest cubes
     mx, mz = MUZZLE_X + 0.5, BARREL_ZC
@@ -533,4 +535,9 @@ def build():
     m.wear_edges(0.3, (150, 150, 150))
     wear_half(m, {"receiver", "barrel", "tube", "band", "guard"}, 0.35, (150, 150, 152), 5)
     wear_half(m, {"grip", "pump"}, 0.25, (176, 130, 84), 6)
+
+    # a little darker all over (Tefa, 2026-11-04); the flash keeps its own colours
+    for v in list(m.full.values()) + [w for sub in m.fine.values() for w in sub.values()]:
+        if not v[2].startswith("flash"):
+            v[0] = mul(v[0], DARKEN)
     return m
