@@ -57,14 +57,16 @@ for spr, L, tics in mod.SEQUENCE:
         pivot.keyframe_insert("rotation_euler", frame=f)
         for n, o in parts.items():
             d = pose_of.get(n) if n in owner else None
-            loc, rot = home[n].copy(), 0.0
+            loc, rot = home[n].copy(), [0.0, 0.0, 0.0]
             if d:
-                if len(d) == 7:
-                    h, rot = Vector(d[4:7]), math.radians(d[3])
-                    loc = h + Matrix.Rotation(rot, 3, 'X') @ (loc - h)
+                if len(d) >= 7:
+                    axis = int(d[7]) if len(d) > 7 else 0
+                    h, a = Vector(d[4:7]), math.radians(d[3])
+                    loc = h + Matrix.Rotation(a, 3, "XYZ"[axis]) @ (loc - h)
+                    rot[axis] = a
                 loc = loc + Vector(d[:3])
             o.location = loc
-            o.rotation_euler = (rot, 0.0, 0.0)
+            o.rotation_euler = rot
             o.keyframe_insert("location", frame=f)
             o.keyframe_insert("rotation_euler", frame=f)
             o.hide_viewport = o.hide_render = n in hidden and d is None

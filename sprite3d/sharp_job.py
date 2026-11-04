@@ -7,7 +7,8 @@ per game frame, where each moving part is (pose()) and how the whole gun kicks (
 gz_forge_export.py exports (one model per key) and pack_models.py packs.
 
 A part's pose is [dx, dy, dz] metres in the blend's axes, or seven numbers [dx, dy, dz, degrees nose up, hinge x, y,
-z] to also turn it on a hinge (gz_forge_export.md3_corners). bl() turns forge axes into the blend's.
+z] to also turn it on a hinge (gz_forge_export.md3_corners), with an eighth for the axis (0 left-right, 1 along the
+barrel, 2 up). bl() turns forge axes into the blend's.
 """
 import os
 import sys
@@ -24,10 +25,12 @@ def bl(fx, fy, fz):
     return [-fy, fx, fz]
 
 
-def frames_of(src_file, classes):
-    """{class: [(sprite, letter), ...]} for every frame the game shows of those classes (Actors/Weapons/<src_file>)."""
+def frames_of(src_file, classes, own=()):
+    """{class: [(sprite, letter), ...]} for every frame the game shows of those classes (Actors/Weapons/<src_file>).
+    Sprites another weapon draws (forge_jobs.ASHES_FOREIGN: the knife, GLOK ...) are left out unless named in `own`
+    (the 9mm's own frames are GLOK, the Ingram's INGG)."""
     src = zipfile.ZipFile(fj.ASHES_SOURCE).read("Actors/Weapons/" + src_file).decode("latin-1")
-    return {c: fj.hand_frames(src, c, fj.ASHES_FOREIGN) for c in classes}
+    return {c: fj.hand_frames(src, c, fj.ASHES_FOREIGN - set(own)) for c in classes}
 
 
 def build_job(classes, models, hidden, moving, pose, kick, model_path, names, scale):

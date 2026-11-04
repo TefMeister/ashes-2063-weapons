@@ -321,3 +321,77 @@ def start(name):
     """A new model with the sharp look's settings."""
     forge.NOISE = CUBE_NOISE
     return forge.Model(name)
+
+
+# ---------------------------------------------------------------------------------------------- building pieces
+# (added for the other Episode 1 guns, 2026-11-04: the same pieces the pump and sawn-off build by hand)
+def body(m, part, poly, half_w, rnd, col, keep=False, size=1.0, exclude=None):
+    """A part from a side outline pushed out `half_w` (a number or a function of x) and rounded over `rnd`;
+    `exclude(x, y, z)` keeps cubes out (a bore, a tube another part fills). Returns the Profile."""
+    m.part = part
+    pr = Profile(poly)
+    hw = half_w if callable(half_w) else (lambda x, h=half_w: h)
+    sol = pr.solid(hw, rnd)
+    hmax = max(hw(x) for x in (pr.xr[0], (pr.xr[0] + pr.xr[1]) / 2, pr.xr[1]))
+    inside = sol if exclude is None else (lambda x, y, z: sol(x, y, z) and not exclude(x, y, z))
+    m.fill(inside, pr.bounds(hmax), col, size=size, edge=SURF, keep=keep)
+    return pr
+
+
+def barrel(m, part, x0, x1, yc, zc, r, bore, col, keep=True):
+    """A round barrel along x, hollow, its flat muzzle worn bright, the bore dark."""
+    m.part = part
+
+    def c(x, y, z):
+        if math.hypot(y - yc, z - zc) < bore + 0.8:
+            return BORE
+        if x > x1 - 0.6:
+            return mix(col(x, y, z), BRIGHT_METAL, 0.45)
+        return col(x, y, z)
+    m.cyl(x0, x1, yc, zc, r, c, hollow=bore, edge=SURF, keep=keep)
+
+
+def guard(m, x0, x1, top, bot, col, w=4.0, bar=2.2, part="guard"):
+    """A trigger guard: a loop under the gun from x0 to x1, from `top` down to `bot`, with a real finger hole."""
+    m.part = part
+    out = Profile([(x0, top + 0.5), (x1, top + 0.5), (x1, bot + 3.0), (x1 - 3.0, bot), (x0 + 3.0, bot),
+                   (x0, bot + 3.0)])
+    hole = Profile([(x0 + bar, top + 1), (x1 - bar, top + 1), (x1 - bar, bot + bar + 1.5),
+                    (x1 - bar - 1.5, bot + bar), (x0 + bar + 1.5, bot + bar), (x0 + bar, bot + bar + 1.5)])
+    sol = out.solid(lambda x: w / 2, 1.0)
+    m.fill(lambda x, y, z: sol(x, y, z) and hole.sd(x, z) <= 0, out.bounds(w / 2), col, size=1.0, edge=SURF,
+           keep=True)
+
+
+def blade(m, tx, top, bot, col, w=0.75, lean=0.3, part="trigger"):
+    """A trigger blade hanging from `top` down to `bot` at x = tx, leaning forward at the bottom."""
+    m.part = part
+
+    def inside(x, y, z):
+        if not (bot <= z < top) or abs(y) >= 1.0:
+            return False
+        d = (top - z) * lean
+        return tx + d - w <= x < tx + d + w
+    m.fill(inside, (tx - 2, tx + (top - bot) * lean + 2, -1.5, 1.5, bot, top), col, size=SURF, keep=True)
+
+
+def plates(m, x0, x1, z0, z1, half, col, raised=0.5):
+    """The same raised plate on both sides of a part `half` wide (grip panels, side plates, trim)."""
+    for side in (-1, 1):
+        y0, y1 = (half - raised, half + raised) if side > 0 else (-half - raised, -half + raised)
+        m.box(x0, x1, y0, y1, z0, z1, col, size=SURF, keep=True)
+
+
+def screws(m, pts, half, col=(164, 162, 158)):
+    """Screw heads standing proud on both sides at (x, z) points."""
+    for x, z in pts:
+        for side in (-1, 1):
+            yc = side * (half + 0.5)
+            m.box(x - 0.5, x + 0.5, yc - 0.5, yc + 0.5, z - 0.5, z + 0.5, col, size=SURF)
+
+
+def seam(m, x0, x1, z, half, depth=0.5):
+    """A cut line along both sides at height z."""
+    for side in (-1, 1):
+        y0, y1 = (half - depth, half + 1) if side > 0 else (-half - 1, -half + depth)
+        m.box(x0, x1, y0, y1, z - 0.25, z + 0.25, None, size=SURF, carve=True)

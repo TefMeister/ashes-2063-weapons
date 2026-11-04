@@ -41,3 +41,21 @@ SAWN_TOP_PX = 4.2                      # picture row of the barrels' top
 SAWN_BARREL_R = 5.0
 SAWN_BREECH_PX = 22.5                  # picture column where the barrels meet the action
 SAWN_MUZZLE_PX = 50.5
+
+# ---------------------------------------------------------------------------------------------- the revolver
+# (sharp_revolver.py, make_job_revolver.py) Side picture REVPA0, 34 pixels wide; the gun spans 27 of them, about 0.36 m.
+REV_PIC_W = 34
+REV_LENGTH_M = 0.45
+REV_S = REV_LENGTH_M / REV_PIC_W / CUBE_M      # main cubes per picture pixel (3.9)
+REV_CYL_PX = (11.6, 18.9, 6.4)         # the cylinder: from column, to column, axis row
+REV_CYL_R, REV_CHAMBER_RING = 6.8, 4.0  # main cubes: cylinder radius, chambers' distance from its axis
+REV_CRANE = (5.0, -6.5)                # the crane it swings out on: main cubes left of and below the cylinder's axis
+REV_SWING_DEG = -110.0                 # swung out to the gun's left, round the axis along the barrel
+
+# ---------------------------------------------------------------------------------------------- the 9mm (Glock)
+# (sharp_handgun.py, make_job_handgun.py) Side picture GLPPA0, 34 pixels wide; the gun spans 26, about 0.24 m.
+GLK_PIC_W = 34
+GLK_LENGTH_M = 0.31
+GLK_S = GLK_LENGTH_M / GLK_PIC_W / CUBE_M      # main cubes per picture pixel (2.7)
+GLK_SLIDE_STROKE = 7.0                 # main cubes the slide runs back
+GLK_MAG_AXIS = (-0.216, -0.976)        # the magazine slides out along the (stretched) grip: (x, z) per main cube
