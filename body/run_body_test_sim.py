@@ -20,9 +20,43 @@ import time
 import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-_LANES = os.path.expanduser(r"~\.claude\plugins\cache\lanes-plugin\lanes")
-_NEWEST = max(os.listdir(_LANES), key=lambda v: tuple(int(p) for p in v.split(".") if p.isdigit()))
-TOOLS = os.path.join(_LANES, _NEWEST, "tools", "vrbench")
+
+
+def _conf(key, default=""):
+    """`key = value` from this PC's lanes.conf (2026-11-06: the folders below were the dev PC's, written in)"""
+    import re
+    path = os.environ.get("LANES_CONFIG") or os.path.expanduser(os.path.join("~", ".claude", "lanes.conf"))
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = re.match(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*(?:\s#.*)?$", line.rstrip("\r\n"))
+                if m:
+                    return m.group(1).strip().strip('"')
+    except OSError:
+        pass
+    return default
+
+
+def _lanes_root():
+    """the Lanes this PC runs (its start-up check notes it since Lanes 0.103.0); the newest plugin-cache folder only as
+    a last resort, which is often an older version (Run 5 D6, 2026-11-06)"""
+    cand = os.environ.get("LANES_PLUGIN_ROOT", "")
+    if cand and os.path.isdir(cand):
+        return cand
+    try:
+        with open(os.path.expanduser(os.path.join("~", ".claude", "lanes", "active-root.txt")), encoding="utf-8") as f:
+            cand = f.read().strip()
+        if os.path.isdir(cand):
+            return cand
+    except OSError:
+        pass
+    cache = os.path.expanduser(os.path.join("~", ".claude", "plugins", "cache", "lanes-plugin", "lanes"))
+    newest = max(os.listdir(cache), key=lambda v: tuple(int(p) for p in v.split(".") if p.isdigit()))
+    return os.path.join(cache, newest)
+
+
+_LANES_ROOT = _lanes_root()
+TOOLS = os.path.join(_LANES_ROOT, "tools", "vrbench")
 sys.path.insert(0, TOOLS)
 sys.path.insert(0, os.path.join(HERE, "..", "tools"))
 import gzdrive as g  # noqa: E402
@@ -32,12 +66,13 @@ import vb_sim  # noqa: E402
 
 OUT = sys.argv[1]
 FLAT = len(sys.argv) > 2 and sys.argv[2] == "flat"
-DEV = r"E:\Ashes2063VR-dev"
-RES = r"D:\ashes2063vr\Ashes 2063 VR\Resources"
+DEV = _conf("ashes_dev", r"E:\Ashes2063VR-dev")                        # our dev engine copies and test files
+RES = _conf("ashes_res", r"D:\ashes2063vr\Ashes 2063 VR\Resources")    # the game's own files
 TEST = os.path.join(DEV, "body-test")
 EXE = os.path.join(TEST, "engine" if FLAT else "engine-oc", "gzdoom.exe")
 BODY_PK3 = os.path.join(TEST, "Ashes2063_body_test.pk3")
-SIM_JSON = r"D:\claude video game stuff\tools\OpenXR-Simulator\openxr_simulator.json"
+SIM_JSON = os.path.join(_conf("openxr_sim", r"D:\claude video game stuff\tools\OpenXR-Simulator"),
+                        "openxr_simulator.json")
 CFG = os.path.join(DEV, "ashes-dev-vr.ini")
 VRBENCH = [sys.executable, os.path.join(TOOLS, "vrbench.py")]
 
@@ -49,7 +84,7 @@ WALK_SIDE_S = 3                       # ...then strafes right this long
 WALK_SPEED = 4.0                      # map units per tic (~8.2 m/s at 34 units/m: a Doom run; the rig caps stride at 1.2 m/s)
 LEVEL_WAIT_S = 120
 RECORD = os.environ.get("BODYTEST_RECORD")         # a label: record the game window (and the simulator preview) with OBS
-OBS_REC = [sys.executable, os.path.join(_LANES, _NEWEST, "tools", "obs-rec.py")]
+OBS_REC = [sys.executable, os.path.join(_LANES_ROOT, "tools", "obs-rec.py")]
 if RECORD:
     SETTLE_S = 3.5                    # slower, so each pose can be seen in the clip
 LOOK_AHEAD = os.environ.get("BODYTEST_LOOK_AHEAD")   # set with vr_body_preview: every picture looks ahead at the body
