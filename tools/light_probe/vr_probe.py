@@ -10,9 +10,41 @@ import subprocess
 import sys
 import time
 
-_LANES = os.path.expanduser(r"~\.claude\plugins\cache\lanes-plugin\lanes")
-_NEWEST = max(os.listdir(_LANES), key=lambda v: tuple(int(p) for p in v.split(".") if p.isdigit()))
-TOOLS = os.path.join(_LANES, _NEWEST, "tools", "vrbench")
+
+
+def _conf(key, default=""):
+    """`key = value` from this PC's lanes.conf (2026-11-08: the folders below were the dev PC's, written in)"""
+    import re
+    path = os.environ.get("LANES_CONFIG") or os.path.expanduser(os.path.join("~", ".claude", "lanes.conf"))
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = re.match(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*(?:\s#.*)?$", line.rstrip("\r\n"))
+                if m:
+                    return m.group(1).strip().strip('"')
+    except OSError:
+        pass
+    return default
+
+
+def _lanes_root():
+    """the Lanes this PC runs (active-root.txt); the newest plugin-cache folder only as a last resort"""
+    cand = os.environ.get("LANES_PLUGIN_ROOT", "")
+    if cand and os.path.isdir(cand):
+        return cand
+    try:
+        with open(os.path.expanduser(os.path.join("~", ".claude", "lanes", "active-root.txt")), encoding="utf-8") as f:
+            cand = f.read().strip()
+        if os.path.isdir(cand):
+            return cand
+    except OSError:
+        pass
+    cache = os.path.expanduser(os.path.join("~", ".claude", "plugins", "cache", "lanes-plugin", "lanes"))
+    newest = max(os.listdir(cache), key=lambda v: tuple(int(p) for p in v.split(".") if p.isdigit()))
+    return os.path.join(cache, newest)
+
+
+TOOLS = os.path.join(_lanes_root(), "tools", "vrbench")
 sys.path.insert(0, TOOLS)
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import gzdrive as g  # noqa: E402
@@ -22,11 +54,11 @@ import vb_sim  # noqa: E402
 
 PROBE, OUT = sys.argv[1], sys.argv[2]
 WAIT = float(sys.argv[3]) if len(sys.argv) > 3 else 25
-DEV = r"E:\Ashes2063VR-dev"
-RES = r"D:\ashes2063vr\Ashes 2063 VR\Resources"
-GZ = r"E:\MEGA transfer\Game Files\ashes-2063-weapons\3D blender\ashes shotgun\blender\gzdoom"
+DEV = _conf("ashes_dev", r"E:\Ashes2063VR-dev")                       # our engine copies (engine-oc = OpenComposite)
+RES = _conf("ashes_res", r"D:\ashes2063vr\Ashes 2063 VR\Resources")   # the game's own files
+GZ = _conf("ashes_shotgun_gz", r"E:\MEGA transfer\Game Files\ashes-2063-weapons\3D blender\ashes shotgun\blender\gzdoom")
 EXE = os.path.join(DEV, "engine-oc", "gzdoomvr.exe")
-SIM_JSON = r"D:\claude video game stuff\tools\OpenXR-Simulator\openxr_simulator.json"
+SIM_JSON = os.path.join(_conf("openxr_sim", r"D:\claude video game stuff\tools\OpenXR-Simulator"), "openxr_simulator.json")
 CFG = os.path.join(DEV, "ashes-dev-vr.ini")
 VRBENCH = [sys.executable, os.path.join(TOOLS, "vrbench.py")]
 
@@ -58,8 +90,9 @@ def hands(yaw, pitch, roll):
 
 if not os.path.exists(CFG) and os.path.exists(os.path.join(DEV, "ashes-dev-flat.ini")):
     shutil.copy(os.path.join(DEV, "ashes-dev-flat.ini"), CFG)
-subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-                os.path.join(DEV, "3DWeapons", "set-settings.ps1"), CFG])
+_SET = os.path.join(DEV, "3DWeapons", "set-settings.ps1")   # the dev PC's settings helper; the home PC has none
+if os.path.exists(_SET):
+    subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", _SET, CFG])
 print("bench start:", subprocess.run(VRBENCH + ["start", EXE], capture_output=True, text=True).stdout.strip()[-300:])
 hands(0, 0, 0)
 vb_sim.head(0.0, 1.6, 0.0, 0, -10)
