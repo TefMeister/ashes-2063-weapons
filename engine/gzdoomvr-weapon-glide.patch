@@ -1,7 +1,7 @@
 From 372d1592e0147b6b5d9f2859312a93a7065632a0 Mon Sep 17 00:00:00 2001
 From: TefMeister <313988079+TefMeister@users.noreply.github.com>
 Date: Wed, 11 Nov 2026 22:33:45 +0200
-Subject: [PATCH] Framey gun: the weapon hand takes a new place N times a
+Subject: [PATCH 1/2] Framey gun: the weapon hand takes a new place N times a
  second and glides there (vr_weapon_glide, guns only)
 
 Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>
@@ -333,6 +333,36 @@ index 4c0dd25..b3a1720 100644
  	Slider "Darkness hides the gun",			vr_gun_darkness,						0, 2, 0.1, 1
  	StaticText " "
  	StaticText "Two-handed long guns", 1
+-- 
+2.55.0.windows.3
+
+
+From 02d37290f7a0b54e2fef25dad04ccc7afde982f5 Mon Sep 17 00:00:00 2001
+From: TefMeister <313988079+TefMeister@users.noreply.github.com>
+Date: Wed, 11 Nov 2026 23:47:39 +0200
+Subject: [PATCH 2/2] Framey gun: only the weapon hand glides; the off hand
+ always follows its controller
+
+Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016CDnvXASsLXV8Louwi28Vw
+---
+ src/rendering/gl/stereo3d/gl_openvr.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/rendering/gl/stereo3d/gl_openvr.cpp b/src/rendering/gl/stereo3d/gl_openvr.cpp
+index 5c441b0..4e1fb3e 100644
+--- a/src/rendering/gl/stereo3d/gl_openvr.cpp
++++ b/src/rendering/gl/stereo3d/gl_openvr.cpp
+@@ -1723,7 +1723,8 @@ namespace s3d
+ 					controllers[role].pose = pose;
+ 					{
+ 						// stop-motion weapon hand: after each update, keep the pose frozen for N rendered frames
+-						const bool gun = WeaponHandHeld();
++						// only the WEAPON hand is ever held or gliding; the off hand always follows its controller
++						const bool gun = WeaponHandHeld() && role == (openvr_rightHanded ? 1 : 0);
+ 						if (gun && vr_weapon_glide)
+ 						{
+ 							// framey but not teleporting: a new place to be a few times a second,
 -- 
 2.55.0.windows.3
 

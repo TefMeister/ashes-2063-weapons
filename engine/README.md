@@ -63,7 +63,13 @@ the VR engine Ashes 2063 runs on here. Patch file: `gzdoomvr-gvr4.13.2.2-offhand
    `[verified-numerically 2026-11-11]`. Engine commit 372d159, patch `gzdoomvr-weapon-glide.patch` (applies on top of
    the offhand-stopmotion patch). Built and installed on the Developer PC (the engine it replaced kept as
    `gzdoomvr.exe.pre-glide` / `gzdoom.pk3.pre-glide`); launcher "Play Ashes 2063 VR (framey gun test)"
-   `[compile-verified 2026-11-11]`. Flat start (`tools/glide_test.py`, no keyboard input): the engine starts, Ashes loads MAP01 with no error lines, all four settings read back, clean close `[verified-live 2026-11-11, n=1, flat]`; the glide itself only runs with a tracked controller, so it is unseen until the headset. (The log's version line still says `-7-gc53ab00`: the stamp was made before the commit.) Known cost: the gun trails the hand by about a
+   `[compile-verified 2026-11-11]`. Flat start (`tools/glide_test.py`, no keyboard input): the engine starts, Ashes loads MAP01 with no error lines, all four settings read back, clean close `[verified-live 2026-11-11, n=1, flat]`; the glide itself only runs with a tracked controller, so it is unseen until the headset. (The log's version line still says `-7-gc53ab00`: the stamp was made before the commit.) **Round 2 (2026-11-11, Tefa wore round 1: *"it works like i asked you to do it... but can you lower the fps 2x. and is
+   there a way to keep the left moion controller not framey and the right controller framey? also please juse the latest
+   shotgun, 30% smaller size"*)** `[reported 2026-11-11, n=1 wear]`: only the WEAPON hand is held or gliding now, the off
+   hand's pose is always the live one (it also feeds the front hand of a two-handed gun), engine commit 02d3729, both
+   commits in the patch; the test launcher sets 5 steps a second and loads the smudge shotgun at 0.7 size
+   (`sprite3d/rescale_pk3.py`: a copy of the pk3 with its modeldef Scale lines multiplied, models untouched). Built and
+   installed `[compile-verified 2026-11-11]`; round 2 has not been started, flat or headset. Known cost: the gun trails the hand by about a
    tenth of a second, so aiming lags by that much.
 
 ## Building (Windows, as done on 2026-09-17) `[verified-live 2026-09-17, n=1]`
