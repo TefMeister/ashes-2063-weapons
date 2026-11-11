@@ -1,6 +1,9 @@
 """Packs several forge exports of one gun (gz_forge_export.py, one folder each) into one pk3 with ONE modeldef that
 draws them all together, model 0, 1, 2 ... in the order given (2026-11-04, the sharp cube shotgun).
-    python pack_models.py <job.json> <out.pk3> <job key>=<export folder> [...] [--scale <length> <width> <height>]
+    python pack_models.py <job.json> <out.pk3> <job key>=<export folder> [...] [--scale <length> <width> <height>] [--grip <x> <y> <z>]
+--grip (2026-11-12): where the hand sits in the model (the engine puts md3 point 30 0 -5 at the controller). The engine
+scales a model about its own origin, not the grip, so a --scale alone drags the grip toward the player (0.7: 9 cm back,
+1.5 cm up; Tefa felt it as "the guns have to sit 6cm forward"). With --grip an Offset line puts the grip back.
 Every job must share the model_path and the classes; each job's frame_pose picks its frame per game frame.
 """
 import json
@@ -13,7 +16,7 @@ def surfaces(modeldef):
     return len(re.findall(r"^\s*SurfaceSkin 0 ", open(modeldef).read().split("}")[0], re.M))
 
 
-def main(jobs, out, pairs, scale=(1.0, 1.0, 1.0)):
+def main(jobs, out, pairs, scale=(1.0, 1.0, 1.0), grip=None):
     job = json.load(open(jobs))
     models = []
     for pair in pairs:
@@ -30,6 +33,12 @@ def main(jobs, out, pairs, scale=(1.0, 1.0, 1.0)):
             lines += [f'   Model {i} "{j["name"]}.md3"', f'   Skin {i} "{j["name"]}.png"']
             lines += [f'   SurfaceSkin {i} {s} "{j["name"]}.png"' for s in range(n)]
         lines += ["   Scale %s %s %s" % tuple(scale), "   NOINTERPOLATION"]
+        if grip:
+            # the Offset is added after the scale, in game units: what the scale took off the grip point goes back on
+            # (hw_models.cpp, PrepareRenderHUDModel: the model's length axis x runs along the game's -y here, so the
+            # length part goes in as minus y; z is up in both; the side part, 0 on every gun so far, as x)
+            lines.append("   Offset %.3f %.3f %.3f" % (grip[1] * (1.0 - scale[1]), -grip[0] * (1.0 - scale[0]),
+                                                    grip[2] * (1.0 - scale[2])))
         for spr, L in frames:
             for i, (j, _, _) in enumerate(models):
                 lines.append(f"   FrameIndex {spr} {L} {i} {j.get('frame_pose', {}).get(f'{spr} {L}', 0)}")
@@ -48,4 +57,9 @@ if __name__ == "__main__":
         i = rest.index("--scale")
         scale = tuple(float(v) for v in rest[i + 1:i + 4])
         rest = rest[:i] + rest[i + 4:]
-    main(sys.argv[1], sys.argv[2], rest, scale)
+    grip = None
+    if "--grip" in rest:
+        i = rest.index("--grip")
+        grip = tuple(float(v) for v in rest[i + 1:i + 4])
+        rest = rest[:i] + rest[i + 4:]
+    main(sys.argv[1], sys.argv[2], rest, scale, grip)
