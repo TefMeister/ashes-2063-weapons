@@ -1,6 +1,6 @@
 """Packs several forge exports of one gun (gz_forge_export.py, one folder each) into one pk3 with ONE modeldef that
 draws them all together, model 0, 1, 2 ... in the order given (2026-11-04, the sharp cube shotgun).
-    python pack_models.py <job.json> <out.pk3> <job key>=<export folder> [<job key>=<export folder> ...]
+    python pack_models.py <job.json> <out.pk3> <job key>=<export folder> [...] [--scale <length> <width> <height>]
 Every job must share the model_path and the classes; each job's frame_pose picks its frame per game frame.
 """
 import json
@@ -13,7 +13,7 @@ def surfaces(modeldef):
     return len(re.findall(r"^\s*SurfaceSkin 0 ", open(modeldef).read().split("}")[0], re.M))
 
 
-def main(jobs, out, pairs):
+def main(jobs, out, pairs, scale=(1.0, 1.0, 1.0)):
     job = json.load(open(jobs))
     models = []
     for pair in pairs:
@@ -29,7 +29,7 @@ def main(jobs, out, pairs):
         for i, (j, _, n) in enumerate(models):
             lines += [f'   Model {i} "{j["name"]}.md3"', f'   Skin {i} "{j["name"]}.png"']
             lines += [f'   SurfaceSkin {i} {s} "{j["name"]}.png"' for s in range(n)]
-        lines += ["   Scale 1.0 1.0 1.0", "   NOINTERPOLATION"]
+        lines += ["   Scale %s %s %s" % tuple(scale), "   NOINTERPOLATION"]
         for spr, L in frames:
             for i, (j, _, _) in enumerate(models):
                 lines.append(f"   FrameIndex {spr} {L} {i} {j.get('frame_pose', {}).get(f'{spr} {L}', 0)}")
@@ -43,4 +43,9 @@ def main(jobs, out, pairs):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2], sys.argv[3:])
+    rest, scale = sys.argv[3:], (1.0, 1.0, 1.0)
+    if "--scale" in rest:
+        i = rest.index("--scale")
+        scale = tuple(float(v) for v in rest[i + 1:i + 4])
+        rest = rest[:i] + rest[i + 4:]
+    main(sys.argv[1], sys.argv[2], rest, scale)
