@@ -63,7 +63,7 @@ the VR engine Ashes 2063 runs on here. Patch file: `gzdoomvr-gvr4.13.2.2-offhand
    `[verified-numerically 2026-11-11]`. Engine commit 372d159, patch `gzdoomvr-weapon-glide.patch` (applies on top of
    the offhand-stopmotion patch). Built and installed on the Developer PC (the engine it replaced kept as
    `gzdoomvr.exe.pre-glide` / `gzdoom.pk3.pre-glide`); launcher "Play Ashes 2063 VR (framey gun test)"
-   `[compile-verified 2026-11-11]`. Not run yet, flat or headset. Known cost: the gun trails the hand by about a
+   `[compile-verified 2026-11-11]`. Flat start (`tools/glide_test.py`, no keyboard input): the engine starts, Ashes loads MAP01 with no error lines, all four settings read back, clean close `[verified-live 2026-11-11, n=1, flat]`; the glide itself only runs with a tracked controller, so it is unseen until the headset. (The log's version line still says `-7-gc53ab00`: the stamp was made before the commit.) Known cost: the gun trails the hand by about a
    tenth of a second, so aiming lags by that much.
 
 ## Building (Windows, as done on 2026-09-17) `[verified-live 2026-09-17, n=1]`
