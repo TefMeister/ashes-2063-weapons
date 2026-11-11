@@ -69,7 +69,7 @@ the VR engine Ashes 2063 runs on here. Patch file: `gzdoomvr-gvr4.13.2.2-offhand
    hand's pose is always the live one (it also feeds the front hand of a two-handed gun), engine commit 02d3729, both
    commits in the patch; the test launcher sets 5 steps a second and loads the smudge shotgun at 0.7 size
    (`sprite3d/rescale_pk3.py`: a copy of the pk3 with its modeldef Scale lines multiplied, models untouched). Built and
-   installed `[compile-verified 2026-11-11]`; round 2 has not been started, flat or headset. Known cost: the gun trails the hand by about a
+   installed `[compile-verified 2026-11-11]`; round 2 has not been started, flat or headset. **Verdict after three wears (Tefa 2026-11-12):** *"i imagined it like, i dunno, somehow low fps but usable naturally, but i don't think that is doable, which ever way i try it, it doesn't feel good"* `[reported 2026-11-12, n=3 wears]`. It does what was asked (*"it works like i asked you to do it"*) and still feels bad at 10 and at 5 steps a second: a gun that is drawn at a low rate is, by that much, not where the hand is. Off again in the launchers; the setting stays in the engine, off by default. Known cost: the gun trails the hand by about a
    tenth of a second, so aiming lags by that much.
 
 ## Building (Windows, as done on 2026-09-17) `[verified-live 2026-09-17, n=1]`
