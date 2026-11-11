@@ -49,6 +49,23 @@ the VR engine Ashes 2063 runs on here. Patch file: `gzdoomvr-gvr4.13.2.2-offhand
    `build/src/zdoom.dir/RelWithDebInfo.old-compiler-20261025`); the menu file is packed by the separate
    `gzdoom_pk3` target, not by `zdoom`.
 
+7. **The framey gun: stepped, but gliding** (2026-11-11, Tefa: *"make ashes guns move like framey but not teleport, so
+   that the guns still moves smoothly but the position of it changes maybe 10FPS"*). The stop-motion hand of item 5
+   froze the gun and then jumped it; this keeps the rhythm and removes the jump: `vr_weapon_glide_rate` times a second
+   (default 10) the gun is given a new place to be, where the hand is at that moment, and it glides there on every
+   rendered frame, easing out and in, over `vr_weapon_glide_percent` of the step (default 100 = never resting; lower =
+   arrives early and rests). Shots leave from the drawn gun, as with item 5. **Guns only, decided in the engine:** a
+   weapon flagged melee, any weapon whose class name contains a word from `vr_weapon_glide_raw` (default
+   `pipebomb,grenade`), and empty hands follow the controller raw; the same check now also gates the old stop-motion
+   setting. Switch: `vr_weapon_glide` (off by default), Options → VR Options, three "Framey gun" lines. Maths:
+   `stepped_glide.h`, checked by `stepped_glide_test.cpp` (`run_glide_test.bat`): at a hand speed of 1 m/s the biggest
+   move in one frame is 18 mm where the freeze-and-jump moved 100 mm, and the gun is never more than 113 mm behind
+   `[verified-numerically 2026-11-11]`. Engine commit 372d159, patch `gzdoomvr-weapon-glide.patch` (applies on top of
+   the offhand-stopmotion patch). Built and installed on the Developer PC (the engine it replaced kept as
+   `gzdoomvr.exe.pre-glide` / `gzdoom.pk3.pre-glide`); launcher "Play Ashes 2063 VR (framey gun test)"
+   `[compile-verified 2026-11-11]`. Not run yet, flat or headset. Known cost: the gun trails the hand by about a
+   tenth of a second, so aiming lags by that much.
+
 ## Building (Windows, as done on 2026-09-17) `[verified-live 2026-09-17, n=1]`
 VS 2022 Build Tools + CMake. The upstream `auto-setup-windows.cmd` failed here (vcpkg could not build yasm for ZMusic), so:
 - clone `ValveSoftware/openvr` (headers only are enough) and pass `-DOPENVR_SDK_PATH=<that folder>`;
