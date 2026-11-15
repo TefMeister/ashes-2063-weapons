@@ -491,3 +491,11 @@ into wood (`wood`, six colours read off a plank photo Tefa picked; only the numb
 - **Worn:** *"the guns felt amazing"* `[reported 2026-11-15, n=1 wear]`. Tefa also on the look: *"your final touch on it
   with cubekit makes it amazing"*.
 - For the next Meshy model (Tefa asked): the texture size can be the smallest offered; the converter reads 256 px.
+- **More Meshy guns converted (2026-11-16, not in the game yet):** the Stun Ram (Tefa's own concept, 0.85 m, slits
+  sealed; `meshy_stun_ram.py`), the Junker Musket (1.39 m from MKTPA0; Meshy's open-shell barrel stretch rebuilt
+  round; `meshy_musket.py`) and the crowbar (0.70 m; Meshy read the angled reference's V-slots as doubled tips, so
+  each end is closed into one blade and a V-slot cut in from the top; `meshy_crowbar.py`). Tefa on all three: *"looks
+  awesome again"*, *"that looks good"* `[reported 2026-11-16, Blender only]`. Sizes are still to be tried in VR.
+- **Reference pictures** (`tools/weapon_refs.py`): every weapon of Ashes 2063, Afterglow and Hard Reset, one folder
+  per version (attachments apart), on the Developer PC's desktop ("Ashes weapon references"); game pictures, never
+  committed.
