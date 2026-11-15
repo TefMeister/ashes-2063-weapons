@@ -31,13 +31,18 @@ TOP_M = -0.0578                  # where every Meshy gun's top sits, in Blender 
 class Meshy:
     """A Meshy .glb in main cubes. Meshy points the muzzle down -x with the gun's right toward +y."""
 
-    def __init__(self, glb, length_m, top_m=TOP_M):
+    def __init__(self, glb, length_m, top_m=TOP_M, tilt_deg=0.0):
+        """tilt_deg: Meshy sometimes builds the gun nose-up (copying an angled picture); it is turned this many degrees
+        nose-down about its left-right axis before anything else (2026-11-16, the heavy machine gun: 10)."""
         before = set(bpy.data.objects)
         bpy.ops.import_scene.gltf(filepath=glb)
         ob = [o for o in bpy.data.objects if o not in before and o.type == 'MESH'][0]   # not a start-up cube
         bm = bmesh.new()
         bm.from_mesh(ob.data)
         bm.transform(ob.matrix_world)
+        if tilt_deg:
+            from mathutils import Matrix
+            bm.transform(Matrix.Rotation(math.radians(-tilt_deg), 4, 'Y'))
         bmesh.ops.triangulate(bm, faces=bm.faces)
         xs = [v.co.x for v in bm.verts]
         zs = [v.co.z for v in bm.verts]
