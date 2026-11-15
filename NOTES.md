@@ -471,3 +471,23 @@ from the exporter, and turn the baked per-face shade down so real light does the
   most frames because the test player was pinned against a wall `[measured 2026-10-29]`.
 - The game crashes on close under the simulator route, with the body off as well: not ours `[measured 2026-10-29, n=3]`.
 - Engine commit 6ad981f on quest-compat; `engine/gzdoomvr-body-rig.patch` refreshed. Write-up: `engine/BODY-RIG.md`.
+
+## 2026-11-15 — Meshy guns: Tefa's Meshy models in the cube look, worn in the game (Developer PC, Opus)
+
+Tefa made a shotgun and a Glock 19 in Meshy (image to 3D) and asked for them in the smudge-cube look: *"all that needs
+to be done is filling the loose gaps and putting the bullet/shell eject on one side only"*. `sprite3d/meshy_kit.py`
+turns a Meshy `.glb` into forge cubes: inside or outside by a six-ray vote (Meshy meshes are not closed), colours read
+from the Meshy texture at 256 px and smudged in 3-cube blocks, the kit's mixed cube sizes (`sharp_kit.start`), and
+helpers to fill gaps (`fill_box`, `fill_between`), split parts (`set_part`), take rust off (`derust`) and turn orange
+into wood (`wood`, six colours read off a plank photo Tefa picked; only the numbers are kept).
+- Shotgun `meshy_cube_pump.py`: the receiver's see-through window filled, the left port closed, the right port a dark
+  pocket under a blocky-steel shell guard that slides open with the pump, the orange pump and grip turned to wood.
+- 9mm `meshy_glock.py`: the slide-to-frame slit and pinholes filled, the top port closed on its left half, the rust on
+  the frame and grip turned to worn grey.
+- Into the game: `make_job_meshy_pump.py` (round 12's job, this port's 38-cube guard stroke, packed at 0.7 with the
+  grip kept in the hand) and `make_job_meshy_glock.py` (the sharp 9mm's poses). The pk3s sit in `D:\Ashes 2063\3D
+  blender\ashes shotgun meshy` and `...\ashes handgun meshy`; launcher "Play Ashes 2063 VR (meshy shotgun +
+  handgun)", shortcut in "ashes tests".
+- **Worn:** *"the guns felt amazing"* `[reported 2026-11-15, n=1 wear]`. Tefa also on the look: *"your final touch on it
+  with cubekit makes it amazing"*.
+- For the next Meshy model (Tefa asked): the texture size can be the smallest offered; the converter reads 256 px.
