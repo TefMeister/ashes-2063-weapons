@@ -499,3 +499,11 @@ into wood (`wood`, six colours read off a plank photo Tefa picked; only the numb
 - **Reference pictures** (`tools/weapon_refs.py`): every weapon of Ashes 2063, Afterglow and Hard Reset, one folder
   per version (attachments apart), on the Developer PC's desktop ("Ashes weapon references"); game pictures, never
   committed.
+- **FAL, MQ11, heavy MQ11, silenced MQ11 (2026-11-16, Blender only):** FAL (1.33 m) with the ejection port cut on the
+  right (bolt as its own part) and the cocking handle added on the LEFT, as on the real rifle (`meshy_fal.py`); MQ11
+  (0.59 m with its stock unfolded) with the port on the right only (`meshy_mq11.py`); the heavy MQ11 built from two
+  Meshy guns (`meshy_heavy_mq11.py`, `meshy_kit.transplant`): the heavy gun straightened 10 degrees, the MQ11's grip and
+  magazine under its body, its stock 1.6x longer and 0.6x as wide; the silenced MQ11 with the heavy suppressor, darker
+  (`meshy_mq11_silenced.py`). Tefa: *"we'll need to work out some kinks, but this is good, really good!"*
+  `[reported 2026-11-16, Blender only]`. Open: the kinks (not named yet), a right-side port on the heavy body, sizes
+  in VR, game parts and export for everything after the shotgun and 9mm.
