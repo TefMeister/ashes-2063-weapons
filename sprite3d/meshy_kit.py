@@ -105,6 +105,37 @@ def derust(rgb, k, dim=0.8):
     return tuple(int(round(c * (1 - t) + grey * t)) for c in rgb)
 
 
+# Wood, from the photo Tefa picked for the shotgun (2026-11-15, a Texturelabs plank): its colours at the 2, 10, 25, 45,
+# 65 and 85 % brightness steps. Only these numbers are kept, not the picture.
+WOOD = [(99, 53, 27), (120, 71, 41), (136, 83, 51), (151, 94, 60), (163, 105, 69), (181, 119, 80)]
+WOOD_REF_LUM = 140.0             # how bright Meshy's orange is where it is lit; brighter or darker orange keeps that
+WOOD_SHADE = (0.6, 1.15)         # ... as a share of the wood's brightness, within these bounds
+ORANGE_FROM, ORANGE_FULL = 15, 35    # red over blue: from where a colour counts as orange, and where it fully does
+
+
+def orangeness(rgb):
+    r, g, b = rgb
+    if r < g:
+        return 0.0
+    return max(0.0, min(1.0, (r - b - ORANGE_FROM) / float(ORANGE_FULL)))
+
+
+def wood(x, y, z, rgb, seed=7):
+    """Turn any orange in rgb into wood (Tefa: "be thorough with getting even the smallest specs of orange"): grain
+    running along the gun's length (x), in the photo's colours, keeping how lit or shaded the orange was."""
+    t = orangeness(rgb)
+    if t <= 0:
+        return rgb
+    grain = 0.65 * sharp_kit.noise(x / 6.0, y, z * 1.6, seed, 1.0) + 0.35 * sharp_kit.noise(x, y * 2, z * 3, seed + 1,
+                                                                                               2.0)
+    i = max(0.0, min(len(WOOD) - 1.001, (grain - 0.2) / 0.6 * (len(WOOD) - 1)))
+    a, f = int(i), i - int(i)
+    w = [WOOD[a][c] * (1 - f) + WOOD[a + 1][c] * f for c in range(3)]
+    lum = 0.30 * rgb[0] + 0.59 * rgb[1] + 0.11 * rgb[2]
+    k = max(WOOD_SHADE[0], min(WOOD_SHADE[1], lum / WOOD_REF_LUM))
+    return tuple(int(round(rgb[c] * (1 - t) + w[c] * k * t)) for c in range(3))
+
+
 def set_part(m, test, part, recolour=None):
     """Move every cube whose centre passes test(x, y, z) to `part` (optionally recoloured: recolour(x, y, z) -> rgb).
     Whole and 2-cube cubes that straddle the line are split to quarter cells first so the cut follows it."""

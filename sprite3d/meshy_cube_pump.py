@@ -13,13 +13,18 @@ right-hand port emptied to a dark pocket (Meshy's shell gone); the shell guard (
 plate of blocky steel set into the port, two cubes in from the wall, which slides back by the port's length as the pump
 comes back (the export job moves both: pump by its stroke, bolt by BOLT_STROKE_M on the same share); the pump its own
 part, with the magazine tube's core under it left on the body in the tube's colour.
+
+Round 3, Tefa: "can you make the wooden bits look more wood colour, the look a lot like orange right now, too bright
+and need to look like wood ... please be thorough with getting even the smallest specs of orange and change the colour
+to this, as best as possible" (with a photo of a brown plank). So on the pump and the grip every orange colour, down to
+the faintest fleck, becomes wood grain in the photo's colours (meshy_kit.wood); the metal keeps its rust.
     python blender-cubekit/forge_make.py <out> <out> meshy_cube_pump.py
 """
 import math
 import os
 
 from forge import mul
-from meshy_kit import Meshy, fill_box, set_part
+from meshy_kit import Meshy, fill_box, set_part, wood
 from smudge_kit import blocky_steel
 
 GLB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meshy", "ashes_shotgun_meshy_2026-11-15.glb")
@@ -39,13 +44,29 @@ GUARD_Y = (-10, -8)              # two cubes thick
 GUARD_BLOCK = 4.0                # main cubes per steel block (smudge_kit.blocky_steel)
 # the pump: what sits round the magazine tube from PUMP_X0 to PUMP_X1, below the barrel
 TUBE_ZC, TUBE_R = -50.0, 7.6     # the magazine tube's axis (y 0) and radius
-PUMP_TOP_Z = -41.0               # above this is the barrel
-PUMP_X = (191, 264)              # where the gun is wider and deeper than the bare tube (the clamp at 280 is not pump)
+PUMP_TOP_Z = -40.0               # above this is the barrel (the pump's own top row is cell -41)
+PUMP_X = (187, 267)              # where the gun is wider and deeper than the bare tube (the clamp at 280 is not pump)
 TUBE_SAMPLE_X = 180              # the tube's own colour is read from the bare tube here (behind the pump)
+GRIP_X1 = 52                     # the wooden grip: everything behind this (into the receiver: only orange changes)
+
+
+def in_wood(x, y, z):
+    return x < GRIP_X1 or (PUMP_X[0] <= x < PUMP_X[1] and z < PUMP_TOP_Z)
+
+
+def bright_orange(rgb):
+    """Meshy's orange itself (its wood paint), not the metal's rust, which is browner and darker."""
+    return rgb[0] > 170 and rgb[2] < 90 and rgb[0] - rgb[2] > 110
+
+
+def tint(x, y, z, rgb):
+    """Wood on the pump and grip, every orange tone; anywhere else only Meshy's bright orange specks."""
+    return wood(x, y, z, rgb) if in_wood(x, y, z) or bright_orange(rgb) else rgb
 
 
 def build():
     g = Meshy(GLB, GUN_LENGTH_M)
+    g.tint = tint
     m = g.model(NAME)
     x0, x1, y0, y1, z0, z1 = REC
 
