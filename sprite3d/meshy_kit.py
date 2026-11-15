@@ -136,6 +136,19 @@ def wood(x, y, z, rgb, seed=7):
     return tuple(int(round(rgb[c] * (1 - t) + w[c] * k * t)) for c in range(3))
 
 
+def big_shell(m, part, x0, yc, zc, k):
+    """smudge_cube_pump_v12.big_shell (a 12 gauge shell lying along x, rim at x0, k times the kit's size), copied so
+    a Meshy design need not import round 12's whole design."""
+    m.part = part
+
+    def hull(x, y, z):
+        return sharp_kit.HULL[0 if forge.hash01(math.floor(x), math.floor(y), math.floor(z), 9) < 0.3 else 1]
+    m.cyl(x0, x0 + 4.0 * k, yc, zc, 2.95 * k, sharp_kit.BRASS, edge=sharp_kit.SURF)
+    m.cyl(x0 - 0.5 * k, x0, yc, zc, 3.3 * k, forge.mul(sharp_kit.BRASS, 0.85), edge=sharp_kit.SURF)
+    m.cyl(x0 + 4.0 * k, x0 + 20.0 * k, yc, zc, 2.85 * k, hull, edge=sharp_kit.SURF)
+    m.cyl(x0 + 19.5 * k, x0 + 20.5 * k, yc, zc, 1.0 * k, None, carve=True, edge=None, size=0.5)
+
+
 def set_part(m, test, part, recolour=None):
     """Move every cube whose centre passes test(x, y, z) to `part` (optionally recoloured: recolour(x, y, z) -> rgb).
     Whole and 2-cube cubes that straddle the line are split to quarter cells first so the cut follows it."""

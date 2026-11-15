@@ -24,7 +24,8 @@ import math
 import os
 
 from forge import mul
-from meshy_kit import Meshy, fill_box, set_part, wood
+from meshy_kit import Meshy, big_shell, fill_box, set_part, wood
+from sharp_kit import flashes
 from smudge_kit import blocky_steel
 
 GLB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meshy", "ashes_shotgun_meshy_2026-11-15.glb")
@@ -48,6 +49,16 @@ PUMP_TOP_Z = -40.0               # above this is the barrel (the pump's own top 
 PUMP_X = (187, 267)              # where the gun is wider and deeper than the bare tube (the clamp at 280 is not pump)
 TUBE_SAMPLE_X = 180              # the tube's own colour is read from the bare tube here (behind the pump)
 GRIP_X1 = 52                     # the wooden grip: everything behind this (into the receiver: only orange changes)
+# round 4, for the game (2026-11-15): the parts the export job (make_job_meshy_pump.py) moves or measures
+HAND = (0, 42, -110, -45)        # the "grip" part: the pistol grip under the receiver's back; the export puts the
+                                 # middle of it in the hand (gz_forge_export)
+TRIGGER = (55, 61, -3, 4, -69, -56)  # the trigger blade inside the guard
+MUZZLE = (299.5, -32.5)          # the flashes: the barrel's end and middle
+SHELL_K = 1.8                    # the reload shells: round 12 had them twice the kit's size, which (41 cubes) is longer
+                                 # than this port (38); 1.8 fits
+SHELL2_OUT = 8.0                 # the port shell is built this far right of the wall, beside the port ...
+SHELL2_IN = 12.0 + SHELL2_OUT    # ... and the job moves it this far in: its axis to the gun's middle line
+LOAD_DROP = 8.0                  # the loading shell is built this far under the receiver's bottom (z -58)
 
 
 def in_wood(x, y, z):
@@ -103,4 +114,12 @@ def build():
 
     set_part(m, lambda x, y, z: px0 <= x < px1 and z < PUMP_TOP_Z and math.hypot(y, z - TUBE_ZC) >= TUBE_R, "pump")
     set_part(m, lambda x, y, z: px0 <= x < px1 and math.hypot(y, z - TUBE_ZC) < TUBE_R, "body", recolour=tube_colour)
+
+    # round 4: the parts the game needs
+    set_part(m, lambda x, y, z: HAND[0] <= x < HAND[1] and HAND[2] <= z < HAND[3], "grip")
+    tx0, tx1, ty0, ty1, tz0, tz1 = TRIGGER
+    set_part(m, lambda x, y, z: tx0 <= x < tx1 and ty0 <= y < ty1 and tz0 <= z < tz1, "trigger")
+    big_shell(m, "shell2", PORT[0] + 1.5, y0 - SHELL2_OUT, (PORT[2] + PORT[3]) / 2, SHELL_K)
+    big_shell(m, "shell", PORT[0] - 10.0, 0.0, z0 - 1 - LOAD_DROP, SHELL_K)
+    flashes(m, *MUZZLE)
     return m

@@ -14,7 +14,8 @@ different cube size treatment as well". So: the kit's mixed cubes; below the sli
 """
 import os
 
-from meshy_kit import Meshy, derust, fill_between, fill_box
+from meshy_kit import Meshy, derust, fill_between, fill_box, set_part
+from sharp_kit import flashes
 from sharp_settings import GLK_LENGTH_M, GLK_PIC_W
 
 GLB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meshy", "ashes_glock19_meshy_2026-11-15.glb")
@@ -30,6 +31,14 @@ FRAME_TOP_Z = -29.0                  # below this is the polymer frame (the slid
 GRIP_X1, GRIP_TOP_Z = 27.0, -34.0    # behind and below this is the grip with its side panels
 FRAME_DERUST = 0.8                   # share of the orange taken out on the frame ...
 GRIP_DERUST = 0.95                   # ... and on the grip
+# round 3, for the game: the parts (the job: make_job_handgun.py's poses, make_job_meshy_glock.py)
+HAND_X1, HAND_TOP_Z = 27.0, -36.0    # the "grip" part, whose middle the export puts in the hand
+SLIDE_BOT_Z = -29.5                  # the slide: everything above the slide-to-frame line
+TRIGGER = (29, 37, -2, 3, -43, -35)  # the trigger blade inside the guard
+MAG_TOP_Z, MAG_PLATE_Z = -45.0, -66.0    # the magazine: in the grip below the frame; under PLATE_Z all of it
+MAG_HALF_W, MAG_INSET = 3.0, 2.5     # inside the grip: this narrow, and this far in from its front and back
+MUZZLE = (70.0, -25.0)               # the flashes: the slide's front and the barrel's middle
+FLASH_SCALE = 0.55                   # as the sharp 9mm's
 
 
 def tint(x, y, z, rgb):
@@ -47,4 +56,19 @@ def build():
     x0, x1, z0, z1 = PORT
     fill_box(m, (x0, x1, 0, 8, z0, z1), lambda x, y, z: g.col(x + PORT_CLEAN_DX, y, z),
              rows=lambda z: (0, PORT_ROWS[z][1]))   # the left half of the port closed; the right half stays open
+
+    # round 3, for the game (2026-11-15): the parts make_job_meshy_glock.py moves or measures
+    set_part(m, lambda x, y, z: x < HAND_X1 and z < HAND_TOP_Z, "grip")
+    set_part(m, lambda x, y, z: z > SLIDE_BOT_Z, "slide")
+    tx0, tx1, ty0, ty1, tz0, tz1 = TRIGGER
+    set_part(m, lambda x, y, z: tx0 <= x < tx1 and ty0 <= y < ty1 and tz0 <= z < tz1, "trigger")
+
+    def mag(x, y, z):
+        if x >= HAND_X1 or z >= MAG_TOP_Z:
+            return False
+        if z < MAG_PLATE_Z:
+            return True                              # the floorplate
+        return (abs(y) < MAG_HALF_W and g.inside(x - MAG_INSET, y, z) and g.inside(x + MAG_INSET, y, z))
+    set_part(m, mag, "mag")
+    flashes(m, *MUZZLE, scale=FLASH_SCALE, names=("flash_a", "flash_b"))
     return m
