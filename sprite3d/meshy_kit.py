@@ -18,6 +18,7 @@ from mathutils.bvhtree import BVHTree
 from mathutils.geometry import barycentric_transform
 
 import forge
+import sharp_kit
 from sharp_settings import CUBE_M
 
 SMUDGE = 0.5                     # half the block colour, half the cube's own (smudge_kit.SMUDGE)
@@ -71,18 +72,74 @@ class Meshy:
         t = min(TEX_SIDE - 1, max(0, int((u.y % 1.0) * TEX_SIDE)))
         return self.tex[t * TEX_SIDE + s]
 
+    tint = None                  # a design may set tint(x, y, z, rgb) -> rgb (the Glock's frame: less rust)
+
     def col(self, x, y, z):
         bx, bz = (math.floor(x / BLOCK) + 0.5) * BLOCK, (math.floor(z / BLOCK) + 0.5) * BLOCK
         blk, own = self.tex_at((bx, y, bz)), self.tex_at((x, y, z))
-        return tuple(_byte(blk[i] * (1 - SMUDGE) + own[i] * SMUDGE) for i in range(3))
+        rgb = tuple(_byte(blk[i] * (1 - SMUDGE) + own[i] * SMUDGE) for i in range(3))
+        return self.tint(x, y, z, rgb) if self.tint else rgb
 
     def model(self, name, part="body"):
-        m = forge.Model(name)
+        """The whole gun in the kit's mixed cubes (sharp_kit.start: chunky fills and the cube-to-cube brightness
+        wobble): 2-cube chunks inside and on flat faces, whole cubes on flat surfaces, half cubes on slopes and curves.
+        Tefa, 2026-11-15: "use different size cubes, that gave the latest shotgun that ... not-perfect look"."""
+        m = sharp_kit.start(name)
         m.part = part
         lo, hi = self.lo, self.hi
         m.fill(self.inside, (lo.x - 1, hi.x + 1, lo.y - 1, hi.y + 1, lo.z - 1, hi.z + 1), self.col, size=1.0,
-               edge=0.5)
+               edge=sharp_kit.SURF)
         return m
+
+
+def derust(rgb, k, dim=0.8):
+    """Take the orange out of a colour by share k (0 none, 1 all), keeping its brightness (times dim where it was
+    orange), so a rust fleck becomes a lighter worn scuff in grey."""
+    r, g, b = rgb
+    orange = max(0.0, min(1.0, (r - max(g, b)) / 30.0))      # 0 grey .. 1 orange or rust-brown
+    if orange <= 0:
+        return rgb
+    lum = 0.30 * r + 0.59 * g + 0.11 * b
+    grey = lum * (1 - (1 - dim) * orange)
+    t = k * orange
+    return tuple(int(round(c * (1 - t) + grey * t)) for c in rgb)
+
+
+def set_part(m, test, part, recolour=None):
+    """Move every cube whose centre passes test(x, y, z) to `part` (optionally recoloured: recolour(x, y, z) -> rgb).
+    Whole and 2-cube cubes that straddle the line are split to quarter cells first so the cut follows it."""
+    from forge import FINE
+    for cell in list(m.full):
+        corners = [test(cell[0] + a, cell[1] + b, cell[2] + c) for a in (0.05, 0.95) for b in (0.05, 0.95)
+                   for c in (0.05, 0.95)]
+        if any(corners) and not all(corners):
+            m._split(cell)
+    groups = {}                                      # a 2-cube chunk is 8 main cells sharing one id
+    for cell, v in m.full.items():
+        groups.setdefault(v[1], []).append(cell)
+    n = 0
+    for cid, cells in groups.items():
+        hit = [c for c in cells if test(c[0] + 0.5, c[1] + 0.5, c[2] + 0.5)]
+        if not hit:
+            continue
+        whole = len(hit) == len(cells)               # the chunk moves as one; a straddling one becomes single cubes
+        for c in hit:
+            v = m.full[c]
+            v[2] = part
+            if not whole:
+                v[1] = m.new_id()
+            if recolour:
+                v[0] = recolour(c[0] + 0.5, c[1] + 0.5, c[2] + 0.5)
+            n += 1
+    for cell, sub in m.fine.items():
+        for (i, j, k), v in sub.items():
+            p = (cell[0] + (i + 0.5) / FINE, cell[1] + (j + 0.5) / FINE, cell[2] + (k + 0.5) / FINE)
+            if test(*p):
+                v[2] = part
+                if recolour:
+                    v[0] = recolour(*p)
+                n += 1
+    return n
 
 
 def _byte(c):
