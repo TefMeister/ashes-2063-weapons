@@ -108,6 +108,33 @@ def fill_box(m, box, col, keep_open=None, rows=None):
     return n
 
 
+def fill_between(m, box, axis, max_gap=1):
+    """Close loose gaps: every empty main cell in box that has a cube within max_gap on BOTH sides along axis (0 x,
+    1 y, 2 z) is filled, in the colour of the nearer of the two. A slit between two parts, a pinhole in a wall."""
+    x0, x1, y0, y1, z0, z1 = box
+    found = []
+    for x in range(x0, x1):
+        for y in range(y0, y1):
+            for z in range(z0, z1):
+                c = (x + 0.5, y + 0.5, z + 0.5)
+                if m.at(*c) is not None:
+                    continue
+                near = []
+                for sign in (-1, 1):
+                    for d in range(1, max_gap + 1):
+                        p = list(c)
+                        p[axis] += sign * d
+                        v = m.at(*p)
+                        if v is not None:
+                            near.append((d, v[0]))
+                            break
+                if len(near) == 2:
+                    found.append(((x, y, z), min(near)[1]))
+    for (x, y, z), rgb in found:                     # filled after the search, so a fill never feeds another
+        m.put(x, y, z, rgb)
+    return len(found)
+
+
 class Solid:
     """Inside or outside a mesh that is not closed everywhere. Rays are shot through the whole gun along all three
     axes, both ways, on a half-cube grid; a point gets one vote per ray: inside when the last surface that ray crossed

@@ -6,3 +6,5 @@ CHANGES and questions.txt
 *.exe
 *.obj
 dist/
+# rebuilt in a minute by forge_make.py; they hold this PC's folder paths, so they stay local
+sprite3d/meshy/*.blend
