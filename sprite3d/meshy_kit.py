@@ -141,6 +141,21 @@ def wood(x, y, z, rgb, seed=7):
     return tuple(int(round(rgb[c] * (1 - t) + w[c] * k * t)) for c in range(3))
 
 
+def transplant(m, meshy, bounds, to_src, region=None, part=None, tint=None):
+    """Build a piece of one Meshy model into m somewhere else (2026-11-16, the heavy MQ11 made of two Meshy guns):
+    every cube in bounds (dest main cubes) whose point, mapped by to_src(x, y, z) -> (x, y, z) into the source model,
+    is inside it (and inside region(sx, sy, sz) when given), in the source's colour (through tint(rgb) when given).
+    to_src can move, stretch or squeeze a part (the heavy stock: 1.6 times longer, 0.6 times as wide). Mixed cubes."""
+    def inside(x, y, z):
+        s = to_src(x, y, z)
+        return (region is None or region(*s)) and meshy.inside(*s)
+
+    def col(x, y, z):
+        rgb = meshy.col(*to_src(x, y, z))
+        return tint(rgb) if tint else rgb
+    m.fill(inside, bounds, col, size=1.0, edge=sharp_kit.SURF, part=part, keep=True)
+
+
 def big_shell(m, part, x0, yc, zc, k):
     """smudge_cube_pump_v12.big_shell (a 12 gauge shell lying along x, rim at x0, k times the kit's size), copied so
     a Meshy design need not import round 12's whole design."""
