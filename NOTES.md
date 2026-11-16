@@ -507,3 +507,10 @@ into wood (`wood`, six colours read off a plank photo Tefa picked; only the numb
   (`meshy_mq11_silenced.py`). Tefa: *"we'll need to work out some kinks, but this is good, really good!"*
   `[reported 2026-11-16, Blender only]`. Open: the kinks (not named yet), a right-side port on the heavy body, sizes
   in VR, game parts and export for everything after the shotgun and 9mm.
+
+## 2026-11-16 — the lantern: no hand, 25% smaller, a square handle (Developer PC)
+Tefa asked for the hand off the lantern "for now", the lantern 25% smaller, and a square handle instead of the "half
+moon". Done in the lantern's working folder (its NOTES.md, 2026-11-16 entry): hand switched off by one setting, the
+lantern built from 25% fewer cubes of the same size, the handle straight up and across with small rounded corners. Only the
+lantern parts were swapped into the lantern test file every launcher loads; its shine map remade to match. Old files
+kept in that folder's `backups/before-no-hand-2026-11-16/`. Not loaded or worn yet.
