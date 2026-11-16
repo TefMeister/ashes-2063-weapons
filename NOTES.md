@@ -508,6 +508,30 @@ into wood (`wood`, six colours read off a plank photo Tefa picked; only the numb
   `[reported 2026-11-16, Blender only]`. Open: the kinks (not named yet), a right-side port on the heavy body, sizes
   in VR, game parts and export for everything after the shotgun and 9mm.
 
+## 2026-11-16 — the Meshy-look revolver, pass 2, and every Meshy gun in the game (Developer PC, Opus)
+
+Tefa, on the Keeper's Meshy-look revolver: *"remove rust from it and replace it with some carved in scuffs and just a
+weathered look, the shape is fine apart from a straight trigger and the trigger guard"*, with two photos of a stainless
+S&W 625 (curved trigger, round guard). `sprite3d/meshy_look_revolver_pass2.py` works on the built blend (cubes read back
+by `meshy_look_vox.py`): every rust-coloured side takes a neighbouring steel colour; 73 cubes on the flat sides carved
+out one deep in short gouges, with a lighter lip under each so it reads as cut in; about 450 sides lighter as bright
+scratches; worn top edges; the guard rebuilt as a round loop (teardrop, rounded in section) and the trigger as a curved
+blade, both from a centre line in the same 1.7 mm cubes. The grip screw that lived in the trigger part is kept. Pictures:
+`sprite3d/meshy/renders/meshy_look_revolver_pass2_*.png`; the blend in the transfer folder beside the Keeper's
+(`meshy_look_revolver_v2.blend`, the original untouched) and in `D:\Ashes 2063\3D blender\ashes revolver meshy`.
+`[not yet seen by Tefa]`
+
+Then: *"please put all the meshy guns in the game and name the shortcut meshy guns test"*. `meshy_game_prep.py`
+readies each Meshy blend for the export (a "grip" part cut out by a box read off a side view, the sharp gun's flashes
+copied onto the muzzle, the revolver's reload rounds from the sharp revolver moved by its cylinder's offset);
+`make_job_meshy_guns.py` writes each job from the sharp gun's frames, poses and kick, keeping only the parts the Meshy
+gun has. Classes: revolver, FAL, JunkerMusket, Ingram (MQ11), Ingram2 (silenced MQ11), Ingram3 (heavy MQ11), Crowbar.
+- Round 1 for the FAL, musket and MQ11s: one piece plus the grip, so they kick and flash (the FAL's and MQ11's bolt
+  moves) but magazines and triggers stay still; the revolver moves fully. Sizes are the designs' own.
+- The Stun Ram is left out: no game weapon named for it yet (asked).
+- Launcher "Play Ashes 2063 VR (meshy guns test)", shortcut "meshy guns test" in "ashes tests"; pk3s in
+  `D:\Ashes 2063\3D blender\ashes <gun> meshy`. `[not yet loaded]`
+
 ## 2026-11-16 — the lantern: no hand, 25% smaller, a square handle (Developer PC)
 Tefa asked for the hand off the lantern "for now", the lantern 25% smaller, and a square handle instead of the "half
 moon". Done in the lantern's working folder (its NOTES.md, 2026-11-16 entry): hand switched off by one setting, the
