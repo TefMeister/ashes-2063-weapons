@@ -99,3 +99,11 @@ JCK_PIC_W = 40
 JCK_LENGTH_M = 0.80
 JCK_S = JCK_LENGTH_M / JCK_PIC_W / CUBE_M      # main cubes per picture pixel (5.9)
 JCK_CHISEL_STROKE = 8.0                # main cubes the chisel hammers out
+
+# The Meshy-look sawn-off (meshy_look_sawed_off.py, 2026-11-16; Tefa: "it's too fat and bulky", with a photo of a slim
+# coach gun): the same length, breech and muzzle as the sharp one, slimmer barrels on a shallower action, so it breaks
+# open on its own hinge (main cubes; make_job_meshy_guns.py reads these too).
+MSAWN_BARREL_R = 4.2                   # was 5.0
+MSAWN_BARREL_Y = 4.3                   # middle to each barrel's axis; was 5.2
+MSAWN_AXIS_Z = -SAWN_TOP_PX * SAWN_S - SAWN_BARREL_R    # the barrels' axis stays where the sharp one's was
+MSAWN_HINGE = (SAWN_BREECH_PX * SAWN_S - 1.0, MSAWN_AXIS_Z - MSAWN_BARREL_R - 1.5)   # (x, z): under the breech

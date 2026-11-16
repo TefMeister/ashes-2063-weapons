@@ -26,9 +26,19 @@ GUNS = {
     "mq11_silenced": ("make_job_ingram", 2, "Ingram.txt", ["Ingram2"], ("INGG",), {"bolt"}, "mq11s"),
     "heavy_mq11": ("make_job_ingram", 3, "Ingram.txt", ["Ingram3"], ("INGG",), set(), "mq11h"),
     "stun_ram": ("make_job_jackhammer", None, "Hammer.txt", ["JACKHAMMER"], (), {"chisel", "trigger"}, "mram"),
+    # the slim Meshy-look sawn-off (meshy_look_sawed_off.py): breaks open on its own hinge (sharp_settings.MSAWN_HINGE)
+    "sawed_off": ("make_job_sawed_off", None, "Sawedoff.txt", ["SawedOff"], (),
+                  {"barrels", "rib", "bead", "lug", "forend", "flash_ra", "flash_rb", "flash_la", "flash_lb", "trigger",
+                   "lever", "shell_r", "shell_l"}, "msawn"),
     "crowbar": ("make_job_crowbar", None, "Crowbar.txt", ["Crowbar"], (), set(), "mcrow"),
 }
 REVOLVER_SHIFT = (0.0, -0.0045, -0.010)      # the Meshy revolver's cylinder centre minus the sharp one's
+
+
+def sawn_hinge():
+    from sharp_job import CUBE_M
+    from sharp_settings import MSAWN_HINGE
+    return [0.0, MSAWN_HINGE[0] * CUBE_M, MSAWN_HINGE[1] * CUBE_M]      # sharp_job.bl(x, 0, z)
 
 
 def main(key, out):
@@ -49,11 +59,17 @@ def main(key, out):
             for k, v in p.items():
                 if len(v) >= 7:          # a hinge: the crane moves with the cylinder
                     v[4:7] = [v[4 + i] + REVOLVER_SHIFT[i] for i in range(3)]
+        if key == "sawed_off":
+            for k, v in p.items():
+                if len(v) >= 7:          # every turning part turns on this gun's own hinge
+                    v[4:7] = sawn_hinge()
         return p
 
     models = {short + "_body": []}
     if key == "revolver":
         models[short + "_cylinder"] = ["cylinder"]
+    if key == "sawed_off":
+        models[short + "_barrels"] = list(sharp.BARRELS)
     if flashes:
         models[short + "_flash"] = flashes
     if bits:

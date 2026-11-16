@@ -35,6 +35,7 @@ GUNS = {
     # the Stun Ram stands in for the JackHammer (Tefa 2026-11-16): held by the chainsaw's rear handle, the ram head
     # in front is the jackhammer job's "chisel" (it punches out on the firing frames), the throttle its "trigger"
     "stun_ram": (None, (0.03, 0.17, -0.27, -0.19), None, {}, {}),
+    "sawed_off": (None, None, None, {}, {}),         # meshy_look_sawed_off.py already has every part
 }
 # more parts cut out of the body by a box (y0, y1, z0, z1), after the grip
 BOXES = {"stun_ram": [("chisel", (0.55, 1.0, -1.0, 1.0)), ("trigger", (0.075, 0.17, -0.285, -0.24))]}

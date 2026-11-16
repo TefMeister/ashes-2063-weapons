@@ -533,6 +533,19 @@ gun has. Classes: revolver, FAL, JunkerMusket, Ingram (MQ11), Ingram2 (silenced 
 - Launcher "Play Ashes 2063 VR (meshy guns test)", shortcut "meshy guns test" in "ashes tests"; pk3s in
   `D:\Ashes 2063\3D blender\ashes <gun> meshy`. `[not yet loaded]`
 
+## 2026-11-16 — the slim Meshy-look sawn-off; the revolver's sight no longer orange (Developer PC, Opus)
+
+Tefa: *"change the double barrel, it's too fat and bulky"*, with a photo of a slim side-by-side coach gun (outside
+hammers, thin barrels, slim wood fore-end, curved pistol grip): *"tweak our latest sawed off accordingly, to look
+slimmer ... but still blocky and in the style of other meshy weapons"*, and *"remove the orange from the revolvers
+sight"*. `sprite3d/meshy_look_sawed_off.py` (a forge design, painted as the Meshy-look revolver by `meshy_look.py`):
+the sharp sawn-off's length, breech and muzzle; barrels 4.2 cubes round instead of 5 (3.5 was tried first and looked
+thinner than the photo); no heavy rib, tape or blue cloth; the action as wide as the barrels and about half as deep,
+with side plates and two hammers; a slimmer curved grip with a steel butt cap; very little rust. It breaks open on its
+own hinge under the breech (`sharp_settings.MSAWN_*`, read by `make_job_meshy_guns.py`, which drives it with
+`make_job_sawed_off.py`'s poses). The revolver pass 2 now takes the orange insert off the front sight too
+(`meshy_look_revolver_v3.blend`). Both in the "meshy guns test" launcher. `[not yet loaded]`
+
 ## 2026-11-16 — the lantern: no hand, 25% smaller, a square handle (Developer PC)
 Tefa asked for the hand off the lantern "for now", the lantern 25% smaller, and a square handle instead of the "half
 moon". Done in the lantern's working folder (its NOTES.md, 2026-11-16 entry): hand switched off by one setting, the

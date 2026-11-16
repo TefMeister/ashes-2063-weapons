@@ -69,8 +69,7 @@ def derust(cf, keep=lambda k, d: False, wood=False):
     print("  rust faces replaced", len(bad), "unfilled", len(left))
     return good
 for n in METAL:
-    keep = (lambda k, d: 250 <= k[1] <= 258 and k[2] >= -33) if n == 'barrel' else (lambda k, d: False)  # orange front sight stays
-    data[n]['cf'] = derust(data[n]['cf'], keep)
+    data[n]['cf'] = derust(data[n]['cf'])     # the orange front sight insert too (Tefa: "remove the orange from the revolvers sight")
 data['grip']['cf'] = derust(data['grip']['cf'], wood=True)
 
 # 2. new trigger guard and trigger from a centre line (y, z in small-cell units)
