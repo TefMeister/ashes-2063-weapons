@@ -25,6 +25,7 @@ GUNS = {
              "mq11"),
     "mq11_silenced": ("make_job_ingram", 2, "Ingram.txt", ["Ingram2"], ("INGG",), {"bolt"}, "mq11s"),
     "heavy_mq11": ("make_job_ingram", 3, "Ingram.txt", ["Ingram3"], ("INGG",), set(), "mq11h"),
+    "stun_ram": ("make_job_jackhammer", None, "Hammer.txt", ["JACKHAMMER"], (), {"chisel", "trigger"}, "mram"),
     "crowbar": ("make_job_crowbar", None, "Crowbar.txt", ["Crowbar"], (), set(), "mcrow"),
 }
 REVOLVER_SHIFT = (0.0, -0.0045, -0.010)      # the Meshy revolver's cylinder centre minus the sharp one's

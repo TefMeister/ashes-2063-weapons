@@ -528,7 +528,8 @@ copied onto the muzzle, the revolver's reload rounds from the sharp revolver mov
 gun has. Classes: revolver, FAL, JunkerMusket, Ingram (MQ11), Ingram2 (silenced MQ11), Ingram3 (heavy MQ11), Crowbar.
 - Round 1 for the FAL, musket and MQ11s: one piece plus the grip, so they kick and flash (the FAL's and MQ11's bolt
   moves) but magazines and triggers stay still; the revolver moves fully. Sizes are the designs' own.
-- The Stun Ram is left out: no game weapon named for it yet (asked).
+- The Stun Ram stands in for the JackHammer (Tefa: "it's the jackhammer"): held by the chainsaw's rear handle, the ram
+  head is the jackhammer job's "chisel" and punches out on its firing frames, the throttle under the handle its trigger.
 - Launcher "Play Ashes 2063 VR (meshy guns test)", shortcut "meshy guns test" in "ashes tests"; pk3s in
   `D:\Ashes 2063\3D blender\ashes <gun> meshy`. `[not yet loaded]`
 

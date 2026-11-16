@@ -32,14 +32,19 @@ GUNS = {
     "mq11_silenced": (None, (0.29, 0.40, -0.30, -0.16), None, {"suppressor": "body"}, {}),
     "heavy_mq11": (None, None, None, {"stock": "body"}, {}),
     "crowbar": (None, (0.075, 0.20, -1.0, 1.0), None, {}, {}),
+    # the Stun Ram stands in for the JackHammer (Tefa 2026-11-16): held by the chainsaw's rear handle, the ram head
+    # in front is the jackhammer job's "chisel" (it punches out on the firing frames), the throttle its "trigger"
+    "stun_ram": (None, (0.03, 0.17, -0.27, -0.19), None, {}, {}),
 }
+# more parts cut out of the body by a box (y0, y1, z0, z1), after the grip
+BOXES = {"stun_ram": [("chisel", (0.55, 1.0, -1.0, 1.0)), ("trigger", (0.075, 0.17, -0.285, -0.24))]}
 
 
 def root():
     return next(o for o in bpy.data.objects if o.type == 'EMPTY' and o.name.endswith("_root"))
 
 
-def split_grip(r, box):
+def split_grip(r, box, name="grip"):
     y0, y1, z0, z1 = box
     base = r.name[:-len("_root")]
     src = bpy.data.objects[base + "_body"]
@@ -65,16 +70,16 @@ def split_grip(r, box):
                 lb[uvd].uv = la[uvs].uv
     bmesh.ops.delete(bm, geom=inside, context='FACES')
     bm.to_mesh(me); bm.free()
-    gme = bpy.data.meshes.new(base + "_grip")
+    gme = bpy.data.meshes.new(base + "_" + name)
     gm.to_mesh(gme); gm.free()
     for m in me.materials:
         gme.materials.append(m)
     # colour attributes on the faces (CubeKit pick meshes) are not carried; forge exports colour through UVs
-    g = bpy.data.objects.new(base + "_grip", gme)
+    g = bpy.data.objects.new(base + "_" + name, gme)
     bpy.context.scene.collection.objects.link(g)
     g.parent = r
     g.matrix_world = src.matrix_world.copy()
-    print("grip:", len(inside), "faces")
+    print(name + ":", len(inside), "faces")
 
 
 def copy_parts(r, sharp_blend, names, offset_of):
@@ -107,6 +112,8 @@ def main(key, out):
                 o["part"] = renames[part]
     if grip:
         split_grip(r, grip)
+    for name, box in BOXES.get(key, []):
+        split_grip(r, box, name)
     if sharp and muzzle:
         with bpy.data.libraries.load(SHARP[sharp]) as (src, dst):
             sroot = next(n for n in src.objects if n.endswith("_root"))
