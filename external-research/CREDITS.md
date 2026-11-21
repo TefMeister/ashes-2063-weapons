@@ -15,3 +15,8 @@ are not, or you are a rights holder who wants something corrected or removed, op
 - **Team Beef** (DrBeef and contributors), QuestZDoom — https://github.com/Team-Beef-Studios/QuestZDoom
 - **hh79**, gzdoomvr — https://github.com/hh79/gzdoomvr
 - **ZDoom** team, GZDoom — https://github.com/ZDoom/gzdoom
+
+## Sources (2026-11-21)
+
+- **GameOrDie007**, Doom VR releases v1.3.0 and v1.3.1 — https://github.com/GameOrDie007/Doom-VR/releases
+- **Moondiesel**, **vicdanny1975**, **aidangken-cell**: Doom VR issue #2, "Projectiles not firing from weapon" — https://github.com/GameOrDie007/Doom-VR/issues/2
