@@ -552,3 +552,41 @@ moon". Done in the lantern's working folder (its NOTES.md, 2026-11-16 entry): ha
 lantern built from 25% fewer cubes of the same size, the handle straight up and across with small rounded corners. Only the
 lantern parts were swapped into the lantern test file every launcher loads; its shine map remade to match. Old files
 kept in that folder's `backups/before-no-hand-2026-11-16/`. Not loaded or worn yet.
+
+## 2026-11-27 — the Meshy set: every Ashes gun of all three episodes remade, in the cube look (Build PC, Opus)
+
+Tefa remade every gun in Meshy except the JackHammer (the Stun Ram of 2026-11-15 is used again) and asked: *"give them
+the blocky cubekit treatment, using different cube sizes, scratches need to be cut out continuously (not dotted cut
+outs) with very fine small cubes. gun barrels have to be empty inside like actual pipes and the moving parts on the
+weapon all have to move as expected ... don't put hands on the weapons just yet, only make the guns and lantern for now,
+size them up referencing the pump action shotgun's size and remove all weapons from the game that we have used before,
+lantern as well. please do all episodes ... put the first versions - un-upgraded ones in the game"*. Tefa chose "all
+at once, pictures at the end" for this batch (asked, because the standing rule is Blender work together step by step).
+
+**Scripts** (`sprite3d/`, all `m2_*`):
+- `m2_kit.py`: `load` (meshy_kit's mixed cubes), `bore` (a round hole in quarter cubes along the barrel, open at the
+  muzzle, its lining darker the deeper it is; only the lining, so a thin barrel keeps its outside colour),
+  `cut_scratches` (wandering lines walked in half-quarter steps, every quarter cell on the line cut one deep, the floor
+  showing bright metal, on wood darker wood).
+- `m2_anim.py`: moving parts read from the game's own weapon states, so the same code serves all three episodes: fire
+  states (bright frames = the shot: kick, trigger, recoiling parts back, flash 1/2/3), cycle states (pump, lever, cock
+  ...: a triangle out and back), reload states (magazines drop, are gone, come back; break actions and swing-out
+  cylinders open, stay open, close; loop states slide rounds in). Named ready states claim their frames first.
+- One design per gun, `m2_<gun>.py`: its file, real length, measured parts (`m2_probe.py` sections + gridded side views),
+  `CLASSES` per episode (first versions only) and its `RIG`. `m2_make.py build|export|all <gun>|all` builds the blend,
+  exports one pk3 per gun and episode (every gun packed at 0.7 with its grip kept in the hand, the scale of the Meshy
+  shotgun Tefa wore on 2026-11-15, so the sizes hold against each other).
+- `m2_lantern.py` + `m2_lantern_world.py`: the Meshy lantern (body, see-through glass, the glowing tube; the space
+  between emptied) on the September off-hand lantern actors, the bare left hand never shown.
+- `m2_launchers.py`: one launcher per episode, only the new packs plus fire lights / VR fixes / two-handed aim.
+
+**Sizes** (real lengths; all packed at 0.7): pump 0.67 m, sawn-off 0.48, revolver 0.30, 9mm 0.186, police pistol
+0.19, MAC 0.55, FAL-slot rifle 1.00, AR-15 0.99, modular 0.84, musket 1.15, flamethrower 0.95, lever 1.00, hunter 1.10,
+crossbow 0.85, Thumper 0.73, lazer gun 0.20, crowbar 0.75 (turned level: Meshy laid it on a 27 degree slant), pipe bomb
+0.28, bowling ball 0.218, JackHammer 0.85, lantern 0.28 tall.
+
+**Guessed, for Tefa to judge** `[hypothesis]`: which piece of the Junker Musket is the "bullet cover" (read as the cream
+lever on the receiver's right; it flips back on a reload); the rifles' bolt is the right side of the receiver over the
+port sliding back; the lever and break-open angles; every hinge sign is from the exporter's maths, not seen moving.
+**Not here yet:** the Killer P.I.G. (no Meshy file), the suppressed/upgraded builds, two-handed aim for the Afterglow and
+Hard Reset long guns (the two-handed pack lists Episode 1 classes only), hands.
