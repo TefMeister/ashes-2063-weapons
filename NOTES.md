@@ -590,3 +590,17 @@ lever on the receiver's right; it flips back on a reload); the rifles' bolt is t
 port sliding back; the lever and break-open angles; every hinge sign is from the exporter's maths, not seen moving.
 **Not here yet:** the Killer P.I.G. (no Meshy file), the suppressed/upgraded builds, two-handed aim for the Afterglow and
 Hard Reset long guns (the two-handed pack lists Episode 1 classes only), hands.
+
+### 2026-11-28 — Tefa's first headset run of the Meshy set
+Tefa: *"for some reason afterglow doesn't start at all and hard reset only has the bowling ball. episode 1 weapons
+look great just need their sizes adjusted, but not today"*. `[verified-live 2026-11-28, n=1, Tefa's word]`
+- Episode 1: the guns look great; sizes to adjust (next session).
+- Afterglow: the VR launcher does not start at all. The flat check of 2026-11-27 did start it, so the difference is
+  the VR run (vr_mode 10, ashes-vr-3dtest.ini) or something changed since. No log was written (the VR launchers have
+  no +logfile; add one first). Lead to check: gzdoomvr-tefa\gzdoomvr.exe is dated 2026-11-27 23:47, after the flat
+  checks (23:18): another session may have swapped the engine. `[hypothesis]`
+- Hard Reset: only the bowling ball in hand, although the launcher gives all ten. The flat check saw the same thing for
+  the Thumper (it showed the ball) and it was put down as switching timing; that reading is now doubtful. Leads: the
+  episode's start (a map script that clears the inventory and hands out the ball after the command-line gives), or
+  the give order (BowlBallWeapon last). `[hypothesis]`
+- Tefa: no game starts tonight; continue tomorrow.
