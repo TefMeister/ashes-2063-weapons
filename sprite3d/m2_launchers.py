@@ -28,9 +28,9 @@ EPISODES = {
                            "LazerAmmo Chips"),
     "hardreset": dict(title="Hard Reset", files=[r".\Resources\AshesHardReset_105.pk3"],
                       give="Crowbar PolicePistol Leveraction HunterShotgun ModRifle1 NapalmGun pipebomb Xbow "
-                           "BowlBallWeapon Thumper", start="PolicePistol",
-                      ammo="NineMilammo Hollowpointammo Shotgunammo rifleammo XbowAmmo thumperammo BowlingAmmo "
-                           "NapalmAmmo PipeAmmo"),
+                           "Thumper BowlBallWeapon", start="PolicePistol",
+                      ammo="NineMilammo Hollowpointammo Shotgunammo rifleammo XbowAmmo thumperammo thumperloaded "
+                           "BowlingAmmo NapalmAmmo PipeAmmo"),
 }
 
 
